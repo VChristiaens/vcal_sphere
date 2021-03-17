@@ -1,0 +1,162 @@
+This file describes the structure of the pipeline, and describes the parameters that can be set in the json file.
+
+************************ CALIBRATION outline ***************************
+
+STEPS:
+0: raw file classification
+1-6. IRDIS
+    #1. master dark
+    #2. calculate gains
+    #3. good SKY BKG or INS BG (in order of priority)
+    #4. make master SKY BKG or INS BG (or pca sky subtr)
+    #5. master flat
+    #6. actual reduction
+10-22 IFS
+    #10. master dark
+    #11. calculate gains
+    #12. master detector flat
+    #13. spectra positions
+    #14. total instrument flat
+    #15. wave calibration
+    #16. IFU flat
+    #17. sky cubes
+    #18. actual reduction (OBJ)
+    #19. actual reduction (CEN if any)
+    #20. actual reduction (PSF if any)
+
+************************ json file parameters ******************************
+
+# PATHS
+    "path": str, parent path -- subdirectories with products will be created in there
+    "inpath": str, where raw downloaded files should be placed
+    "inpath_filt_table": str, # path to SPHERE filter curves
+   
+# OBSERVATION
+## First run  dfits *.fits |fitsort DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT in the 'raw' directory to fill the appropriate values.
+    "dit_ifs": float, integration time of science IFS observations to be considered
+    "dit_irdis" : float, integration time of science IRDIS observations to be considered
+    "dit_psf_ifs" : float, integration time of FLUX IFS observations to be considered
+    "dit_psf_irdis": float, integration time of FLUX IRDIS observations to be considered
+    "dit_cen_ifs": float, integration time of CENTER IFS observations to be considered
+    "dit_cen_irdis": float, integration time of CENTER IRDIS observations to be considered
+    "instr": str, instrument name in file name
+    "filt1": str, first filter (value of 'INS1.FILT.NAME' of obs to be considered)
+    "filt2": str, second filter (value of 'INS1.OPTI2.NAME' of obs to be considered) 
+    "science_mode": str, choice between {'DBI','CI'}
+    "mode": str, IFS mode (used for spectra positions). E.g. "YJH" or "YJ"
+    "filters": list of 2 str for DBI, 1 str for CI, to be used to name products
+
+# TO DO LIST:
+    "do_irdis": bool, whether to reduce IRDIS data
+    "do_ifs": bool, whether to reduce IFS data
+    "to_do": set of integers corresponding to parts of calib to be done (e.g. {0,1,2,3}).
+    Full correspondence:
+    #0. classification
+    ## 1-6. IRDIS
+    #1. master dark
+    #2. calculate gains
+    #3. good SKY BKG or INS BG (in order of priority)
+    #4. make master SKY BKG or INS BG (or pca sky subtr)
+    #5. master flat
+    #6. actual reduction
+    ## 10-22 IFS
+    #10. master dark
+    #11. calculate gains
+    #12. master detector flat
+    #13. spectra positions
+    #14. total instrument flat
+    #15. wave calibration
+    #16. IFU flat
+    #17. sky cubes
+    #18. actual reduction (OBJ)
+    #19. actual reduction (CEN if any)
+    #20. actual reduction (PSF if any)
+    
+# REDUCTION params (likely to require change)
+## For optimal reduction, you may check the sky cubes by eye and possibly adapt values below:
+    "good_sky_irdis": list of str or list of int, #which skies to use for IRDIS? ['all'] or list of indices (chronological order). If empty list, will either use_ins_bg or just subtract the dark.
+    "good_psf_sky_irdis": list of str or list of int, #which skies to use for IRDIS? ['all'] or list of indices (chronological order). If empty list, will either use_ins_bg or just subtract the dark.
+    "good_sky_list":  list of str or list of int, #which skies to use for IFS? If [-1]: just uses the first frame of the first sky at the end of the sequence (reproduce best the remanence effect, if any). If a list of indices: uses all frames from all those cubes. If ['all']: uses all.
+    "good_psf_sky_list": same as above for psf sky of IFS data
+    "pca_subtr": True, # whether to do a PCA sky subtraction for IRDIS images (never for IFS)
+    "corner_coords": [(39,215),(72,42),(247,78),(216,250)], # x,y coords where the sky will be manually estimated for IFS # !!! ADAPT IF STAR NOT CENTERED
+    "msky_ap": 17, #aperture for manual sky level estimation in IFS data
+    "corner_coords_psf": [(52,209)], # x,y coords where the sky will be manually estimated for IFS PSF# !!! ADAPT IF STAR NOT CENTERED (e.g. if star is off-centered, only provide one tuple corresponding to opposite corner)
+    "msky_ap_psf": 20,
+
+# REDUCTION params (unlikely to be changed based on tests on a few datasets)
+    "xtalk_corr": False, # whether cross talk should be corrected: Don't. It looks too aggressive.
+    ## darks
+    "indiv_fdark": True,  # whether to subtract individual dark to each flat (bug in the sph recipes, so this is done manually)
+    "dark_ifs": [False] # list containing either False or any combination of 'OBJ', 'PSF', 'CEN' and 'FLAT'. Tells whether to subtract the MASTER dark, and if so for which type of files. Note: only relevant for FLAT, since in most cases a SKY is available for OBJ, CEN or PSF which already includes a DARK. If ['FLAT'] in stead of [False] just provide a DARK file with the min DIT among FLATs in the raw folder. Recommended: [False] combined with indiv_fdark = True.
+    ## flats:
+    "illum_pattern_corr": True, # whether illum flat pattern to be corrected (recommended)
+    "flat_fit": True # whether to fit flat with polynomial
+    "large_scale_flat": "some", # choice between 'all' (v1.38 manual), 'some' (v1.40? cf. dr recipe), False (not used, v1.40? cf. flat recipe)
+    "flat_smooth_method_idx": 1, # default 1 in esorex recipe (0: CPL filter, 1: FFT filter). See sph_ifs_master_detector_flat description.
+    "flat_smooth_length": 5, # See sph_ifs_master_detector_flat description.
+    ## spectra position
+    "specpos_distort_corr": False, # See sph_ifs_spectra_positions description
+    "specpos_nonlin_corr": True, # See sph_ifs_spectra_positions description
+    ## wave calib
+    "poly_order_wc":1, # used for wavelength model
+    "wc_win_sz": 2, # default: 4 but worked well with 2 on 2019-2020 datasets
+    ## sky
+    "sky": True, # for IFS, whether to manually subtract sky before reduction
+    "manual_sky": True, # whether to subtract residual bkg level manually *after* reduction (recommended if not pca subtraction or mean bkg != 0), although irrelevant if pca_subtr is set to True.
+    "mask_pca_sky_sub": [200,400,4,20,[40,142,180+40,180+142]]" #params for ringed spider mask, respectively: 
+	- inner rad of annulus in pixels, 
+	- outer rad of annulus in pixels, 
+	- number of spider legs/branches, 
+	- width of legs in pixels, 
+	- list of angles for the legs/branches or float (in the latter case, corresponds to angle of first spider, with automatic separation = 360/n_branches between branches)
+    
+# Overwrite if product exists?
+    "overwrite_sof": True,
+    "overwrite_fits": True
+
+
+************************ 0. CLASSIFICATION ***************************
+
+-> Creates dictionary containing lists for each kind of file.
+-> Output: dico_files.csv
+
+************************ IRDIS ***************************
+1. master dark
+	-> Created from all raw darks available.
+	-> Outputs: 
+		- master_dark.fits
+		- master_badpixelmap.fits
+
+2. gains (just for informative purpose, not further used)
+	-> Outputs:
+		- master_gain_map.fits
+		- nonlin_map.fits
+		- nonlin_badpixelmap.fits
+
+3. master sky cube creation for OBJ & PSF.
+	-> Created from SKY BKG or INS BG (in this order of priority).
+	-> Outputs (if SKY BG or INS BG files are available):
+		- master_sky_cube.fits (for OBJ & CEN)
+		- master_sky_psf_cube.fits (for PSF)
+	
+4. Sky subtraction for OBJ, CEN & PSF:
+	IF master_sky_cube.fits exists:
+	-> Subtracts sky from individual cubes, possibly using PCA if requested in param file.
+	-> If not PCA, will simply subtract median of all skies.
+	-> Note: not using PCA is risky, for the bkg level can be non-null. If "pca_subtr" is set to False, then it is recommended to set "manual_sky" to True. This will subtract bkg median level (i.e. set it to a median null level)
+	ELSE:
+	-> subtracts median of raw darks with matching DIT. 
+	-> In this case, it is recommended to "manual_sky" to True, so median bkg level will be subtracted.
+
+	-> Outputs:
+		-> individual raw cubes after SKY subtraction, saved in a "skysub/" folder.
+
+5. master flat
+
+6. Creation of calibrated cubes
+
+
+************************ IFS ***************************
+
+TBD

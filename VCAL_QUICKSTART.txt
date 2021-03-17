@@ -1,0 +1,22 @@
+0) Place VCAL-pipeline scripts in your $PATH.
+
+1) Download:
+	- dataset of interest + raw calibs
+	- ALL darks from the following morning manually (i.e. as another request). This is because the ESO algorithm only download the darks with same DIT as the OBJECT observations, but not the ones for flats and other calibs.
+	=> Place all files in a folder named 'raw'
+
+2) Uncompress all *.Z files
+
+3) cd in downloaded directory and use following command to infer the strategy used during the observation (optionally check some raw images):
+dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
+
+4) Adapt JSON param files for:
+	a) calibration (1st bad pix corr; dark sub; flat field; sky sub; etc.)  
+	b) preprocessing (2nd bad pix corr; centering; bad frames removal; ADI cube)
+	c) post-processing (median-ADI; PCA-ADI full/ann; PCA-SADI/PCA-ASDI for IFS)
+Description on each param is provided in ***.
+
+5) Run the reduce_data.sh script and enjoy a nice coffee (or maybe 2) while waiting to get the results.
+
+
+Warning: Different observations may have different specific issues that may have not been predicted for handling by the pipeline. Inspect intermediate files for diagnostic.
