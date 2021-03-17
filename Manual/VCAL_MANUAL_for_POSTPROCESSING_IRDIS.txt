@@ -1,0 +1,57 @@
+This file describes the structure of the postprocessing pipeline for IRDIS, and describes the parameters that can be set in the json file.
+
+************************ POSTPROCESSING (IRDIS) ******************************
+
+# OBS
+"source":"MWC758"               # name of the source without space (used for filenames saved)
+"sourcename":"MWC 758"          # name of the source with space (used for labels in plots)
+"details":" (IRDIS 2016/01/01)" # additional details to be pritned in plots (e.g. dataset info)
+"label_test": ""                # additional label to use in output folder name (e.g. for different runs of tests)
+
+# TO DO
+"do_adi":1,
+"do_pca_sann",0,
+"do_pca_full":1,
+"do_pca_ann":1,
+"do_conv":0,  			# whether to smooth final image 
+"do_snr_map":0, 		# whether to compute SNR map associated to final images. Can either be a bool, or a list of bool. In the latter case, it tells whether the snr_map is to be computed for median-adi, pca-full and pca-ann, resp.)
+"high_pass_filter_list": [0] 	# whether to high-pass filter before ADI processing, can be [0,1]: would then post-process everything twice with and without hpf.
+
+# Planet?
+"planet":0                    # whether a companion candidate is present or not
+"planet_pos_crop": [21,21]    # (x,y) position of the companion candidate in cropped final image
+"planet_pos_full": [42,42]    # (x,y) position of the companion candidate in full final image
+"subtract_planet":0           # if a planet is present, subtract it? Note: input argument "planet_parameter" must be set if True. This is necessary to calculate meaningful contrast curves.
+
+# Inject fake planets?
+"fake_planet":0     		# whether to inject fake companions (e.g. to find optimal npc) or calculate contrast curves 
+"fcp_pos_r_crop": [0.3] 	# if 1 to the above:, at which radial separation(s) (in arcsec) in cropped cube
+"fcp_pos_r_full": [0.3,0.6,0.9] # if 1 to the above:, at which radial separation(s) (in arcsec) in full cube
+"injection_fac": 1              # scaling factor for the injection of fcps with respect to first 5-sigma contrast estimate (e.g. 3/5. to inject at 3 sigma instead of 5 sigma)
+"fc_snr": 10.			# snr of the injected fcp in contrast_curve to compute throughput
+"nspi" : 9			# number of spirals where fcps should be injected - also corresponds to number of PAs where the contrast curve is computed
+"wedge":[0,360]			# in which range of PA should the contrast curve be computed. First angle also sets the PA of the first injected fake planets.
+
+# Post-proc options
+"mask_IWA": 1 			# numerical mask to hide central region of final images, to be provided in fwhm
+"exclude_negative_lobes":0      # when computing SNR (maps) whether to exclude apertures in negative lobes
+
+# PCA options
+"delta_rot": [1,3] 		# threshold in field rotation to keep good frames in PCA library. Can be: float or list of 2 values (for threshold for the innermost and outermost annuli, resp.). In the latter case, the threshold is linearly interpolated for intermediate annuli.
+"asize":3, 			# width of the annnuli for either pca in concentric annuli or on a single annulus, provided in FWHM.
+"svd_mode":"lapack"             # package to use for SVD, can be a string or a list of 2 strings. In the latter case, the first one is for processing of cropped cube, and the second one for the full cube.
+"firstguess_pcs":[1,21,1] 	# number of pcs to explore for first contrast curve (used to estimate noise level). Should be a list of 3 elements: first and last npc to be tested, and step.
+"pcs_sann":[1,21,1] 		# number of pcs to be explored for PCA in single annulus.
+"pcs_full":[1,21,1] 		# number of pcs to be explored for PCA in full frame.
+"pcs_ann":[1,21,1] 		# number of pcs to be explored for PCA in concentric annuli.
+"min_fr": 10 			# min number of frames to create PCA library. Default: 10
+"max_fr": 200 			# max number of frames to create PCA library (will take the closest ones that match threshold). Default: 200.
+
+#RDI
+ref_cube_name # full path to a reference cube. If provided, will trigger RDI! Should leave a blank in the name for filter.
+prep_ref_cube: [2,3]                # whether to:
+1) perform an additional step of fine recentering based on cross-correlation of log speckle intensities in full frames; 
+2) same as 1) but using median shifts inferred in 8 subframes (avoiding center area dominated by mask residuals);
+3) change all neg values into 0.
+scaling       # scaling of the cube before RDI (default: None)
+mask_PCA      # if provided, radius in arcsec for an inner mask where the coefficients to project the PCs are NOT computed (e.g. if a bright disc is present, you may want to avoid that area to not have the ref images to try to model and subtract it). Note: sat spots are at 50px (0.6'') separation => set it to 0.65'' if sat spots are present

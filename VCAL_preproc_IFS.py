@@ -1,0 +1,1457 @@
+#PURPOSE: do the calibration steps not done in the EOS pipeline using VIP
+import ast
+import csv
+import json
+import matplotlib
+from matplotlib import pyplot as plt
+import numpy as np
+import pandas as pd
+import os
+import pdb
+from os.path import isfile, isdir#, join, dirname, abspath
+from vip_hci.fits import open_fits, write_fits
+from vip_hci.medsub import median_sub
+from vip_hci.metrics import normalize_psf, compute_stim_map, compute_inverse_stim_map
+from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit, 
+                             cube_recenter_dft_upsampling, cube_shift,
+                             cube_detect_badfr_pxstats, 
+                             cube_detect_badfr_ellipticity, 
+                             cube_detect_badfr_correlation,
+                             cube_recenter_satspots, cube_recenter_radon, 
+                             cube_recenter_via_speckles, frame_shift, 
+                             cube_crop_frames, frame_crop, cube_derotate,
+                             find_scal_vector)
+from vip_hci.preproc.rescaling import _cube_resc_wave
+from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
+#from C_2019_10_J19003645.IRDIS_reduction.VCAL_1_calib_SPHERE import dit_ifs, dit_irdis, dit_psf_ifs, dit_psf_irdis
+
+def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json', 
+                params_calib_name='VCAL_params_calib.json'):
+    """
+    Preprocessing of SPHERE/IFS data using preproc parameters provided in 
+    json file.
+    
+    Input:
+    ******
+    params_preproc_name: str, opt
+        Full path + name of the json file containing preproc parameters.
+    params_calib_name: str, opt
+        Full path + name of the json file containing calibration parameters.
+        
+    Output:
+    *******
+    None. All preprocessed products are written as fits files, and can then be 
+    used for post-processing.
+    
+    """
+    matplotlib.style.use('default')
+    with open(params_preproc_name, 'r') as read_file_params_preproc:
+        params_preproc = json.load(read_file_params_preproc)
+    with open(params_calib_name, 'r') as read_file_params_calib:
+        params_calib = json.load(read_file_params_calib)
+        
+    #**************************** PARAMS TO BE ADAPTED ****************************  
+    path = params_calib['path'] # "/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/"
+    inpath = path+"IFS_reduction/1_calib_esorex/calib/"
+    label_test = params_preproc.get('label_test', '')
+    outpath = path+"IFS_reduction/2_preproc_vip{}/".format(label_test)
+    inpath_coro = params_preproc['inpath_coro'] # "/Users/Valentin/Documents/Coronagraphy/"
+    nd_filename = inpath_coro+"SPHERE_CPI_ND.dat" # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
+    use_cen_only = params_preproc.get('use_cen_only', 0)
+    
+    sky = params_calib['sky']
+    if sky:
+        sky_pre = "skycorr_"
+    else:
+        sky_pre = ""
+        
+    ## note: for CrA9, no need for PSF because the OBJ ones are not saturated 
+    
+    # parts of pipeline
+    to_do = params_preproc.get('to_do',{1,2,3,4,5,6,7,8,9}) # parts of pre-processing to be run. 
+    #1. crop odd + bad pix corr
+    #   a. with provided mask (static) => iterative because clumps
+    #   b. sigma filtering (cosmic rays) => non-iterative
+    #2. Recentering
+    #3. final crop
+    #4. combine all cropped cubes + compute derot_angles [bin if requested]
+    #5. bad frame rejection
+    #   a. Plots before rejection
+    #   b. Rejection
+    #   c. Plots after rejection
+    #6. FWHM + unsat flux (PSF)
+    #   a. Gaussian
+    #   b. Airy
+    #7. final ADI cubes writing - pick one from step 5
+    overwrite = params_preproc.get('overwrite',[1]*7) # list of bools corresponding to parts of pre-processing to be run again even if files already exist. Same order as to_do
+    debug = params_preproc.get('debug',0) # whether to print more info - useful for debugging
+    save_space = params_preproc['save_space'] # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
+    plot = params_preproc['plot']
+    
+    if isinstance(overwrite, (int, bool)):
+        overwrite = [overwrite]*7
+    
+    # OBS
+    coro = params_preproc['coro']  # whether the observations were coronagraphic or not
+    coro_sz = params_preproc['coro_sz']  # if coronagraphic, provide radius of the coronagraph in pixels (check header for size in mas and convert)
+    
+    # preprocessing options
+    rec_met = params_preproc['rec_met']    # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
+    rec_met_psf = params_preproc['rec_met_psf']
+    xy_spots = params_preproc.get('xy_spots',[]) # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
+    sigfactor = params_preproc['sigfactor']
+    badfr_criteria = params_preproc['badfr_crit_names']
+    badfr_criteria_psf = params_preproc['badfr_crit_names_psf']
+    badfr_crit = params_preproc['badfr_crit']
+    badfr_crit_psf = params_preproc['badfr_crit_psf']
+    badfr_idx = params_preproc.get('badfr_idx',[[],[],[]])   
+
+    #******************** PARAMS LIKELY GOOD AS DEFAULT ***************************  
+    
+    # First run  dfits *.fits |fitsort DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
+    # then adapt below
+    #filters = ["K1","K2"] #DBI filters
+    #filters_lab = ['_left','_right']
+    #lbdas = np.array([2.11,2.251])
+    #n_z = lbdas.shape[0]
+    diam = params_preproc.get('diam',8.1)
+    plsc = params_preproc.get('plsc',0.00746) #arcsec/pixel # Maire 2016
+    #print("Resel: {:.2f} / {:.2f} px (K1/K2)".format(resel[0],resel[1]))
+    
+    # Systematic errors (cfr. Maire et al. 2016)
+    pup_off = params_preproc.get('pup_off',135.99)
+    TN = params_preproc.get('TN',-1.75)  # pm0.08 deg
+    ifs_off = params_preproc.get('ifs_off',-100.48)              # for ifs data: -100.48 pm 0.13 deg # for IRDIS: 0
+    #scal_x_distort = params_preproc.get('scal_x_distort',1.0059)   
+    #scal_y_distort = params_preproc.get('scal_y_distort',1.0011)   
+    mask_scal = params_preproc.get('mask_scal',[0.15,0])
+        
+    # preprocessing options
+    idx_test_cube = params_preproc.get('idx_test_cube',[0,0,0])
+    if isinstance(idx_test_cube,int):
+        idx_test_cube = [idx_test_cube]*3
+    cen_box_sz = params_preproc.get('cen_box_sz',[31,71,31]) # size of the subimage for 2d fit
+    if isinstance(cen_box_sz,int):
+        cen_box_sz = [cen_box_sz]*3
+    true_ncen = params_preproc['true_ncen']# number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
+    #distort_corr = params_preproc.get('distort_corr',True) 
+    bp_crop_sz = params_preproc.get('bp_crop_sz',261)         # crop size before bad pix correction for OBJ, PSF and CEN 
+    final_crop_sz = params_preproc.get('final_crop_sz',[257,256]) #361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
+    final_crop_sz_psf  = params_preproc.get('final_crop_sz_psf',[41,64]) # 51 => 0.25'' radius (~3.5 FWHM)
+    psf_model = params_preproc.get('psf_model',"gauss") #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
+    bin_fac = params_preproc.get('bin_fac',1)  # binning factors for final cube. If the cube is not too large, do not bin.
+    # SDI
+    first_good_ch =  params_preproc.get('first_good_ch',0)
+    last_good_ch =  params_preproc.get('last_good_ch',39)
+    n_med_sdi = params_preproc.get('n_med_sdi',[1,2,3,4,5]) # number of channels to combine at beginning and end
+
+    # output names
+    final_cubename = params_preproc.get('final_cubename', 'final_cube_ASDI')
+    final_lbdaname = params_preproc.get('final_lbdaname', "lbdas.fits")
+    final_anglename = params_preproc.get('final_anglename', 'final_derot_angles')
+    final_psfname = params_preproc.get('final_psfname', 'final_psf_med')
+    final_fluxname = params_preproc.get('final_fluxname','final_flux')
+    final_fwhmname = params_preproc.get('final_fwhmname','final_fwhm')
+    final_scalefac_name = params_preproc.get('final_scalefacname', 'final_scale_fac')
+    ## norm output names
+    if final_cubename.endswith(".fits"):
+        final_cubename = final_cubename[:-5]
+    if final_anglename.endswith(".fits"):
+        final_anglename = final_anglename[:-5]
+    if final_psfname.endswith(".fits"):
+        final_psfname = final_psfname[:-5]
+    if final_fluxname.endswith(".fits"):
+        final_fluxname = final_fluxname[:-5]
+    if final_fwhmname.endswith(".fits"):
+        final_fwhmname = final_fwhmname[:-5]   
+    if final_scalefac_name.endswith(".fits"):
+        final_scalefac_name = final_scalefac_name[:-5]
+    final_cubename_norm = final_cubename+"_norm"
+    final_psfname_norm = final_psfname+"_norm"        
+    # TO DO LIST:
+    
+    #1. crop odd + bad pix corr
+    #   a. with provided mask (static) => iterative because clumps
+    #   b. sigma filtering (cosmic rays) => non-iterative
+    #2. Recenter
+    #3. final crop
+    #4. combine all cropped cubes + compute derot_angles [bin if requested]
+    #5. bad frame rejection
+    #   a. Plots before rejection
+    #   b. Rejection
+    #   c. Plots after rejection
+    #6. FWHM + unsat flux (PSF)
+    #   a. Gaussian
+    #   b. Airy
+    #7. final ADI cubes writing - pick one from step 5
+    
+    
+    # List of OBJ and PSF files
+    dico_lists = {}
+    reader = csv.reader(open(path+'dico_files.csv', 'r'))
+    for row in reader:
+         dico_lists[row[0]] = ast.literal_eval(row[1])
+         
+    prefix = [sky_pre+"SPHER",sky_pre+"psf_SPHER",sky_pre+"cen_SPHER"]    
+    #if len(dico_lists['sci_list_ifs'])>0:
+    #    prefix.append(sky_pre+"SPHER") #prefix for OBJ, PSF and CEN. Remove the last one if non-coronagraphic!
+    #if len(dico_lists['psf_list_ifs'])>0:
+    #prefix.append(sky_pre+"psf_SPHER")
+    #if len(dico_lists['cen_list_ifs'])>0:
+    #prefix.append(sky_pre+"SPHER")
+        
+    # SEPARATE LISTS FOR OBJ AND PSF
+    OBJ_IFS_list = [x[:-5] for x in os.listdir(inpath) if x.startswith(prefix[0])]  # don't include ".fits"
+    OBJ_IFS_list.sort()
+    nobj = len(OBJ_IFS_list)
+    obj_psf_list = [OBJ_IFS_list]
+    labels = ['']
+    labels2 = ['obj']
+    final_crop_szs = [final_crop_sz]
+    
+    PSF_IFS_list = [x[:-5] for x in os.listdir(inpath) if x.startswith(prefix[1])]  # don't include ".fits"
+    npsf = len(PSF_IFS_list)
+    if npsf>0:
+        PSF_IFS_list.sort()
+        obj_psf_list.append(PSF_IFS_list)
+        labels.append('_psf')
+        labels2.append('psf')
+        final_crop_szs.append(final_crop_sz_psf) 
+#    else:
+#        npsf=0
+    CEN_IFS_list = [x[:-5] for x in os.listdir(inpath) if x.startswith(prefix[2])]  # don't include ".fits"
+    ncen = len(CEN_IFS_list)
+    if ncen>0:
+        CEN_IFS_list.sort()
+        obj_psf_list.append(CEN_IFS_list)
+        labels.append('_cen')
+        labels2.append('cen')
+        final_crop_szs.append(final_crop_sz) # add the same crop for CEN as for OBJ
+
+    if isinstance(n_med_sdi, int):
+        n_med_sdi = [n_med_sdi]
+    
+    if bool(to_do):
+    
+        if not isdir(outpath):
+            os.system("mkdir "+outpath)
+                
+        # Extract info from example files
+        cube, header = open_fits(inpath+OBJ_IFS_list[0]+'.fits', header=True)
+        dit_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
+        ndit_ifs = float(header['HIERARCH ESO DET NDIT'])
+        #filt1 = header['HIERARCH ESO INS1 FILT NAME']
+        #filt2 = header['HIERARCH ESO INS1 OPTI2 NAME']
+        lbda_0 = float(header['CRVAL3'])
+        delta_lbda = float(header['CD3_3'])
+        n_z = cube.shape[0]
+        lbdas = np.linspace(lbda_0, lbda_0+(n_z-1)*delta_lbda, n_z)
+        nd_filter_SCI = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
+        
+        nd_file = pd.read_csv(nd_filename, sep = '   ', 
+                              header=0, names=['wavelength', 'ND_0.0', 'ND_1.0','ND_2.0', 'ND_3.5'])
+        nd_wavelen = nd_file['wavelength']
+        try:
+            nd_transmission_SCI = nd_file[nd_filter_SCI]
+        except:
+            nd_transmission_SCI = [1]*len(nd_wavelen)
+            
+        nd_trans = [nd_transmission_SCI]
+        dits = [dit_ifs]
+        ndits = [ndit_ifs]
+    
+        if npsf>0:
+            _, header = open_fits(inpath+PSF_IFS_list[0]+'.fits', header=True)
+            dit_psf_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
+            ndit_psf_ifs = float(header['HIERARCH ESO DET NDIT'])
+            nd_filter_PSF = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
+            try:
+                nd_transmission_PSF = nd_file[nd_filter_PSF]
+            except:
+                nd_transmission_PSF = [1]*len(nd_wavelen)
+              
+            nd_trans.append(nd_transmission_PSF)
+            dits.append(dit_psf_ifs)
+            ndits.append(ndit_psf_ifs)
+            
+        # Check that transmission is correct
+        if ncen>0:
+            _, header = open_fits(inpath+CEN_IFS_list[0]+'.fits', header=True)
+            dit_cen_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
+            ndit_cen_ifs = float(header['HIERARCH ESO DET NDIT'])
+            nd_filter_CEN = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
+            try:
+                nd_transmission_CEN = nd_file[nd_filter_CEN]
+            except:
+                nd_transmission_CEN = [1]*len(nd_wavelen)
+            nd_trans.append(nd_transmission_CEN)
+            dits.append(dit_cen_ifs)
+            ndits.append(ndit_cen_ifs)
+
+
+        resels = lbdas*0.206265/(plsc*diam)
+        max_resel = np.amax(resels)    
+        
+        if not isfile(outpath+final_lbdaname):
+            write_fits(outpath+final_lbdaname,lbdas)
+            
+        #********************************* BPIX CORR ******************************          
+        if 1 in to_do:
+            ## OBJECT + PSF
+            for file_list in obj_psf_list:
+                for fi, filename in enumerate(file_list):
+                    if fi == 0:
+                        full_output=True
+                    else:
+                        full_output=False
+                    if not isfile(outpath+"{}_1bpcorr.fits".format(filename)) or overwrite[0]:
+                        cube, header = open_fits(inpath+filename, header=True)
+                        if cube.shape[1]%2==0 and cube.shape[2]%2==0:
+                            cube = cube[:,1:,1:]
+                            header["NAXIS1"] = cube.shape[1]
+                            header["NAXIS2"] = cube.shape[2]
+                        if bp_crop_sz>0 and bp_crop_sz<cube.shape[1]:
+                            cube = cube_crop_frames(cube,bp_crop_sz)
+                        cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resels, 
+                                                     sig=6., protect_psf=False, verbose=full_output,
+                                                     half_res_y=False, max_nit=10, full_output=full_output)
+                        if full_output:
+                            write_fits(outpath+filename+"_1bpcorr_bpmap.fits", cube[1], header=header)
+                            cube = cube[0]
+                        write_fits(outpath+filename+"_1bpcorr.fits", cube, header=header)
+                    
+                    
+        #******************************* RECENTERING ******************************
+        if use_cen_only:
+            obj_psf_list[0] = obj_psf_list[-1]
+            OBJ_IFS_list = CEN_IFS_list
+        if 2 in to_do:
+            for fi, file_list in enumerate(obj_psf_list): ## OBJECT, then PSF (but not CEN)
+                if fi != 1:
+                    negative=coro
+                    rec_met_tmp = rec_met
+                    if fi == 0:
+                        all_mjd=[]
+                elif fi == 1:
+                    negative=False
+                    rec_met_tmp = rec_met_psf
+                else: # CEN
+                    break
+                if not isfile(outpath+"{}_2cen.fits".format(file_list[-1])) or overwrite[1]:
+                    if isinstance(rec_met, list):
+                        # PROCEED ONLY ON TEST CUBE
+                        cube, head = open_fits(outpath+file_list[idx_test_cube[fi]]+"_1bpcorr.fits", header=True)
+                        mjd = float(head['MJD-OBS'])
+                        std_shift = []
+                        for ii in range(len(rec_met_tmp)):
+                            # find coords of max
+                            if fi == 1 or not coro:
+                                frame_conv = frame_filter_lowpass(np.median(cube,axis=0),fwhm_size=int(1.2*max_resel))
+                                idx_max = np.argmax(frame_conv)
+                                yx = np.unravel_index(idx_max,frame_conv.shape)
+                                xy = (yx[1],yx[0])
+                            else:
+                                xy=None
+                            if "2dfit" in rec_met_tmp[ii]:
+                                cube, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=xy, fwhm=1.2*max_resel, 
+                                                                               subi_size=cen_box_sz[fi], model=rec_met_tmp[ii][:-6],
+                                                                               nproc=1, imlib='opencv', interpolation='lanczos4',
+                                                                               offset=None, negative=negative, threshold=False,
+                                                                               save_shifts=False, full_output=True, verbose=True,
+                                                                               debug=False, plot=plot)
+                                std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))
+                                if debug:
+                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube)                                         
+                            elif "dft" in rec_met_tmp[ii]:
+                                # #1 rough centering with peak
+                                # _, peak_y, peak_x = peak_coordinates(cube, fwhm=1.2*max_resel, 
+                                #                                      approx_peak=None, 
+                                #                                      search_box=None,
+                                #                                      channels_peak=False)
+                                # _, peak_yx_ch = peak_coordinates(cube, fwhm=1.2*max_resel, 
+                                #                                  approx_peak=(peak_y, peak_x), 
+                                #                                  search_box=31,
+                                #                                  channels_peak=True)
+                                # cy, cx = frame_center(cube[0])
+                                # for zz in range(cube.shape[0]):
+                                #     cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1])
+                                #2. alignment with upsampling
+                                cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
+                                                                                        fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[ii][4:]),
+                                                                                        imlib='opencv', interpolation='lanczos4',
+                                                                                        full_output=True, verbose=True, nproc=1,
+                                                                                        save_shifts=False, debug=False, plot=plot)
+                                std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))                                
+                                #3 final centering based on 2d fit
+                                cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
+                                cube_tmp[0] = np.median(cube,axis=0)
+                                _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=xy, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
+                                                                            nproc=1, imlib='opencv', interpolation='lanczos4',
+                                                                            offset=None, negative=negative, threshold=False,
+                                                                            save_shifts=False, full_output=True, verbose=True,
+                                                                            debug=False, plot=plot)
+                                for zz in range(cube.shape[0]):
+                                    cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])                                              
+                                if debug:
+                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube)  
+                            elif "satspots" in rec_met_tmp[ii]:
+                                if ncen == 0:
+                                    raise ValueError("No CENTER file found. Cannot recenter based on satellite spots.")
+                                # INFER SHIFTS FORM CEN CUBES
+                                cen_cube_names = obj_psf_list[-1]
+                                mjd_cen = np.zeros(ncen)
+                                y_shifts_cen_tmp = np.zeros([ncen,n_z])
+                                x_shifts_cen_tmp = np.zeros([ncen,n_z])
+                                for cc in range(ncen):
+                                    _, head_cc = open_fits(inpath+cen_cube_names[cc], header = True)
+                                    cube_cen = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits")
+                                    mjd_cen[cc] = float(head_cc['MJD-OBS'])
+                                    if not use_cen_only:
+                                        cube_cen -= cube
+                                    ### get the MJD time of each cube
+                                    _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], _, _ = cube_recenter_satspots(cube_cen, xy_spots, 
+                                                                                                                 subi_size=cen_box_sz[fi], 
+                                                                                                                 sigfactor=sigfactor, plot=plot,
+                                                                                                                 fit_type='moff', lbda=lbdas, 
+                                                                                                                 debug=False, verbose=True, 
+                                                                                                                 full_output=True)
+                                # median combine results for all MJD CEN bef and all after SCI obs
+                                if not use_cen_only:
+                                    mjd = float(head['MJD-OBS']) # mjd of first obs 
+                                    mjd_fin = mjd
+                                    if true_ncen > ncen or true_ncen > 4:
+                                        raise ValueError("Code not compatible with true_ncen > ncen or true_ncen > 4")
+                                    if true_ncen>2:
+                                        _, header_fin = open_fits(inpath+OBJ_IFS_list[-1]+'.fits', header=True)
+                                        mjd_fin = float(header_fin['MJD-OBS'])
+                                    elif true_ncen>3:
+                                        _, header_mid = open_fits(inpath+OBJ_IFS_list[int(nobj/2)]+'.fits', header=True)
+                                        mjd_mid = float(header_mid['MJD-OBS'])
+                                                            
+                                    unique_mjd_cen = np.zeros(true_ncen)  
+                                    y_shifts_cen = np.zeros([true_ncen,n_z])
+                                    x_shifts_cen = np.zeros([true_ncen,n_z])
+                                    y_shifts_cen_err = np.zeros([true_ncen,n_z])
+                                    x_shifts_cen_err = np.zeros([true_ncen,n_z])
+                                    for cc in range(true_ncen):
+                                        if cc == 0:
+                                            cond = mjd_cen < mjd
+                                        elif cc == true_ncen-1:
+                                            cond = mjd_cen > mjd_fin
+                                        elif cc == 1 and true_ncen == 3:
+                                            cond = (mjd_cen > mjd & mjd_cen < mjd_fin)
+                                        elif cc == 1 and true_ncen == 4:
+                                            cond = (mjd_cen > mjd & mjd_cen < mjd_mid)
+                                        else:
+                                            cond = (mjd_cen < mjd_fin & mjd_cen > mjd_mid)
+                                            
+                                        unique_mjd_cen[cc] = np.median(mjd_cen[np.where(cond)])
+                                        y_shifts_cen[cc] = np.median(y_shifts_cen_tmp[np.where(cond)][:], axis=0)
+                                        x_shifts_cen[cc] = np.median(x_shifts_cen_tmp[np.where(cond)][:], axis=0)
+                                        y_shifts_cen_err[cc] = np.std(y_shifts_cen_tmp[np.where(cond)][:], axis=0)
+                                        x_shifts_cen_err[cc] = np.std(x_shifts_cen_tmp[np.where(cond)][:], axis=0)
+                                            
+                                    # APPLY THEM TO OBJ CUBES             
+                                    ## interpolate based on cen shifts
+                                    y_shifts = np.zeros(n_z)
+                                    x_shifts = np.zeros(n_z)
+                                    for zz in range(n_z):                                                         
+                                        y_shifts[zz] = np.interp([mjd],unique_mjd_cen,y_shifts_cen[:,zz])    
+                                        x_shifts[zz] = np.interp([mjd],unique_mjd_cen,x_shifts_cen[:,zz])  
+                                        cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz])                                                     
+                                    std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))                                                     
+                                    if debug:
+                                        plt.show()
+                                        plt.plot(range(n_z),y_shifts,'ro', label = 'shifts y')
+                                        plt.plot(range(n_z),x_shifts,'bo', label = 'shifts x')
+                                        plt.show()
+                                        write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube)  
+                            elif "radon" in rec_met_tmp[ii]:
+                                cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
+                                                                               interpolation='lanczos4')
+                                std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))                                                    
+                                if debug:
+                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube)  
+                            elif "speckle" in rec_met_tmp[ii]:
+                                cube, x_shifts, y_shifts = cube_recenter_via_speckles(cube, cube_ref=None, alignment_iter=5,
+                                                                                      gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
+                                                                                      fwhm=1.2*max_resel, debug=False, negative=negative,
+                                                                                      recenter_median=False, subframesize=20,
+                                                                                      imlib='opencv', interpolation='bilinear',
+                                                                                      save_shifts=False, plot=plot)
+                                std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))                                                           
+                                if debug:
+                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube)  
+                            else:
+                                raise ValueError("Centering method not recognized")                  
+                            
+                        #infer best method from min(stddev of shifts)
+                        std_shift = np.array(std_shift)
+                        idx_min_shift = np.nanargmin(std_shift)
+                        rec_met_tmp = rec_met_tmp[idx_min_shift]          
+                        print("Best centering method for {}: {}".format(labels[fi],rec_met_tmp))
+                        print("Press c if satisfied. q otherwise")                
+    
+            
+                    if isinstance(rec_met_tmp, str):
+                        final_y_shifts = []
+                        final_x_shifts = []
+                        final_y_shifts_std = []
+                        final_x_shifts_std = []
+                        for fn, filename in enumerate(file_list):
+                            cube, header = open_fits(outpath+filename+"_1bpcorr.fits", header=True)
+                            if fi == 1 or not coro:
+                                frame_conv = frame_filter_lowpass(np.median(cube,axis=0),fwhm_size=int(1.2*max_resel))
+                                idx_max = np.argmax(frame_conv)
+                                yx = np.unravel_index(idx_max,frame_conv.shape)
+                                xy = (int(yx[1]),int(yx[0]))
+                            else:
+                                xy=None
+                            if "2dfit" in rec_met_tmp:
+                                cube, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=xy, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model=rec_met_tmp[:-6],
+                                                                           nproc=1, imlib='opencv', interpolation='lanczos4',
+                                                                           offset=None, negative=negative, threshold=False,
+                                                                           save_shifts=False, full_output=True, verbose=True,
+                                                                           debug=False, plot=False)                                                                 
+                            elif "dft" in rec_met_tmp:
+                                #1 rough centering with peak
+                                # _, peak_y, peak_x = peak_coordinates(cube, fwhm=1.2*max_resel, 
+                                #                                      approx_peak=None, 
+                                #                                      search_box=None,
+                                #                                      channels_peak=False)
+                                # _, peak_yx_ch = peak_coordinates(cube, fwhm=1.2*max_resel, 
+                                #                                  approx_peak=(peak_y, peak_x), 
+                                #                                  search_box=31,
+                                #                                  channels_peak=True)
+                                # cy, cx = frame_center(cube[0])
+                                # for zz in range(cube.shape[0]):
+                                #     cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1])
+                                #2. alignment with upsampling
+                                cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
+                                                                                        fwhm=4, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[4:]),
+                                                                                        imlib='opencv', interpolation='lanczos4',
+                                                                                        full_output=True, verbose=True, nproc=1,
+                                                                                        save_shifts=False, debug=False, plot=plot)                              
+                                #3 final centering based on 2d fit
+                                cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
+                                cube_tmp[0] = np.median(cube,axis=0)
+                                if debug:
+                                    print("rough xy position: ",xy)
+                                _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
+                                                                            nproc=1, imlib='opencv', interpolation='lanczos4',
+                                                                            offset=None, negative=negative, threshold=False,
+                                                                            save_shifts=False, full_output=True, verbose=True,
+                                                                            debug=False, plot=plot)
+                                for zz in range(cube.shape[0]):
+                                    cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])
+                                    
+                            elif "satspots" in rec_met_tmp:
+                                if fn==0 and (fi==0 or (fi==2 and use_cen_only)):
+                                    if ncen == 0:
+                                        raise ValueError("No CENTER file found. Cannot recenter based on satellite spots.")
+                                    # INFER SHIFTS FROM CEN CUBES
+                                    cen_cube_names = obj_psf_list[-1]
+                                    mjd_cen = np.zeros(ncen)
+                                    y_shifts_cen_tmp = np.zeros([ncen,n_z])
+                                    x_shifts_cen_tmp = np.zeros([ncen,n_z])
+                                    for cc in range(ncen):
+                                        if cc == idx_test_cube[fi]:
+                                            debug_tmp = True
+                                        else:
+                                            debug_tmp = False
+                                        ### first get the MJD time of each cube                                    
+                                        _, head_cc = open_fits(inpath+cen_cube_names[cc], header = True)
+                                        cube_cen = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits")
+                                        mjd_cen[cc] = float(head_cc['MJD-OBS'])
+                                        ### find center location
+                                        _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], _, _ = cube_recenter_satspots(cube_cen, xy_spots, 
+                                                                                                                     subi_size=cen_box_sz[fi], 
+                                                                                             sigfactor=sigfactor, plot=plot,
+                                                                                             fit_type='moff', lbda=lbdas, 
+                                                                                             debug=debug_tmp, verbose=True, 
+                                                                                             full_output=True)
+                                    # median combine results for all MJD CEN bef and all after SCI obs
+                                    _, header_ini = open_fits(inpath+OBJ_IFS_list[0]+'.fits', header=True)
+                                    mjd = float(header_ini['MJD-OBS']) # mjd of first obs 
+                                    mjd_fin = mjd
+                                    if true_ncen > ncen or true_ncen > 4:
+                                        raise ValueError("Code not compatible with true_ncen > ncen or truen_ncen > 4")
+                                    if true_ncen>2:
+                                        _, header_fin = open_fits(inpath+OBJ_IFS_list[-1]+'.fits', header=True)
+                                        mjd_fin = float(header_fin['MJD-OBS'])
+                                    elif true_ncen>3:
+                                        _, header_mid = open_fits(inpath+OBJ_IFS_list[int(nobj/2)]+'.fits', header=True)
+                                        mjd_mid = float(header_mid['MJD-OBS'])
+                                                            
+                                    unique_mjd_cen = np.zeros(true_ncen)  
+                                    y_shifts_cen = np.zeros([true_ncen,n_z])
+                                    x_shifts_cen = np.zeros([true_ncen,n_z])
+                                    y_shifts_cen_err = np.zeros([true_ncen,n_z])
+                                    x_shifts_cen_err = np.zeros([true_ncen,n_z])
+                                    for cc in range(true_ncen):
+                                        if cc == 0:
+                                            cond = mjd_cen < mjd
+                                        elif cc == true_ncen-1:
+                                            cond = mjd_cen > mjd_fin
+                                        elif cc == 1 and true_ncen == 3:
+                                            cond = (mjd_cen > mjd & mjd_cen < mjd_fin)
+                                        elif cc == 1 and true_ncen == 4:
+                                            cond = (mjd_cen > mjd & mjd_cen < mjd_mid)
+                                        else:
+                                            cond = (mjd_cen < mjd_fin & mjd_cen > mjd_mid)
+                                            
+                                        unique_mjd_cen[cc] = np.median(mjd_cen[np.where(cond)])
+                                        y_shifts_cen[cc] = np.median(y_shifts_cen_tmp[np.where(cond)][:], axis=0)
+                                        x_shifts_cen[cc] = np.median(x_shifts_cen_tmp[np.where(cond)][:], axis=0)
+                                        y_shifts_cen_err[cc] = np.std(y_shifts_cen_tmp[np.where(cond)][:], axis=0)
+                                        x_shifts_cen_err[cc] = np.std(x_shifts_cen_tmp[np.where(cond)][:], axis=0)                                # SAVE UNCERTAINTY ON CENTERING
+                                    #unc_cen = np.sqrt(np.power(np.amax(y_shifts_cen_err),2)+np.power(np.amax(x_shifts_cen_err),2))
+                                    #write_fits(outpath+"Uncertainty_on_centering_sat_spots_px.fits", np.array([unc_cen]))
+                                
+                                if not use_cen_only:
+                                    # APPLY THEM TO OBJ CUBES           
+                                    ## interpolate based on cen shifts
+                                    y_shifts = np.zeros(n_z)
+                                    x_shifts = np.zeros(n_z)
+                                    mjd = float(header['MJD-OBS'])
+                                    if fi == 0:
+                                        all_mjd.append(mjd)
+                                    for zz in range(n_z):                                                         
+                                        y_shifts[zz] = np.interp([mjd],unique_mjd_cen,y_shifts_cen[:,zz])    
+                                        x_shifts[zz] = np.interp([mjd],unique_mjd_cen,x_shifts_cen[:,zz])                                                       
+                                        cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz])
+                                    if debug and fn == 0:
+                                        plt.show() # show whichever previous plot is in memory
+                                        colors = ['k','r','b','y','c','m','g']
+                                        # y
+                                        plt.plot(range(n_z),y_shifts,colors[0]+'-', label = 'shifts y')
+                                        for cc in range(true_ncen):
+                                            plt.errorbar(range(n_z),y_shifts_cen[cc], 
+                                                         yerr=y_shifts_cen_err[cc], fmt=colors[cc+1]+'o',label='y cen shifts')
+                                        plt.show()
+                                        # x
+                                        plt.plot(range(n_z),x_shifts,colors[0]+'-', label = 'shifts x')
+                                        for cc in range(true_ncen):
+                                            plt.errorbar(range(n_z),x_shifts_cen[cc], 
+                                                         yerr=x_shifts_cen_err[cc], fmt=colors[cc+1]+'o',label='x cen shifts')
+                                        plt.show()
+                                        write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp), cube)
+                                                                                             
+                            elif "radon" in rec_met_tmp:
+                                cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
+                                                                               interpolation='lanczos4')                                             
+                            elif "speckle" in rec_met_tmp:
+                                cube, x_shifts, y_shifts = cube_recenter_via_speckles(cube, cube_ref=None, alignment_iter=5,
+                                                                                      gammaval=1, min_spat_freq=0.5, 
+                                                                                      max_spat_freq=3,
+                                                                                      fwhm=1.2*max_resel, debug=False, 
+                                                                                      negative=negative,
+                                                                                      recenter_median=False, subframesize=20,
+                                                                                      imlib='opencv', interpolation='bilinear',
+                                                                                      save_shifts=False, plot=False)                                                       
+                            else:
+                                raise ValueError("Centering method not recognized")                                                                          
+                            write_fits(outpath+filename+"_2cen.fits", cube, header=header)
+                            final_y_shifts.append(np.median(y_shifts))
+                            final_x_shifts.append(np.median(x_shifts))
+                            final_y_shifts_std.append(np.std(y_shifts))
+                            final_x_shifts_std.append(np.std(x_shifts))                                          
+                    if plot:
+                        f, (ax1) = plt.subplots(1,1, figsize=(15,10))
+                        if fi == 0:
+                            ax1.errorbar(all_mjd,final_y_shifts,final_y_shifts_std,fmt='bo',label='y')
+                            ax1.errorbar(all_mjd,final_x_shifts,final_x_shifts_std,fmt='ro',label='x')
+                        if "satspot" in rec_met_tmp:
+                            ax1.errorbar(unique_mjd_cen,np.median(y_shifts_cen,axis=1),np.std(y_shifts_cen,axis=1),
+                                         fmt='co',label='y cen')
+                            ax1.errorbar(unique_mjd_cen,np.median(x_shifts_cen,axis=1),np.std(x_shifts_cen,axis=1),
+                                         fmt='mo',label='x cen')
+                        plt.legend(loc='best')
+                        plt.savefig(outpath+"Shifts_xy{}_{}.pdf".format(labels[fi],rec_met_tmp),bbox_inches='tight', format='pdf')
+                        plt.clf()  
+                    
+            if save_space:
+                os.system("rm {}*0distort.fits".format(outpath))
+                
+                
+#            #******************************* FINAL CROP *******************************
+#            if 3 in to_do:
+#                for fi, file_list in enumerate(obj_psf_list):
+#                    if fi == 0 and use_cen_only:
+#                        continue
+#                    crop_sz_tmp = final_crop_szs[fi]
+#                    if not isfile(outpath+file_list[-1]+"_3crop.fits") or overwrite[3]:    
+#                        for fn, filename in enumerate(file_list):
+#                            cube, header = open_fits(outpath+filename+"_2cen.fits", header=True)
+#                            if cube.shape[1] > crop_sz_tmp or cube.shape[2] > crop_sz_tmp:
+#                                cube = cube_crop_frames(cube,crop_sz_tmp,verbose=debug)
+#                                header["NAXIS1"] = cube.shape[1]
+#                                header["NAXIS2"] = cube.shape[2]
+#                            write_fits(outpath+filename+"_3crop.fits", cube, header=header) 
+
+                            
+        #******************************* MASTER CUBES ******************************
+        if 3 in to_do:
+            for fi,file_list in enumerate(obj_psf_list):
+                if fi == 0 and use_cen_only:
+                    continue
+                if not isfile(outpath+"1_master_ASDIcube{}.fits".format(labels[fi])) or not isfile(outpath+"1_master_derot_angles.fits") or overwrite[2]:
+                    #master_cube = np.zeros([n_z,len(file_list),final_crop_szs[fi],final_crop_szs[fi]])
+                    if fi!=1:
+                        parang_st = []
+                        parang_nd = []
+                        #posang = []
+                    for nn, filename in enumerate(file_list):
+                        cube, header = open_fits(outpath+filename+"_2cen.fits", header=True)
+                        if nn == 0:
+                            master_cube = np.zeros([n_z,len(file_list),cube.shape[-2],cube.shape[-1]])
+                        try:
+                            master_cube[:,nn] = cube
+                        except:
+                            pdb.set_trace()
+                        if fi!=1:
+                            parang_st.append(float(header["HIERARCH ESO TEL PARANG START"]))
+                            parang_nd_tmp = float(header["HIERARCH ESO TEL PARANG END"])
+                            #posang.append(float(header["HIERARCH ESO ADA POSANG"]))
+                            if nn> 0:
+                                if abs(parang_st[-1]-parang_nd_tmp)>180:
+                                    sign_tmp=np.sign(parang_st[-1]-parang_nd_tmp)
+                                    parang_nd_tmp=parang_nd_tmp+sign_tmp*360
+                            parang_nd.append(parang_nd_tmp)
+                            
+                    # VERY IMPORTANT WE CORRECT FOR SPECTRAL IMPRINT OF ND FILTER
+                    interp_trans = np.interp(lbdas*1000, nd_wavelen, nd_trans[fi]) # file lbdas are in nm
+                    if debug:
+                        print("transmission correction: ",interp_trans)
+                    for zz in range(n_z):
+                        master_cube[zz] = master_cube[zz]/interp_trans[zz]     
+                
+                    # IMPORTANT WE NORMALIZE BY DIT
+                    write_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), master_cube/dits[fi])
+                    
+                    if fi!=1:
+                        final_derot_angles = np.zeros(len(file_list))
+                        final_par_angles = np.zeros(len(file_list))
+                        for nn in range(len(file_list)):
+                            x = parang_st[nn]
+                            y = parang_nd[nn]
+                            parang = x +(y-x)*(0.5+(nn%ndits[fi]))/ndits[fi]
+                            final_derot_angles[nn] = parang + TN + pup_off + ifs_off #+ posang[nn] 
+                            final_par_angles[nn] = parang
+                        write_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]), final_derot_angles)
+                        write_fits(outpath+"1_master_par_angles{}.fits".format(labels[fi]), final_par_angles)
+    
+                        # median-ADI
+                        ADI_frame = np.zeros([n_z,master_cube.shape[-2],master_cube.shape[-1]])
+                        for zz in range(n_z):
+                            ADI_frame[zz] = median_sub(master_cube[zz],final_derot_angles,radius_int=10)
+                        write_fits(outpath+"median_ADI1_{}.fits".format(labels[fi]), ADI_frame)        
+    
+    
+        #********************* PLOTS + TRIM BAD FRAMES OUT ************************
+                        
+        if 4 in to_do:
+            for fi,file_list in enumerate(obj_psf_list):
+#                    if fi == 1:
+#                        dist_lab_tmp = "" # no need for PSF
+#                    else:
+#                        dist_lab_tmp = dist_lab
+                if fi == 0 and use_cen_only:
+                    continue
+                elif fi == 2 and not use_cen_only: # no need for CEN, except if no OBJ
+                    break
+                
+                cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]))
+                ntot = cube.shape[1]
+    
+                if not coro:
+                    fi_tmp = fi
+                else:
+                    fi_tmp = 1
+                # Determine fwhm
+                if not isfile(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp])):
+                    cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi_tmp]))
+                    ntot = cube.shape[1]
+                    fwhm = np.zeros(n_z)
+                    fluxes = np.zeros([n_z,ntot])
+                    # first fit on median
+                    for zz in range(n_z):
+                        _, _, fwhm[zz] = normalize_psf(np.median(cube[zz],axis=0), fwhm='fit', size=None, threshold=None, mask_core=None,
+                                                   model=psf_model, imlib='opencv', interpolation='lanczos4',
+                                                   force_odd=True, full_output=True, verbose=debug, debug=False)
+                    write_fits(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp]), fwhm)                               
+                else:
+                    fwhm = open_fits(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp]))
+                fwhm_med = np.median(fwhm)
+    
+                cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]))
+    
+                perc = 0 #perc_min[fi]
+                if fi != 1:
+                    badfr_critn_tmp = badfr_criteria
+                    badfr_crit_tmp = badfr_crit
+                else:
+                    badfr_critn_tmp = badfr_criteria_psf
+                    badfr_crit_tmp = badfr_crit_psf
+                bad_str = "-".join(badfr_critn_tmp)
+                if not isfile(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi],bad_str)) or overwrite[3]:
+                    # OBJECT                 
+                    if fi != 1:
+                        derot_angles = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]))
+    
+                    if len(badfr_idx[fi])>0:
+                        cube_tmp = np.zeros([cube.shape[0], cube.shape[1]-len(badfr_idx[fi]), cube.shape[2], cube.shape[3]])
+                        derot_angles_tmp = np.zeros(cube.shape[1]-len(badfr_idx[fi]))                    
+                        counter = 0                
+                        for nn in range(cube.shape[1]):
+                            if nn not in badfr_idx[fi]:
+                                cube_tmp[:,counter] = cube[:,nn]
+                                derot_angles_tmp[counter] = derot_angles[nn]
+                                counter+=1
+                        cube = cube_tmp.copy()
+                        derot_angles = derot_angles_tmp.copy()
+                        cube_tmp = None                    
+                        derot_angles_tmp = None
+    
+                    final_good_index_list = list(range(cube.shape[1]))
+    
+                    # Rejection based on pixel statistics
+                    
+                    for zz in range(n_z):
+                        if zz == 0:
+                            debug_tmp = debug
+                        else:
+                            debug_tmp = False
+                        print("********** Trimming bad frames from channel {:.0f} ***********\n".format(zz+1))
+                        ngood_fr_ch = len(final_good_index_list)
+                        #counter = 0
+                        if "stat" in badfr_crit:
+                            idx_stat = badfr_critn_tmp.index("stat")
+                            # Default parameters
+                            mode = "circle"
+                            rad = int(2*fwhm_med)
+                            width = 0
+                            window = None
+                            if coro and fi == 0:
+                                mode = "annulus"
+                                rad = int(coro_sz+1)
+                                width = int(fwhm_med*2)
+                                window = int(len(cube[zz])/10)
+                            top_sigma = 1.0
+                            low_sigma=1.0
+                            # Update if provided
+                            if "mode" in badfr_crit_tmp[idx_stat].keys():
+                                mode = badfr_crit_tmp[idx_stat]["mode"]
+                            if "rad" in badfr_crit_tmp[idx_stat].keys():
+                                rad = int(badfr_crit_tmp[idx_stat]["rad"]*fwhm_med)
+                            if "width" in badfr_crit_tmp[idx_stat].keys():
+                                width = int(badfr_crit_tmp[idx_stat]["width"]*fwhm_med)                             
+                            if "thr_top" in badfr_crit_tmp[idx_stat].keys():
+                                top_sigma = badfr_crit_tmp[idx_stat]["thr_top"]
+                            if "thr_low" in badfr_crit_tmp[idx_stat].keys():
+                                low_sigma = badfr_crit_tmp[idx_stat]["thr_low"]
+                            if "window" in badfr_crit_tmp[idx_stat].keys():
+                                window = badfr_crit_tmp[idx_stat]["window"]
+                            good_index_list, bad_index_list = cube_detect_badfr_pxstats(cube[zz], mode=mode, in_radius=rad, 
+                                                                                        width=width, top_sigma=top_sigma, 
+                                                                                        low_sigma=low_sigma, window=window, 
+                                                                                        plot=debug_tmp, verbose=debug)
+                            if debug_tmp:
+                                plt.show()                                                            
+                            final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
+    #                            if 100*len(bad_index_list)/cube.shape[1] > perc:
+    #                                perc = 100*len(bad_index_list)/cube.shape[1]
+    #                                print("Percentile updated to {:.1f} based on stat".format(perc))
+                            #counter+=1
+                        if "ell" in badfr_crit:
+                            idx_ell = badfr_critn_tmp.index("ell")
+                            # default params
+                            roundhi = 0.2
+                            roundlo = -0.2
+                            crop_sz = 10
+                            # Update if provided
+                            if "roundhi" in badfr_crit_tmp[idx_ell].keys():
+                                roundhi = badfr_crit_tmp[idx_ell]["roundhi"]
+                            if "roundlo" in badfr_crit_tmp[idx_ell].keys():
+                                roundlo = badfr_crit_tmp[idx_ell]["roundlo"]
+                            if "crop_sz" in badfr_crit_tmp[idx_ell].keys():
+                                crop_sz = badfr_crit_tmp[idx_ell]["crop_sz"]
+                            crop_size = int(crop_sz*fwhm)
+                            if not crop_sz%2:
+                                crop_size+=1
+                            crop_sz = min(cube[zz].shape[1]-2,crop_sz)
+                            good_index_list, bad_index_list = cube_detect_badfr_ellipticity(cube[zz], fwhm=fwhm[zz], 
+                                                                                            crop_size=crop_sz,
+                                                                                            roundlo=roundlo, roundhi=roundhi, 
+                                                                                            plot=False, verbose=debug)
+    #                            if 100*len(bad_index_list)/cube.shape[1] > perc:
+    #                                perc = 100*len(bad_index_list)/cube.shape[1]
+    #                                print("Percentile updated to {:.1f} based on ell".format(perc))                                                                                        
+                            final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]                   
+                            #counter+=1
+#                            if "bkg" in badfr_critn_tmp:
+#                                idx_bkg = badfr_critn_tmp.index("bkg")
+#                                # default params
+#                                sigma = 3
+#                                # Update if provided
+#                                if "thr" in badfr_crit_tmp[idx_bkg].keys():
+#                                    sigma = badfr_crit_tmp[idx_bkg]["thr"]
+#                                # infer rough bkg location in each frame
+#                                cen_adi_img = open_fits(outpath+"median_ADI2_{}{}{}.fits".format(labels[-1],filters[ff],
+#                                                        dist_lab_tmp))
+#                                med_x, med_y = fit2d_bkg_pos(np.array([cen_adi_img]), 
+#                                                             np.array([approx_xy_bkg[0]]), 
+#                                                             np.array([approx_xy_bkg[1]]), 
+#                                                             fwhm, fit_type=psf_model)
+#                                xy_bkg_derot = (med_x,med_y)
+#                                cy, cx = frame_center(cube[0])
+#                                center_bkg = (cx, cy)
+#                                x_bkg, y_bkg = interpolate_bkg_pos(xy_bkg_derot, 
+#                                                                   center_bkg, 
+#                                                                   derot_angles)
+#                                final_x_bkg, final_y_bkg = fit2d_bkg_pos(cube, 
+#                                                                         x_bkg, 
+#                                                                         y_bkg, 
+#                                                                         fwhm, 
+#                                                                         fit_type=psf_model)
+#                                # measure bkg star fluxes
+#                                n_fr = cube.shape[0]
+#                                flux_bkg = np.zeros(n_fr)
+#                                crop_sz = int(6*fwhm)
+#                                if not crop_sz%2:
+#                                    crop_sz+=1
+#                                for ii in range(n_fr):
+#                                    subframe = frame_crop(cube[ii], crop_sz,
+#                                                          cenxy=(int(final_x_bkg[ii]), 
+#                                                                  int(final_y_bkg[ii])),
+#                                                                  force=True, verbose=verbose)
+#                                    subpx_shifts = (final_x_bkg[ii]-int(final_x_bkg[ii]),
+#                                                    final_y_bkg[ii]-int(final_y_bkg[ii]))
+#                                    subframe = frame_shift(subframe, subpx_shifts[1],
+#                                                           subpx_shifts[0])
+#                                    _, flux_bkg[ii], _ = normalize_psf(subframe, fwhm=fwhm, 
+#                                                                       full_output=True, 
+#                                                                       verbose=verbose, debug=debug)
+#                                # infer outliers
+#                                med_fbkg = np.median(flux_bkg)
+#                                std_fbkg = np.std(flux_bkg)
+#                                good_index_list = [i for i in range(n_fr) if flux_bkg[i] > med_fbkg-sigma*std_fbkg]
+#                                bad_index_list = [i for i in range(n_fr) if i not in good_index_list]
+#                                final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
+#                                if 100*len(bad_index_list)/cube.shape[0] > perc:
+#                                    perc = 100*len(bad_index_list)/cube.shape[0]
+#                                    print("Percentile updated to {:.1f} based on bkg".format(perc))
+#                                if plot_obs_cond:
+#                                    val = counter + (2*(ff%2)-1)*0.2
+#                                    if fi!= 1:
+#                                        label=filt+'- stat'
+#                                    else:
+#                                        label = None
+#                                    ax5.plot(UTC[good_index_list]-UTC_0, [val]*len(good_index_list), cols[ff][0]+markers_1[fi], label=label)
+#                                counter+=1        
+                            
+#                            if "shifts" in badfr_critn_tmp:
+#                                if not isfile(outpath+"TMP_shifts_fine_recentering_bkg.fits"):
+#                                    msg = "File with fine recentering does not exist. "
+#                                    msg+= "Is there a BKG star and have you run step 5?"
+#                                    raise NameError(msg)
+#                                if rec_met != 'satspots':
+#                                    raise TypeError("For this bad frame removal criterion to work, only 'CENTER' i.e. satellite spot images must be used")
+#                                idx_shifts = badfr_critn_tmp.index("shifts")
+#                                # default params
+#                                thr = 0.4
+#                                err = 0.4
+#                                # Update if provided
+#                                if "thr" in badfr_crit_tmp[idx_shifts].keys():
+#                                    thr = badfr_crit_tmp[idx_shifts]["thr"]
+#                                if "err" in badfr_crit_tmp[idx_shifts].keys():
+#                                    err = badfr_crit_tmp[idx_shifts]["err"]
+#                                
+#                                # LOAD CEN SHIFTS (i.e. expected shift for OBJ CUBES if star perfectly)
+#                                good_cen_shift_x = open_fits(outpath+"TMP_shifts_cen_x{}_{}_{}.fits".format(labels[0],filters[ff],rec_met))
+#                                good_cen_shift_y = open_fits(outpath+"TMP_shifts_cen_y{}_{}_{}.fits".format(labels[0],filters[ff],rec_met))
+#                                if good_cen_idx is None:
+#                                    good_cen_shift_x = np.median(good_cen_shift_x)
+#                                    good_cen_shift_y = np.median(good_cen_shift_y)
+#                                elif isinstance(good_cen_idx,int):
+#                                    good_cen_shift_x = good_cen_shift_x[good_cen_idx]
+#                                    good_cen_shift_y = good_cen_shift_y[good_cen_idx]
+#                                else:
+#                                    raise TypeError("good_cen_idx can only be int or None")
+#                                # INFER TOTAL CUBE SHIFTS
+#                                ## Load rough shifts
+#                                shifts_y = open_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(labels[0],filters[ff],rec_met))
+#                                shifts_x = open_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[0],filters[ff],rec_met))
+#                                err = [err]*len(shifts_y)
+#                                ## Load fine shifts if they exist
+#                                if isfile(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff])):
+#                                    fine_shifts = open_fits(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff]))
+#                                    err = fine_shifts[-1]
+#                                    # update shifts
+#                                    shifts_x += fine_shifts[1]
+#                                    shifts_y += fine_shifts[2]
+#                                final_dshifts = np.sqrt(np.power(shifts_x[:]-good_cen_shift_x,2)+np.power(shifts_y[:]-good_cen_shift_y,2))
+#                                n_fr = final_dshifts.shape[0]
+#                                if plot or debug:
+#                                    fig, ax1 = plt.subplots(1,1,figsize=(4,4))
+#                                    for i in range(n_fr):
+#                                        if final_dshifts[i] < thr:
+#                                            col = 'b'
+#                                        else:
+#                                            col = 'r'
+#                                        ax1.errorbar(i+1, final_dshifts[i], err[i], fmt=col+'o')
+#                                    ax1.plot([0,n_fr+1],[thr,thr],'k--')
+#                                    ax1.set_xlabel("Index of frame in cube")
+#                                    ax1.set_ylabel("Differential shift with respect to mask center (px)")
+#                                    plt.savefig(outpath+"Residual_shifts_bkg_VS_satspots_{}_badfrrm.pdf".format(filters[ff]), bbox_inches='tight', format='pdf')
+#                                good_index_list = [i for i in range(n_fr) if final_dshifts[i] < thr]
+#                                bad_index_list = [i for i in range(n_fr) if i not in good_index_list]
+#                                final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
+#                                if 100*len(bad_index_list)/cube.shape[0] > perc:
+#                                    perc = 100*len(bad_index_list)/cube.shape[0]
+#                                    print("Percentile updated to {:.1f} based on shifts > {:.1f} px".format(perc,thr))
+#                                if plot_obs_cond:
+#                                    val = counter + (2*(ff%2)-1)*0.2
+#                                    if fi != 1:
+#                                        label=filt+'- stat'
+#                                    else:
+#                                        label = None
+#                                    ax5.plot(UTC[good_index_list]-UTC_0, [val]*len(good_index_list), cols[ff][0]+markers_1[fi], label=label)
+#                                counter+=1                                  
+                            
+                        if "corr" in badfr_crit:
+                            idx_corr = badfr_critn_tmp.index("corr")
+                            # default params
+                            thr = 0.8
+                            perc = 0
+                            ref = "median"
+                            crop_sz = 6
+                            dist = 'pearson'
+                            # update if provided
+                            if "perc" in badfr_crit_tmp[idx_corr].keys():
+                                perc = max(perc, badfr_crit_tmp[idx_corr]["perc"])
+                            if "thr" in badfr_crit_tmp[idx_corr].keys():
+                                thr = badfr_crit_tmp[idx_corr]["thr"]
+                            else:
+                                thr = None
+                            if "ref" in badfr_crit_tmp[idx_corr].keys():
+                                ref = badfr_crit_tmp[idx_corr]["ref"]
+                            if ref== "median":
+                                good_frame = np.median(cube[zz][final_good_index_list],axis=0)
+                            else:
+                                good_frame = cube[zz,badfr_crit_tmp[idx_corr]["ref"]]
+                            if "crop_sz" in badfr_crit_tmp[idx_corr].keys():
+                                crop_sz = badfr_crit_tmp[idx_corr]["crop_sz"]
+                            crop_size = int(crop_sz*fwhm)
+                            if not crop_size%2:
+                                crop_size+=1
+                            if "dist" in badfr_crit_tmp[idx_corr].keys(): 
+                                dist = badfr_crit_tmp[idx_corr]["dist"]
+
+                            crop_size = min(cube[zz].shape[1]-2,crop_size)
+                            plot_tmp=False
+                            if zz == 0 or zz == n_z-1:
+                                plot_tmp = plot
+                            good_index_list, bad_index_list = cube_detect_badfr_correlation(cube[zz], good_frame, 
+                                                                                            crop_size=crop_size,
+                                                                                            threshold=thr,
+                                                                                            dist=dist, percentile=perc, 
+                                                                                            plot=plot_tmp, verbose=debug)
+                            final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
+                            if plot_tmp:
+                                plt.savefig(outpath+"badfr_corr_plot{}_ch{:.0f}.pdf".format(labels[fi],zz),bbox_inches='tight')                                                               
+                            #counter+=1
+                        print("At the end of channel {:.0f}, we keep {:.0f}/{:.0f} ({:.0f}%) frames\n".format(zz+1,len(final_good_index_list),ngood_fr_ch,100*(len(final_good_index_list)/ngood_fr_ch)))
+                                                     
+                    cube = cube[:,final_good_index_list]
+                    write_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi],bad_str), cube)
+                    if fi != 1:
+                        derot_angles = derot_angles[final_good_index_list]
+                        write_fits(outpath+"2_master_derot_angles_clean_{}.fits".format(bad_str), derot_angles)
+                          
+            for fi,file_list in enumerate(obj_psf_list):
+                if fi > 1 and not use_cen_only:
+                    break
+                elif fi != 1:
+                    badfr_crit = badfr_criteria
+                else:
+                    badfr_crit = badfr_criteria_psf
+                bad_str = "-".join(badfr_crit)
+                cube_ori = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]))
+                cube = open_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi],bad_str))
+                frac_good = cube.shape[1]/cube_ori.shape[1]
+                print("In total we keep {:.1f}% of all frames of the {} cube \n".format(100*frac_good,labels[fi]))
+    
+            if save_space:
+                os.system("rm {}*1bpcorr.fits".format(outpath))
+                
+        #************************* FINAL PSF + FLUX + FWHM ************************                  
+        if 5 in to_do and len(obj_psf_list)>1:
+            if isinstance(final_crop_szs[1], (float,int)):
+                crop_sz_list = [int(final_crop_szs[1])]
+            elif isinstance(final_crop_szs[1], list):
+                crop_sz_list = final_crop_szs[1]
+            else:
+                raise TypeError("final_crop_sz_psf should be either int or list of int")
+            # PSF ONLY
+            for crop_sz in crop_sz_list:
+                if not isfile(outpath+"3_final_psf_flux_med_{}{:.0f}.fits".format(psf_model,crop_sz)) or overwrite[4]:
+                    cube = open_fits(outpath+"2_master_psf_ASDIcube_clean_{}.fits".format("-".join(badfr_criteria_psf)))
+                    # crop
+                    if cube.shape[-2] > crop_sz or cube.shape[-1] > crop_sz:
+                        if crop_sz%2 != cube.shape[-1]%2:
+                            for zz in range(cube.shape[0]):
+                                cube[zz] = cube_shift(cube[zz],0.5,0.5)
+                            cube = cube[:,:,1:,1:]
+                        cube = cube_crop_frames(cube, crop_sz, verbose=debug)
+                    med_psf = np.median(cube,axis=1)
+                    norm_psf = np.zeros_like(med_psf)
+                    fwhm=np.zeros(n_z)
+                    med_flux = np.zeros(n_z)
+                    for zz in range(n_z):
+                        norm_psf[zz], med_flux[zz], fwhm[zz] = normalize_psf(med_psf[zz], fwhm='fit', size=None, 
+                                                                             threshold=None, mask_core=None,
+                                                                             model=psf_model, imlib='opencv', 
+                                                                             interpolation='lanczos4',
+                                                                             force_odd=False, full_output=True, 
+                                                                             verbose=debug, debug=False)
+                                     
+                    write_fits(outpath+"3_final_psf_med_{}{:.0f}.fits".format(psf_model,crop_sz), med_psf)
+                    write_fits(outpath+"3_final_psf_med_{}_norm{:.0f}.fits".format(psf_model,crop_sz), norm_psf)
+                    write_fits(outpath+"3_final_psf_flux_med_{}{:.0f}.fits".format(psf_model,crop_sz), np.array([med_flux]))
+                    write_fits(outpath+"3_final_psf_fwhm_{}.fits".format(psf_model), np.array([fwhm]))
+                    if crop_sz%2:
+                        write_fits(outpath+final_psfname+".fits", med_psf)
+                        write_fits(outpath+final_psfname_norm+".fits", norm_psf)
+                        write_fits(outpath+final_fluxname+".fits", med_flux)
+                        write_fits(outpath+final_fwhmname+".fits", fwhm)
+                    
+                    ntot = cube.shape[1]
+                    fluxes = np.zeros([n_z,ntot])
+                    for zz in range(n_z):
+                        for nn in range(ntot):
+                            _, fluxes[zz,nn], _ = normalize_psf(cube[zz,nn], fwhm=fwhm[zz], size=None, threshold=None, mask_core=None,
+                                                           model=psf_model, imlib='opencv', interpolation='lanczos4',
+                                                           force_odd=False, full_output=True, verbose=debug, debug=False)
+                    write_fits(outpath+"3_final_psf_fluxes.fits", fluxes)
+                        
+            if save_space:
+                os.system("rm {}*2cen.fits".format(outpath))
+                    
+        #********************* FINAL OBJ CUBE (BIN IF NECESSARY) ******************
+        if 6 in to_do:
+            if isinstance(final_crop_szs[0], (float,int)):
+                crop_sz_list = [int(final_crop_szs[0])]
+            elif isinstance(final_crop_szs[0], list):
+                crop_sz_list = final_crop_szs[0]
+            else:
+                raise TypeError("final_crop_sz_psf should be either int or list of int")
+            for cc, crop_sz in enumerate(crop_sz_list):
+                # OBJ ONLY
+                #for bb, bin_fac in enumerate(bin_fac_list):
+                # outpath_bin=path+"3_postproc_bin{:.0f}/".format(bin_fac)
+                # if not isdir(outpath_bin):
+                #     os.system("mkdir "+outpath_bin)
+                if not isfile(outpath+final_cubename+".fits") or overwrite[5]:
+                    if use_cen_only:
+                        fi_tmp = -1
+                    else:
+                        fi_tmp=0
+                    cube_notrim = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi_tmp]))
+                    cube = open_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi_tmp],"-".join(badfr_criteria)))
+                    derot_angles = open_fits(outpath+"2_master_derot_angles_clean_{}.fits".format("-".join(badfr_criteria)))
+                    derot_angles_notrim = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi_tmp]))
+                    ntot = cube.shape[1]
+                    ntot_notrim = cube_notrim.shape[1]
+                    if bin_fac != 1:
+                        bin_fac = int(bin_fac)
+                        ntot_bin = int(np.ceil(ntot/bin_fac))
+                        ntot_bin_notrim = int(np.ceil(ntot_notrim/bin_fac))
+                        cube_bin = np.zeros([n_z,ntot_bin,cube.shape[2],cube.shape[3]])
+                        cube_bin_notrim = np.zeros([n_z,ntot_bin_notrim,cube_notrim.shape[1],cube_notrim.shape[2]])
+                        derot_angles_bin = np.zeros(ntot_bin)
+                        derot_angles_bin_notrim = np.zeros(ntot_bin_notrim)
+                        for nn in range(ntot_bin):
+                            for zz in range(n_z):
+                                cube_bin[zz,nn] = np.median(cube[zz,nn*bin_fac:(nn+1)*bin_fac],axis=0)
+                            derot_angles_bin[nn] = np.median(derot_angles[nn*bin_fac:(nn+1)*bin_fac])
+                        for nn in range(ntot_bin_notrim):
+                            for zz in range(n_z):
+                                cube_bin_notrim[zz,nn] = np.median(cube_notrim[zz,nn*bin_fac:(nn+1)*bin_fac],axis=0)
+                            derot_angles_bin_notrim[nn] = np.median(derot_angles_notrim[nn*bin_fac:(nn+1)*bin_fac])
+                        cube = cube_bin
+                        cube_notrim = cube_bin_notrim
+                        derot_angles = derot_angles_bin
+                        derot_angles_notrim = derot_angles_bin_notrim
+                    if not cc:
+                        write_fits(outpath+final_cubename+"_full.fits", cube)
+                    # crop
+                    if cube.shape[-2] > crop_sz or cube.shape[-1] > crop_sz:
+                        if crop_sz%2 != cube.shape[-1]%2:
+                            for zz in range(cube.shape[0]):
+                                cube[zz] = cube_shift(cube[zz],0.5,0.5)
+                                cube_notrim[zz] = cube_shift(cube_notrim[zz],0.5,0.5)
+                            #cube = cube_shift(cube,0.5,0.5)
+                            cube = cube[:,:,1:,1:]
+                            cube_notrim = cube_notrim[:,:,1:,1:]
+                        cube = cube_crop_frames(cube,crop_sz,verbose=debug)
+                        cube_notrim = cube_crop_frames(cube_notrim,crop_sz,verbose=debug)
+                    flux = open_fits(outpath+final_fluxname+".fits")
+                    # only save final with VIP conventions, for use in postproc.
+                    cube_norm = np.zeros_like(cube)
+                    cube_notrim_norm = np.zeros_like(cube)
+                    for zz in range(cube.shape[0]):
+                        cube_norm[zz] = cube[zz]/flux[zz]
+                        cube_notrim_norm[zz] = cube_notrim[zz]/flux[zz]
+                    if crop_sz%2: 
+                        write_fits(outpath+final_cubename+".fits", cube)
+                        write_fits(outpath+final_cubename_norm+".fits", cube_norm)
+                        write_fits(outpath+final_anglename+".fits", derot_angles)
+                    write_fits(outpath+"3_final_cube_all_bin{:.0f}_{:.0f}.fits".format(bin_fac, crop_sz), cube_notrim)
+                    write_fits(outpath+"3_final_cube_all_bin{:.0f}_{:.0f}_norm.fits".format(bin_fac, crop_sz), cube_notrim_norm)
+                    write_fits(outpath+"3_final_derot_angles_all_bin{:.0f}.fits".format(bin_fac), derot_angles_notrim)
+                    write_fits(outpath+"3_final_cube_bin{:.0f}_{:.0f}.fits".format(bin_fac, crop_sz), cube)
+                    write_fits(outpath+"3_final_cube_bin{:.0f}_{:.0f}_norm.fits".format(bin_fac, crop_sz), cube_norm)
+                    write_fits(outpath+"3_final_derot_angles_bin{:.0f}.fits".format(bin_fac), derot_angles)
+                    
+                if not coro and not isfile(outpath+"final_obj_fluxes.fits"):
+                    cube = open_fits(outpath+"2_master_ASDIcube_clean_{}.fits".format("-".join(badfr_criteria_psf)))
+                    med_psf = np.median(cube,axis=1)
+                    norm_psf = np.zeros([n_z,final_crop_sz_psf,final_crop_sz_psf])
+                    fwhm=np.zeros(n_z)
+                    med_flux = np.zeros(n_z)
+                    if not coro:
+                        for zz in range(n_z):
+                            norm_psf[zz], med_flux[zz], fwhm[zz] = normalize_psf(med_psf[zz], fwhm='fit', size=final_crop_sz_psf, threshold=None, mask_core=None,
+                                                                     model=psf_model, imlib='opencv', interpolation='lanczos4',
+                                                                     force_odd=False, full_output=True, verbose=debug, debug=False)
+                                         
+                        write_fits(outpath+"3_final_obj_med.fits", med_psf)
+                        write_fits(outpath+"3_final_obj_norm_med_{}.fits".format(psf_model), norm_psf)
+                        write_fits(outpath+"3_final_obj_flux_med_{}.fits".format(psf_model), med_flux)
+                        write_fits(outpath+"3_final_obj_fwhm_{}.fits".format(psf_model), fwhm)
+                    
+                        ntot = cube.shape[1]
+                        fluxes = np.zeros([n_z,ntot])
+                        for zz in range(n_z):
+                            for nn in range(ntot):
+                                _, fluxes[zz,nn], _ = normalize_psf(cube[zz,nn], fwhm=fwhm[zz], size=None, threshold=None, mask_core=None,
+                                                               model=psf_model, imlib='opencv', interpolation='lanczos4',
+                                                               force_odd=False, full_output=True, verbose=debug, debug=False)
+                        write_fits(outpath+"3_final_obj_fluxes_{}.fits".format(psf_model), fluxes)
+            
+#                if save_space:
+#                    os.system("rm {}*3crop.fits".format(outpath))
+    
+    
+        # NEGLIGIBLE FOR IFS!
+        #********************** DISTORTION (ANAMORPHISM) ***********************
+#            if distort_corr:
+#                dist_lab = "_DistCorr"
+#            else:
+#                dist_lab = ""
+#            if 7 in to_do:
+#                for bb, bin_fac in enumerate(bin_fac_list):
+#                    #outpath_bin=path2+"3_postproc_bin{:.0f}/".format(bin_fac)
+#                    if not isfile(outpath+final_cubename) or overwrite[6]:
+#                        cube, header = open_fits(outpath+"3_final_cube_bin{:.0f}.fits".format(bin_fac), header=True)
+#                        if distort_corr:
+#                            for zz in range(cube.shape[0]):
+#                                cube[zz] = _cube_resc_wave(cube[zz], scaling_list=None, ref_xy=None, 
+#                                                   imlib='opencv', interpolation='lanczos4', 
+#                                                   scaling_y=scal_y_distort, 
+#                                                   scaling_x=scal_x_distort)
+#    #                        ori_sz = cube.shape[2]
+#    #                        for zz in range(cube.shape[0]):
+#    #                            tmp = cube_px_resampling(cube[zz], scale=(scal_x_distort, scal_y_distort), 
+#    #                                                     imlib='opencv', interpolation='lanczos4', verbose=True)
+#    #                            if tmp.shape[2] > ori_sz or tmp.shape[3] > ori_sz:                              
+#    #                                cube[zz] = cube_crop_frames(tmp,ori_sz,verbose=debug) 
+#    #                            else:
+#    #                                cube[zz]=tmp
+#                        write_fits(outpath+final_cubename, cube, header=header)              
+#                for ff, file_list in enumerate(obj_psf_list):
+#                    if ff>1 or (ff==0 and coro):
+#                        break
+#                    med_psf = open_fits(outpath+"3_final_{}_med.fits".format(labels2[ff]))
+#                    if distort_corr:
+#                        norm_psf = np.zeros([n_z,final_crop_sz_psf,final_crop_sz_psf])
+#                        fwhm=np.zeros(n_z)
+#                        med_flux = np.zeros(n_z)
+#                        final_med_psf = _cube_resc_wave(med_psf, scaling_list=None, ref_xy=None, 
+#                                          imlib='opencv', interpolation='lanczos4', 
+#                                          scaling_y=scal_y_distort, 
+#                                          scaling_x=scal_x_distort)                        
+##                            ori_sz = med_psf.shape[-1]
+#    #                        tmp = cube_px_resampling(med_psf, scale=(scal_x_distort, scal_y_distort), 
+#    #                                                 imlib='opencv', interpolation='lanczos4', verbose=True)
+##                            if tmp.shape[1] > ori_sz or tmp.shape[2] > ori_sz:                              
+##                                final_med_psf = cube_crop_frames(tmp,ori_sz,verbose=debug) 
+##                            else:
+##                                final_med_psf=tmp
+#                        for zz in range(n_z):
+#                            norm_psf[zz], med_flux[zz], fwhm[zz] = normalize_psf(final_med_psf[zz], fwhm='fit', size=final_crop_sz_psf, 
+#                                                                                 threshold=None, mask_core=None,
+#                                                                                 model=psf_model, imlib='opencv', 
+#                                                                                 interpolation='lanczos4',
+#                                                                                 force_odd=True, full_output=True, 
+#                                                                                 verbose=debug, debug=False)
+#                    else:
+#                        norm_psf = open_fits(outpath+"3_final_{}_norm_med.fits".format(labels2[ff]))
+#                        med_flux = open_fits(outpath+"3_final_{}_flux_med.fits".format(labels2[ff]))
+#                        fwhm = open_fits(outpath+"3_final_{}_fwhm.fits".format(labels2[ff]))
+#                                                 
+#                    write_fits(outpath+"4_final_{}_med{}.fits".format(labels2[ff],dist_lab), med_psf)
+#                    write_fits(outpath+"4_final_{}_norm_med{}.fits".format(labels2[ff],dist_lab), norm_psf)
+#                    write_fits(outpath+"4_final_{}_flux_med{}.fits".format(labels2[ff],dist_lab), med_flux)
+#                    write_fits(outpath+"4_final_{}_fwhm{}.fits".format(labels2[ff],dist_lab), fwhm)
+                    
+        #********************* FINAL OBJ ADI CUBES and PSF frames (necessary for NEGFC or MAYO) ******************
+        if 7 in to_do:
+            # OBJs
+            if isinstance(final_crop_szs[0], (float,int)):
+                crop_sz_list = [int(final_crop_szs[0])]
+            elif isinstance(final_crop_szs[0], list):
+                crop_sz_list = final_crop_szs[0]
+            else:
+                raise TypeError("final_crop_sz_psf should be either int or list of int")
+            outpath_ADIcubes = outpath+"ADI_cubes/"
+            if not isdir(outpath_ADIcubes):
+                os.system("mkdir "+outpath_ADIcubes)  
+            if not isfile(outpath_ADIcubes+"ADI_cube_ch{:.0f}.fits".format(n_z-1)) or overwrite[6]:
+                #for bb, bin_fac in enumerate(bin_fac_list):
+                for cc, crop_sz in enumerate(crop_sz_list):
+                #ASDI_cube = open_fits(outpath+final_cubename)
+                    ASDI_cube = open_fits(outpath+"3_final_cube_all_bin{:.0f}_{:.0f}.fits".format(bin_fac, crop_sz))
+                    for ff in range(n_z):
+                        write_fits(outpath_ADIcubes+'ADI_cube_ch{:.0f}_bin{:.0f}_{:.0f}.fits'.format(ff,bin_fac, crop_sz), ASDI_cube[ff])
+            # PSFs
+            if isinstance(final_crop_szs[1], (float,int)):
+                crop_sz_list = [int(final_crop_szs[1])]
+            elif isinstance(final_crop_szs[1], list):
+                crop_sz_list = final_crop_szs[1]
+            else:
+                raise TypeError("final_crop_sz_psf should be either int or list of int")
+            outpath_PSFframes = outpath+"PSF_frames/"
+            if not isdir(outpath_PSFframes):
+                os.system("mkdir "+outpath_PSFframes)  
+            if not isfile(outpath_PSFframes+"PSF_frame_ch{:.0f}.fits".format(n_z-1)) or overwrite[6]:
+                #for bb, bin_fac in enumerate(bin_fac_list):
+                for cc, crop_sz in enumerate(crop_sz_list):
+                #ASDI_cube = open_fits(outpath+final_cubename)
+                    PSF_cube = open_fits(outpath+"3_final_psf_med_{}_norm{:.0f}.fits".format(psf_model,crop_sz))
+                    for ff in range(n_z):
+                        write_fits(outpath_PSFframes+'PSF_frame_ch{:.0f}_{:.0f}.fits'.format(ff, crop_sz), PSF_cube[ff])
+                
+        if save_space:
+            os.system("rm {}*1bpcorr.fits".format(outpath))    
+            os.system("rm {}*2cen.fits".format(outpath))      
+            os.system("rm {}*3crop.fits".format(outpath))                
+
+            
+        #********************* FINAL SCALE LIST ******************
+
+        if 8 in to_do:
+            nfp = 2 # number of free parameters for simplex search
+            fluxes = np.zeros(n_z)
+            print("************* 8. FINDING SCALING FACTORS ***************")
+            fluxes = open_fits(outpath+final_fluxname+".fits")
+            fwhm = open_fits(outpath+final_fwhmname+".fits")
+            derot_angles = open_fits(outpath+final_anglename+".fits")
+                
+            n_cubes = len(derot_angles)
+            scal_vector = np.ones([n_z])
+            flux_fac_vec = np.ones([n_z])
+            resc_cube_res_all = []
+            for ff in range(n_z-1):
+                cube_ff = open_fits(outpath+final_cubename+".fits")[ff]
+                cube_last = open_fits(outpath+final_cubename+".fits")[-1]
+                master_cube = np.array([cube_ff,cube_last])
+                if ff == 0:
+                    if isinstance(mask_scal,str):
+                        mask_scal = open_fits(mask_scal)
+                        ny_m, nx_m = mask_scal.shape
+                        _, ny, nx = cube_ff.shape
+                        if ny_m>ny:
+                            if ny_m%2 != ny%2:
+                                mask_scal = frame_shift(mask_scal, 0.5, 0.5)
+                                mask_scal = mask_scal[1:,1:]
+                            mask_scal=frame_crop(mask_scal,ny)
+                        elif ny>ny_m:
+                            mask_scal_fin = np.zeros_like(cube_ff[0])
+                            mask_scal_fin[:ny_m,:nx_m]=mask_scal
+                            mask_scal = frame_shift(mask_scal_fin, 
+                                                    (ny-ny_m)/2, 
+                                                    (nx-nx_m)/2)
+                    else:
+                        mask = np.ones_like(cube_ff[0])
+                        if mask_scal[0]:
+                            if mask_scal[1]:
+                                mask_scal = get_annulus_segments(mask, mask_scal[0]/plsc, 
+                                                                 mask_scal[1]/plsc, nsegm=1, theta_init=0,
+                                                                 mode="mask")
+                            else:
+                                mask_scal = mask_circle(mask, mask_scal[0]/plsc)
+                        if debug:
+                            write_fits(outpath+"TMP_mask_scal.fits", mask_scal)
+                master_cube = np.median(master_cube,axis=1)
+                lbdas_tmp = [fwhm[ff],fwhm[-1]]
+                fluxes_tmp = [fluxes[ff],fluxes[-1]]
+                res = find_scal_vector(master_cube, lbdas_tmp, fluxes_tmp, 
+                                       mask=mask_scal, nfp=nfp, debug=debug)
+                scal_vector[ff], flux_fac_vec[ff] = res[0][0], res[1][0]
+
+            master_cube = open_fits(outpath+final_cubename+".fits")
+            fg = first_good_ch
+            lg = last_good_ch
+            for i in range(n_cubes):
+                resc_cube_res_i = []
+                resc_cube = master_cube[fg:lg,i].copy()
+                for ch, z in enumerate(range(fg,lg)):
+                    resc_cube[ch]*=flux_fac_vec[z]
+                resc_cube = _cube_resc_wave(resc_cube, scal_vector[fg:lg])
+                resc_cube_res = np.zeros([lg-fg+1,master_cube.shape[-2],master_cube.shape[-1]])
+                resc_cube_res[:-1] = resc_cube
+                # how many channels to median combine before simple SDI
+                for n_med in n_med_sdi:
+                    if n_med>1:
+                        tmp1 = np.median(resc_cube[:n_med],axis=0)
+                        tmp2 = np.median(resc_cube[-n_med:],axis=0)
+                    else:
+                        tmp1 = resc_cube[0]
+                        tmp2 = resc_cube[-1]
+                    resc_cube_res_i.append(tmp2-tmp1)
+                resc_cube_res_i = np.array(resc_cube_res_i)
+                write_fits(outpath+"TMP_resc_cube{:.0f}_res_{:.0f}fp.fits".format(i,nfp), resc_cube_res_i)
+                resc_cube_res[-1] = tmp2-tmp1
+                write_fits(outpath+"TMP_resc_cube_{:.0f}fp.fits".format(nfp), resc_cube)
+                   
+            # resc_cube_res_all = np.array(resc_cube_res_all)
+            # write_fits(outpath+"TMP_resc_cube_res_all_{:.0f}fp.fits".format(nfp), resc_cube_res_all)
+            
+            #perform simple SDI
+            for nn,n_med in enumerate(n_med_sdi):
+                resc_cube_res_all = []
+                for i in range(n_cubes):
+                    resc_cube_res_all.append(open_fits(outpath+"TMP_resc_cube{:.0f}_res_{:.0f}fp.fits".format(i,nfp))[nn])
+                resc_cube_res_all = np.array(resc_cube_res_all)
+                
+                derot_cube = cube_derotate(resc_cube_res_all, derot_angles)
+                sdi_frame = np.median(derot_cube,axis=0)
+                write_fits(outpath+"final_simple_SDI_{:.0f}fp_nmed{:.0f}.fits".format(nfp,n_med), 
+                           mask_circle(sdi_frame,coro_sz))
+                stim_map = compute_stim_map(derot_cube)
+                inv_stim_map = compute_inverse_stim_map(resc_cube_res_all, derot_angles)
+                thr = np.percentile(mask_circle(inv_stim_map,coro_sz), 99.9)
+                norm_stim_map = stim_map/thr
+                stim_maps = np.array([mask_circle(stim_map,coro_sz),
+                                      mask_circle(inv_stim_map,coro_sz),
+                                      mask_circle(norm_stim_map,coro_sz)])
+                write_fits(outpath+"final_simple_SDI_stim_{:.0f}fp_nmed{:.0f}.fits".format(nfp,n_med), stim_maps)
+
+            print("original scal guess: ",fwhm[-1]/fwhm[:])
+            print("original flux fac guess: ",fluxes[-1]/fluxes[:])
+            print("final scal result: ",scal_vector)
+            print("final flux fac result ({:.0f}): ".format(nfp),flux_fac_vec)
+            write_fits(outpath+final_scalefac_name, scal_vector)
+            write_fits(outpath+"final_flux_fac.fits", flux_fac_vec)
