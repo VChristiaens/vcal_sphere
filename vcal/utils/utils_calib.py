@@ -1,3 +1,13 @@
+#! /usr/bin/env python
+
+"""
+Utility routines for calibration and data sorting.
+"""
+
+__author__='V. Christiaens'
+__all__=['make_lists',
+         'sph_ifs_correct_spectral_xtalk']
+
 #PURPOSE: create sof files for esorex, for both IFS and IRDIS data
 import numpy as np
 import os

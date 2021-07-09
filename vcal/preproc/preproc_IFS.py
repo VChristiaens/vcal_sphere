@@ -1,3 +1,12 @@
+#! /usr/bin/env python
+
+"""
+Module with the preprocessing routine for SPHERE/IFS data.
+"""
+
+__author__ = 'V. Christiaens'
+__all__ = ['preproc_IFS']
+
 #PURPOSE: do the calibration steps not done in the EOS pipeline using VIP
 import ast
 import csv

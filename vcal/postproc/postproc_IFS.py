@@ -1,10 +1,15 @@
-
+#! /usr/bin/env python
 # coding: utf-8
+"""
+Utility routines for post-processing of SPHERE/IFS data.
+"""
+
+__author__ = 'V. Christiaens'
+
+__all__ = ['postproc_IFS']
 
 # *Version 1 (2019/12)* 
 # *Version 2 (2020/04) - this version* 
-
-# *Author: Valentin Christiaens*
 
 # How to use this script:
 # 1) First pass: set planet=False, fake_planets = False 
