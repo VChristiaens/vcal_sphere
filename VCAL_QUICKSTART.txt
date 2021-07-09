@@ -2,7 +2,7 @@
 
 1) Download:
 	- dataset of interest + raw calibs
-	- ALL darks from the following morning manually (i.e. as another request). This is because the ESO algorithm only download the darks with same DIT as the OBJECT observations, but not the ones for flats and other calibs.
+	- FOR IFS: Download additionally ALL darks from the following morning manually (i.e. as another request). This is because the ESO algorithm only download the darks with same DIT as the OBJECT observations, but not the ones for flats and other calibs.
 	=> Place all files in a folder named 'raw'
 
 2) Uncompress all *.Z files
@@ -14,7 +14,7 @@ dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DP
 	a) calibration (1st bad pix corr; dark sub; flat field; sky sub; etc.)  
 	b) preprocessing (2nd bad pix corr; centering; bad frames removal; ADI cube)
 	c) post-processing (median-ADI; PCA-ADI full/ann; PCA-SADI/PCA-ASDI for IFS)
-Description on each param is provided in ***.
+Description on each param is provided in the relevant MANUAL txt files.
 
 5) Run the reduce_data.sh script and enjoy a nice coffee (or maybe 2) while waiting to get the results.
 

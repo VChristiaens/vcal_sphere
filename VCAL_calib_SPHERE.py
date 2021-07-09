@@ -106,6 +106,19 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     do_irdis = params_calib['do_irdis']
     do_ifs = params_calib['do_ifs']
     to_do = params_calib['to_do']
+    # double-chekc or overwrite other params depending on do_ifs and do_irdis:
+    if do_ifs:
+        if dit_ifs is None:
+            raise ValueError("dit_ifs should be provided if do_ifs is True")
+        else:
+            dit_ifs=None
+    if do_irdis:
+        if dit_irdis is None:
+            raise ValueError("dit_irdis should be provided if do_irdis is True")
+        else:
+            dit_irdis=None            
+        
+    
     #0. file list for both instruments
     ## 1-6. IRDIS
     #1. master dark
@@ -1202,7 +1215,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         if ('FLAT' in dark_ifs and not indiv_fdark) or indiv_fdark:
                             f.write("{}master_dark.fits".format(outpath_ifs_fits+label_fd)+'\t'+'IFS_MASTER_DARK\n')
                         f.write("{}master_badpixelmap.fits".format(outpath_ifs_fits)+'\t'+'IFS_STATIC_BADPIXELMAP')
-                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits,kk)+'\t'+'IFS_PREAMP_FLAT\n')
+                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits)+'\t'+'IFS_PREAMP_FLAT\n')
              
                     if run_rec and (not isfile(outpath_ifs_fits+"large_scale_flat_l{:.0f}.fits".format(kk)) or overwrite_sof or overwrite_fits):
                         command = "esorex sph_ifs_master_detector_flat"
@@ -1262,7 +1275,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         if ('FLAT' in dark_ifs and not indiv_fdark) or indiv_fdark:
                             f.write("{}master_dark.fits".format(outpath_ifs_fits+label_fd)+'\t'+'IFS_MASTER_DARK\n')
                         f.write("{}master_badpixelmap.fits".format(outpath_ifs_fits)+'\t'+'IFS_STATIC_BADPIXELMAP')
-                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits,kk)+'\t'+'IFS_PREAMP_FLAT\n')
+                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits)+'\t'+'IFS_PREAMP_FLAT\n')
                         if large_scale_flat:
                             f.write("{}large_scale_flat_l{:.0f}.fits".format(outpath_ifs_fits,kk)+'\t'+'IFS_LARGE_SCALE_FLAT\n')
              
