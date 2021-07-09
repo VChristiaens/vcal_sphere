@@ -39,7 +39,7 @@ from vip_hci.preproc import (cube_shift, frame_shift, cube_crop_frames,
                              #cube_crop_frames, cube_derotate, cube_collapse)
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import mask_circle
-from utils import find_nearest
+from ..utils import find_nearest
 
 
 def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',

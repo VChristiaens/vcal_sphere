@@ -43,7 +43,7 @@ from vip_hci.pca import pca, pca_annular
 from vip_hci.preproc import cube_derotate
 from vip_hci.metrics import compute_stim_map, compute_inverse_stim_map
 from vip_hci.var import mask_circle
-from utils import find_nearest
+from ..utils import find_nearest
 
 ############### PARAMETERS to be adapted to each dataset #####################
 #from C_2019_10_J19003645.IFS_reduction.VCAL_2_preproc_IFS import distort_corr_labs # adapt location of 2nd script

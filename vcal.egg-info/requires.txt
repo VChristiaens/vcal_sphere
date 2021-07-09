@@ -1,0 +1,7 @@
+astropy~=3.2
+matplotlib
+numpy
+pandas
+photutils
+
+[dev]

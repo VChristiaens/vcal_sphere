@@ -23,9 +23,9 @@ class InstallReqs(install):
 
 class InstallDevReqs(develop):
     def run(self):
-        print(" **************************** ")
-        print(" *** Installing VIP (dev) *** ")
-        print(" **************************** ")
+        print(" ****************************** ")
+        print(" *** Installing VCAL-SPHERE *** ")
+        print(" ****************************** ")
         os.system('pip install -r requirements.txt')
         develop.run(self)
 
@@ -66,7 +66,7 @@ PACKAGES = ['vcal',
 setup(
     name='vcal',
     version=VERSION,
-    description='Package for VIP-based SPHERE image calibration and processing',
+    description='Package for VIP-based SPHERE image Calibration and processing',
     long_description=README,
     license='MIT',
     author='Valentin Christiaens',

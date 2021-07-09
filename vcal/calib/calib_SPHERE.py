@@ -19,7 +19,7 @@ from os.path import isfile, isdir#, join, dirname, abspath
 import pathlib
 import photutils
 import vip_hci
-from SPHERE_utils import make_lists, sph_ifs_correct_spectral_xtalk
+from ..utils import make_lists, sph_ifs_correct_spectral_xtalk
 
 
 def calib(params_calib_name='VCAL_params_calib.json'):

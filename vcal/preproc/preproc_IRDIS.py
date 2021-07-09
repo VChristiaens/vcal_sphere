@@ -32,7 +32,7 @@ from vip_hci.specfit import find_nearest
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle)
-from VCAL_utils_preproc import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos
+from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos
 
 #**************************** PARAMS TO BE ADAPTED ****************************  
 
