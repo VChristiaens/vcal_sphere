@@ -26,7 +26,7 @@ class InstallDevReqs(develop):
         print(" ****************************** ")
         print(" *** Installing VCAL-SPHERE *** ")
         print(" ****************************** ")
-        os.system('pip install -r requirements.txt')
+        os.system('pip install -r requirements-dev.txt')
         develop.run(self)
 
 

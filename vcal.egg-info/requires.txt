@@ -5,3 +5,7 @@ pandas
 photutils
 
 [dev]
+matplotlib
+numpy
+pandas
+photutils

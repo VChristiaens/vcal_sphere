@@ -1,7 +1,7 @@
 Metadata-Version: 2.1
 Name: vcal
 Version: 0.0.1
-Summary: Package for VIP-based SPHERE image calibration and processing
+Summary: Package for VIP-based SPHERE image Calibration and processing
 Home-page: https://github.com/vortex-exoplanet/VIP
 Author: Valentin Christiaens
 Author-email: valentinchrists@hotmail.com
