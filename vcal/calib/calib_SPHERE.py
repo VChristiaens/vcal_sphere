@@ -847,7 +847,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             sci_list_irdis = dico_lists['sci_list_irdis']
             n_sci = len(sci_list_irdis)
             if n_sci>0:
-    
+                curr_path = str(pathlib.Path().absolute())+'/' 
                 for ii in range(len(sci_list_irdis)):
                     if not isfile(outpath_irdis_sof+"OBJECT{:.0f}.sof".format(ii)) or overwrite_sof:
                         with open(outpath_irdis_sof+"OBJECT{:.0f}.sof".format(ii), 'w') as f:
@@ -875,6 +875,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     #                        command+= " --ird.{}.window_size={:.0f}".format(lab_rec,crop_sz_irdis)
                         command+= " {}OBJECT{:.0f}.sof".format(outpath_irdis_sof,ii)
                         os.system(command)
+                    if science_mode == 'DBI':
+                        os.system("rm {}/*_total.fits".format(curr_path))
                     
             # CEN
             cen_list_irdis = dico_lists['cen_list_irdis']
