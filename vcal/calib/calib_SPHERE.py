@@ -131,7 +131,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     
     instr = params_calib['instr']# instrument name in file name
     science_mode = params_calib['science_mode'] # current choice between {'DBI','CI'}
-    mode = params_calib['mode']
+    mode = params_calib.get('mode','YJH') # only matters for IFS data calibration
     
     overwrite_sof = params_calib['overwrite_sof']
     overwrite_fits = params_calib['overwrite_fits']
