@@ -94,10 +94,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     manual_sky = params_calib.get('manual_sky',1) # the sky evolves quickly with time, in case of poor sky sampling during sequence the background level after sky subtraction can be anywhere between -15 and +15 instead of 0
     mask_pca_sky_sub = params_calib.get('mask_pca_sky_sub',[250,420,0,0,0])
     # => First try with manual_sky set to False (no need to change params below then). If average background level different than 0 => re-run by setting it to True (possibly adaot values below -- in partciular for the psf): this will subtract manually the average pixel values measured at the provided coords (ideally corners far from star)
-    corner_coords = params_calib['corner_coords'] # x,y coords where the sky will be manually estimated # !!! CAREFUL IF STAR NOT CENTERED => adapt
-    msky_ap = params_calib['msky_ap'] #aperture for manual sky level estimation
-    corner_coords_psf = params_calib['corner_coords_psf'] # x,y coords where the sky will be manually estimated # !!! CAREFUL IF STAR NOT CENTERED => adapt
-    msky_ap_psf = params_calib['msky_ap_psf']
+    corner_coords = params_calib.get('corner_coords',[[39,215],[72,42],[247,78],[216,250]]) # x,y coords where the sky will be manually estimated # !!! CAREFUL IF STAR NOT CENTERED => adapt
+    msky_ap = params_calib.get('msky_ap',15) #aperture for manual sky level estimation
+    corner_coords_psf = params_calib.get('corner_coords_psf',[[98,88]]) # x,y coords where the sky will be manually estimated # !!! CAREFUL IF STAR NOT CENTERED => adapt
+    msky_ap_psf = params_calib.get('msky_ap_psf',20)
     
     
     ############### PARAMS THAT WILL LIKELY NOT NEED TO BE CHANGED ################
