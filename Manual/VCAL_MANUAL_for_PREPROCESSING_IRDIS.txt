@@ -67,7 +67,7 @@ badfr_crit = [{"thr":0.9,"ref":"median"},{"thr":"2"}] # List of dictionaries ind
 #mode = ['annulus', "circle"] # area used for bad frames identification - given for [OBJ, PSF]. Recommendation: Use annulus for coronagraphic data, circle otherwise.
 #rad = [int(coro_sz), 10]     # radius for the above areas. If annulus: correspond to the inner radius of the annulus
 #width = [int(4*coro_sz), 0]  # width (only used if area is an annulus)
-approx_xy_bkg = 0 # can be 0 or a list of 2 floats: (x,y) coords of background star in full ADI frame obtained after rough centering. NOTE: the pipeline should thus be run a first time without the option 'bkg' selected. It can then be run again if needed (for either a better centering and/or a better trim of bad frames).
+approx_xy_bkg = 0 # can be 0 or a list of 2 floats: (x,y) coords of background star in full ADI frame obtained after rough centering. NOTE: the pipeline should thus be run up to step #4 (to have the most relevant median-ADI image to be considered to set the value of approx_xy_bkg, if any bkg object). 
 snr_thr_bkg = 3. # float corresponding to SNR threshold to select images of the sequence for consideration to compute shifts.
 good_cen_idx = 1 # if some CEN cubes are bad (i.e. star not exactly behind coronagraphic mask), this should be the index of a good CEN cube. If not provided, will assume all CEN cubes have the star perfectly behind mask. Will be used for star-BKG radius and differential shifts. Default: None (not provided in .json file)
 
