@@ -9,6 +9,9 @@
 
 3) cd in downloaded directory and use following command to infer the strategy used during the observation (optionally check some raw images):
 dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
+Pro tip: make an alias in your ~/.bash_profile e.g. by adding:
+alias dfits_irdifs = 'dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT'
+then simply call dfits_irdifs whenever needed in a given directory.
 
 4) Adapt JSON param files for:
 	a) calibration (1st bad pix corr; dark sub; flat field; sky sub; etc.)  
