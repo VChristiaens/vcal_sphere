@@ -87,10 +87,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
       
     # Reduction params
     ## Check the sky cubes by eye to select appropriate value for params below:
-    good_sky_irdis = params_calib['good_sky_irdis'] #'all' or list of indices. If empty, will either use_ins_bg or just subtract the dark.
-    good_sky_list = params_calib['good_sky_list'] #which skies to use for IFS? If [-1]: just uses the first frame of the first sky, if a list of good skies: uses all frames from all those cubes, if ['all']: uses them all.
-    good_psf_sky_list = params_calib['good_psf_sky_list']
-    good_psf_sky_irdis = params_calib['good_psf_sky_irdis']
+    good_sky_irdis = params_calib.get('good_sky_irdis',["all"]) #'all' or list of indices. If empty, will either use_ins_bg or just subtract the dark.
+    good_sky_list = params_calib.get('good_sky_list',["all"]) #which skies to use for IFS? If [-1]: just uses the first frame of the first sky, if a list of good skies: uses all frames from all those cubes, if ['all']: uses them all.
+    good_psf_sky_list = params_calib.get('good_psf_sky_list',["all"])
+    good_psf_sky_irdis = params_calib.get('good_psf_sky_irdis',["all"])
     manual_sky = params_calib.get('manual_sky',1) # the sky evolves quickly with time, in case of poor sky sampling during sequence the background level after sky subtraction can be anywhere between -15 and +15 instead of 0
     mask_pca_sky_sub = params_calib.get('mask_pca_sky_sub',[250,420,0,0,0])
     # => First try with manual_sky set to False (no need to change params below then). If average background level different than 0 => re-run by setting it to True (possibly adaot values below -- in partciular for the psf): this will subtract manually the average pixel values measured at the provided coords (ideally corners far from star)
@@ -106,17 +106,17 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     do_irdis = params_calib['do_irdis']
     do_ifs = params_calib['do_ifs']
     to_do = params_calib['to_do']
-    # double-chekc or overwrite other params depending on do_ifs and do_irdis:
+    # double-check or overwrite other params depending on do_ifs and do_irdis:
     if do_ifs:
         if dit_ifs is None:
             raise ValueError("dit_ifs should be provided if do_ifs is True")
-        else:
-            dit_ifs=None
+    else:
+        dit_ifs=None
     if do_irdis:
         if dit_irdis is None:
             raise ValueError("dit_irdis should be provided if do_irdis is True")
-        else:
-            dit_irdis=None            
+    else:
+        dit_irdis=None
         
     
     #0. file list for both instruments
@@ -146,8 +146,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     large_scale_flat = params_calib.get('large_scale_flat',"some") # choice between 'all' (v1.38 manual), 'some' (v1.40? cf. dr recipe), False (not used, v1.40? cf. flat recipe)
     flat_smooth_method_idx = params_calib.get('flat_smooth_method_idx',1)# default 1 in esorex recipe (0: CPL filter, 1: FFT filter)
     flat_smooth_length = params_calib.get('flat_smooth_length',5)
-    specpos_distort_corr = params_calib['specpos_distort_corr'] # default is True
-    specpos_nonlin_corr = params_calib['specpos_nonlin_corr'] # default is True (cfr. D. Mesa 2015)
+    specpos_distort_corr = params_calib.get('specpos_distort_corr',1) # default is True
+    specpos_nonlin_corr = params_calib.get('specpos_nonlin_corr',1) # default is True (cfr. D. Mesa 2015)
     xtalk_corr = params_calib.get('xtalk_corr',0) # whether cross talk should be corrected
     pca_subtr = params_calib.get('pca_subtr',1)  # whether to subtract dark and sky using pca
     npc = params_calib.get('npc',1)
@@ -180,7 +180,6 @@ def calib(params_calib_name='VCAL_params_calib.json'):
         for row in reader:
              dico_lists[row[0]] = ast.literal_eval(row[1])
         
-    
     ## 1-5 IRDIS
     if do_irdis:
         # SKY labels

@@ -220,7 +220,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                     elif header['HIERARCH ESO DET NAME'] == 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'OBJECT,CENTRE':
                         center_list_irdis.append(fname)
                         center_list_mjd_irdis.append(header['MJD-OBS'])  
-                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_irdis and header['HIERARCH ESO DET NAME']== 'IRDIS' and 'DARK' in header['HIERARCH ESO DPR TYPE'] and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
+                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_irdis and header['HIERARCH ESO DET NAME']== 'IRDIS' and 'DARK,BACKGROUND' in header['HIERARCH ESO DPR TYPE'] and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
                         ins_bg_list_irdis.append(fname)  
                     elif header['HIERARCH ESO DET NAME'] == 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'DARK':
                         dark_list_irdis.append(fname)
