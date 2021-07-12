@@ -56,6 +56,29 @@ with open(resource('vcal', '__init__.py')) as version_file:
                         version_file, re.M)
     VERSION = VERSION.group(1)
 
+# MODIFY EXAMPLE json file to include path to static data:
+curr_dir = os.getcwd()
+curr_dir+="/"
+old_names = ["Examples/VCAL_params_calib_IFS.json",
+             "Examples/VCAL_params_calib_IRDIS.json"]
+new_names = ["Examples/VCAL_params_calib_IFS_new.json",
+            "Examples/VCAL_params_calib_IRDIS_new.json"]
+for nn in range(len(old_names)):
+    old_name = old_names[nn]
+    new_name = new_names[nn]
+    with open(curr_dir+old_name, "r+") as fold:
+        with open(curr_dir+new_name, "w") as fnew:
+            all_lines = fold.readlines()
+            for ll in range(len(all_lines)):
+                if ll !=2:
+                    fnew.write(all_lines[ll])
+                else:
+                    line_tmp = '    "inpath_filt_table": "{}{}",\n'
+                    filt_name = 'sph_ird_filt_table.fits'
+                    new_line = line_tmp.format(curr_dir+"DataStatic/", filt_name)
+                    fnew.write(new_line)
+    os.system("rm {}{}".format(curr_dir, old_name))
+    os.system("mv {}{} {}{}".format(curr_dir, new_name, curr_dir, old_name))
 
 PACKAGES = ['vcal',
             'vcal.calib',
