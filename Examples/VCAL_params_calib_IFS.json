@@ -38,7 +38,6 @@
     "wc_win_sz": 7,
     "sky": 1,
     "manual_sky": 1,
-    "mask_pca_sky_sub": [250,420,0,25,[40,142,220,322]],
     "overwrite_sof": 1,
     "overwrite_fits": 1
 }
