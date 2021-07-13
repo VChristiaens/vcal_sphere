@@ -941,7 +941,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         os.system(command)
                     
             curr_path = str(pathlib.Path().absolute())+'/'          
-            # subtract residual sky level if required (FOR ALL: OBJECT, CENTER, PSF)   
+            # subtract residual sky level if required (FOR ALL: OBJECT, CENTER, PSF)
             if not pca_subtr or not pca_subtr_psf:
                 lab_ird = ["_left","_right"] # always for IRDIS
                 file_list = os.listdir(curr_path)
