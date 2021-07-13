@@ -34,6 +34,8 @@ from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
 #from C_2019_10_J19003645.IRDIS_reduction.VCAL_1_calib_SPHERE import dit_ifs, dit_irdis, dit_psf_ifs, dit_psf_irdis
 
+from ..utils import set_backend
+
 def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json', 
                 params_calib_name='VCAL_params_calib.json'):
     """
@@ -96,6 +98,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     debug = params_preproc.get('debug',0) # whether to print more info - useful for debugging
     save_space = params_preproc['save_space'] # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
     plot = params_preproc['plot']
+    
+    if debug:
+        set_backend()
     
     if isinstance(overwrite, (int, bool)):
         overwrite = [overwrite]*7

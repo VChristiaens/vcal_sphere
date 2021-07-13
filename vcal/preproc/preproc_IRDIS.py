@@ -32,7 +32,7 @@ from vip_hci.specfit import find_nearest
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle)
-from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos
+from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, set_backend
 
 #**************************** PARAMS TO BE ADAPTED ****************************  
 
@@ -98,11 +98,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     verbose = params_preproc['verbose']
     plot_obs_cond = params_preproc.get('plot_obs_cond',False)
     
+    if debug:
+        set_backend()
+    
     # Preprocessing options
     rec_met = params_preproc['rec_met']    # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
     rec_met_psf = params_preproc['rec_met_psf']
     xy_spots = params_preproc.get('xy_spots',[])# if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
-    sigfactor = params_preproc['sigfactor']
+    sigfactor = params_preproc.get('sigfactor',3)
     badfr_crit_names = params_preproc['badfr_crit_names']
     badfr_crit_names_psf = params_preproc['badfr_crit_names_psf']
     badfr_crit = params_preproc['badfr_crit']
@@ -473,7 +476,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             cube_cen -= np.median(cube,axis=0)
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[ff][i][0]-diff,xy_spots[ff][i][1]-diff) for i in range(len(xy_spots[ff]))])
-                                        _, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen, xy_spots_tmp, subi_size=cen_box_sz[fi], 
+                                        _, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen, xy_spots_tmp, subi_size=cen_box_sz[2], 
                                                                                          sigfactor=sigfactor, plot=plot,
                                                                                          fit_type='moff', lbda=None, 
                                                                                          debug=False, verbose=True, 
@@ -661,7 +664,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             cube_cen_sub -= np.median(cube_near,axis=0)
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[ff][i][0]-diff,xy_spots[ff][i][1]-diff) for i in range(len(xy_spots[ff]))])
-                                        cube_cen_sub, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[fi], 
+                                        cube_cen_sub, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[2], 
                                                                                          sigfactor=sigfactor, plot=plot,
                                                                                          fit_type='moff', lbda=None, 
                                                                                          debug=debug, verbose=verbose, 
