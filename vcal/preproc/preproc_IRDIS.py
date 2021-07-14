@@ -1336,17 +1336,21 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 if plot_obs_cond:
                                     val = counter + (2*(ff%2)-1)*0.2
                                     if fi!= 1:
-                                        label=filt+'- stat'
+                                        label=filt+'- bkg'
                                     else:
                                         label = None
                                     ax5.plot(UTC[good_index_list]-UTC_0, [val]*len(good_index_list), cols[ff][0]+markers_1[fi], label=label)
                                 counter+=1        
                                 
                             if "shifts" in badfr_critn_tmp:
-                                if not isfile(outpath+"TMP_shifts_fine_recentering_bkg.fits"):
-                                    msg = "File with fine recentering does not exist. "
+                                # Note: this only makes sense for bkg-based centering, 
+                                # since satspots centering will linearly interpolate CEN cube stellar position 
+                                # hence should not identify any outlier.
+                                if not isfile(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filt)):
+                                    msg = "File with fine recentering {} does not exist. "
                                     msg+= "Is there a BKG star and have you run step 5?"
-                                    raise NameError(msg)
+                                    fn = outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filt)
+                                    raise NameError(msg.format(fn))
                                 if rec_met != 'satspots':
                                     raise TypeError("For this bad frame removal criterion to work, only 'CENTER' i.e. satellite spot images must be used")
                                 idx_shifts = badfr_critn_tmp.index("shifts")
@@ -1368,6 +1372,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 elif isinstance(good_cen_idx,int):
                                     good_cen_shift_x = good_cen_shift_x[good_cen_idx]
                                     good_cen_shift_y = good_cen_shift_y[good_cen_idx]
+                                elif isinstance(good_cen_idx,list):
+                                    good_cen_shift_x = np.median(good_cen_shift_x[good_cen_idx])
+                                    good_cen_shift_y = np.median(good_cen_shift_y[good_cen_idx])                                    
                                 else:
                                     raise TypeError("good_cen_idx can only be int or None")
                                 # INFER TOTAL CUBE SHIFTS
@@ -1375,13 +1382,13 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 shifts_y = open_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(labels[0],filters[ff],rec_met))
                                 shifts_x = open_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[0],filters[ff],rec_met))
                                 err = [err]*len(shifts_y)
-                                ## Load fine shifts if they exist
-                                if isfile(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff])):
-                                    fine_shifts = open_fits(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff]))
-                                    err = fine_shifts[-1]
-                                    # update shifts
-                                    shifts_x += fine_shifts[1]
-                                    shifts_y += fine_shifts[2]
+                                ## Load fine shifts
+                                #if isfile(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff])):
+                                fine_shifts = open_fits(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff]))
+                                err = fine_shifts[-1]
+                                # update shifts
+                                shifts_x += fine_shifts[1]
+                                shifts_y += fine_shifts[2]
                                 final_dshifts = np.sqrt(np.power(shifts_x[:]-good_cen_shift_x,2)+np.power(shifts_y[:]-good_cen_shift_y,2))
                                 n_fr = final_dshifts.shape[0]
                                 if plot or debug:
@@ -1395,6 +1402,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     ax1.plot([0,n_fr+1],[thr,thr],'k--')
                                     ax1.set_xlabel("Index of frame in cube")
                                     ax1.set_ylabel("Differential shift with respect to mask center (px)")
+                                    ax1.set_ylim(-0.1,3)
                                     plt.savefig(outpath+"Residual_shifts_bkg_VS_satspots_{}_badfrrm.pdf".format(filters[ff]), bbox_inches='tight', format='pdf')
                                 good_index_list = [i for i in range(n_fr) if final_dshifts[i] < thr]
                                 bad_index_list = [i for i in range(n_fr) if i not in good_index_list]
@@ -1405,7 +1413,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 if plot_obs_cond:
                                     val = counter + (2*(ff%2)-1)*0.2
                                     if fi != 1:
-                                        label=filt+'- stat'
+                                        label=filt+'- shifts'
                                     else:
                                         label = None
                                     ax5.plot(UTC[good_index_list]-UTC_0, [val]*len(good_index_list), cols[ff][0]+markers_1[fi], label=label)

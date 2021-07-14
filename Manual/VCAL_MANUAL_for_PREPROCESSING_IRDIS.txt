@@ -73,7 +73,7 @@ badfr_crit = [{"thr":0.9,"ref":"median"},{"thr":"2"}] # List of dictionaries ind
 #width = [int(4*coro_sz), 0]  # width (only used if area is an annulus)
 approx_xy_bkg = 0 # can be 0 or a list of 2 floats: [x,y] coords of background star in the ADI frame obtained after rough centering (named "median_ADI1_<filter>.fits") and optionally (recommended) distortion correction (named "median_ADI2_<filter>_DistCorr.fits"). NOTE: the pipeline should thus FIRST be run up to step #3 or #4, to then be able to set this value if any bkg star present, and then run it again for the subsequent steps. 
 snr_thr_bkg = 3. # float corresponding to SNR threshold to select images of the sequence for consideration to compute shifts.
-good_cen_idx = 1 # if some CEN cubes are bad (i.e. star not exactly behind coronagraphic mask), this should be the index of a good CEN cube. If not provided, will assume all CEN cubes have the star perfectly behind mask. Will be used for star-BKG radius and differential shifts. Default: None (not provided in .json file)
+good_cen_idx = None # None or int. If some CEN cubes are bad (i.e. star not exactly behind coronagraphic mask), this should be the index of a good CEN cube. If not provided, will assume all CEN cubes have the star perfectly behind mask. Will be used for star-BKG radius and differential shifts. Default: None (i.e. not provided in .json file)
 
 #******************** PARAMS LIKELY GOOD AS DEFAULT ***************************
 instr = 'SPHER' # instrument name in file name

@@ -238,7 +238,7 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     unc_shift_r = np.zeros(ngood)
     for i in range(ngood):
         unc_shift_r[i] = np.sqrt(np.sum(np.power(unc_shifts[i,:],2)))
-    med_unc_shifts = np.median(unc_shift_r)
+    med_unc_shifts = np.nanmedian(unc_shift_r)
     final_med_unc = np.sqrt(unc_r**2+med_unc_shifts**2)
     uncs = np.sqrt(unc_r**2+np.power(unc_shift_r,2))
     
@@ -252,9 +252,11 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     if len(above_thr_idx) < cube.shape[0]:
         if verbose:
             print('Interpolating shifts in cubes with low SNR for BKG...')
-        final_shifts_fx = interp1d(derot_angles[above_thr_idx], shifts_x)
+        final_shifts_fx = interp1d(derot_angles[above_thr_idx], shifts_x,
+                                   bounds_error=False, fill_value='extrapolate')
         final_shifts_x = final_shifts_fx(derot_angles)
-        final_shifts_fy = interp1d(derot_angles[above_thr_idx], shifts_y)
+        final_shifts_fy = interp1d(derot_angles[above_thr_idx], shifts_y,
+                                   bounds_error=False, fill_value='extrapolate')
         final_shifts_y = final_shifts_fy(derot_angles)
         final_unc = np.ones_like(final_shifts_x)*100 # arbitrary high unc
         final_unc[above_thr_idx] = uncs
