@@ -376,7 +376,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             cube = cube_crop_frames(cube,bp_crop_sz_tmp)
                         
                         cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resel[fi], 
-                                                     sig=5., protect_psf=False, verbose=full_output,
+                                                     sig=6., protect_psf=False, verbose=full_output,
                                                      half_res_y=False, max_nit=10, full_output=full_output)
                         if full_output:
                             write_fits(outpath+filename+"_1bpcorr_bpmap.fits", cube[1], header=header) 
@@ -1299,27 +1299,35 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                          fwhm, 
                                                                          fit_type=psf_model)
                                 # measure bkg star fluxes
-                                n_fr = cube.shape[0]
+                                n_fr, ny, nx = cube.shape
                                 flux_bkg = np.zeros(n_fr)
                                 crop_sz = int(6*fwhm)
                                 if not crop_sz%2:
                                     crop_sz+=1
                                 for ii in range(n_fr):
-                                    subframe = frame_crop(cube[ii], crop_sz,
-                                                          cenxy=(int(final_x_bkg[ii]), 
-                                                                  int(final_y_bkg[ii])),
-                                                                  force=True, verbose=verbose)
-                                    subpx_shifts = (final_x_bkg[ii]-int(final_x_bkg[ii]),
-                                                    final_y_bkg[ii]-int(final_y_bkg[ii]))
-                                    subframe = frame_shift(subframe, subpx_shifts[1],
-                                                           subpx_shifts[0])
-                                    _, flux_bkg[ii], _ = normalize_psf(subframe, fwhm=fwhm, 
-                                                                       full_output=True, 
-                                                                       verbose=verbose, debug=debug)
+                                    cond1 = int(final_x_bkg[ii])<crop_sz
+                                    cond2 = int(final_y_bkg[ii])<crop_sz
+                                    cond3 = int(final_x_bkg[ii])>nx-crop_sz
+                                    cond4 = int(final_y_bkg[ii])>ny-crop_sz
+                                    if cond1 or cond2 or cond3 or cond4:
+                                        flux_bkg[ii] = np.nan
+                                    else:
+                                        subframe = frame_crop(cube[ii], crop_sz,
+                                                              cenxy=(int(final_x_bkg[ii]), 
+                                                                      int(final_y_bkg[ii])),
+                                                                      force=True, verbose=verbose)
+                                        subpx_shifts = (final_x_bkg[ii]-int(final_x_bkg[ii]),
+                                                        final_y_bkg[ii]-int(final_y_bkg[ii]))
+                                        subframe = frame_shift(subframe, subpx_shifts[1],
+                                                               subpx_shifts[0])
+                                        _, flux_bkg[ii], _ = normalize_psf(subframe, fwhm=fwhm, 
+                                                                           full_output=True, 
+                                                                           verbose=verbose, debug=debug)
                                 # infer outliers
-                                med_fbkg = np.median(flux_bkg)
-                                std_fbkg = np.std(flux_bkg)
-                                good_index_list = [i for i in range(n_fr) if flux_bkg[i] > med_fbkg-sigma*std_fbkg]
+                                med_fbkg = np.nanmedian(flux_bkg)
+                                std_fbkg = np.nanstd(flux_bkg)
+                                nonan_index_list = [i for i in range(n_fr) if not np.isnan(flux_bkg[i])]
+                                good_index_list = [i for i in nonan_index_list if flux_bkg[i] > med_fbkg-sigma*std_fbkg]
                                 bad_index_list = [i for i in range(n_fr) if i not in good_index_list]
                                 final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
                                 if 100*len(bad_index_list)/cube.shape[0] > perc:

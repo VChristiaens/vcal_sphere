@@ -240,7 +240,7 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         unc_shift_r[i] = np.sqrt(np.sum(np.power(unc_shifts[i,:],2)))
     med_unc_shifts = np.median(unc_shift_r)
     final_med_unc = np.sqrt(unc_r**2+med_unc_shifts**2)
-    final_unc = np.sqrt(unc_r**2+np.power(unc_shift_r,2))
+    uncs = np.sqrt(unc_r**2+np.power(unc_shift_r,2))
     
     if verbose:
         print("Median uncertainty on BKG star position: {:.2f}, px".format(med_unc_shifts))
@@ -256,9 +256,12 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         final_shifts_x = final_shifts_fx(derot_angles)
         final_shifts_fy = interp1d(derot_angles[above_thr_idx], shifts_y)
         final_shifts_y = final_shifts_fy(derot_angles)
+        final_unc = np.ones_like(final_shifts_x)*100 # arbitrary high unc
+        final_unc[above_thr_idx] = uncs
     else:
         final_shifts_x = shifts_x
         final_shifts_y = shifts_y
+        final_unc = uncs
         
     #step 9 - final recentering with all shifts
     if verbose:
@@ -802,8 +805,18 @@ def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
             msg = "Fit type not recognised. Should be moff, gauss or airy"
             raise TypeError(msg)
         if full_output:
-            cen_unc.append([float(df_fit['centroid_x_err']),float(df_fit['centroid_y_err'])])
-            df_fit=[float(df_fit['centroid_y']),float(df_fit['centroid_x'])]
+            try:
+                cen_unc.append([float(df_fit['centroid_x_err']),float(df_fit['centroid_y_err'])])
+            except:
+                print("WARNING: could not infer uncertainty on centroid position. ")
+                print("Setting it to large value (100. px)")
+                cen_unc.append([100,100])
+            try:
+                df_fit=[float(df_fit['centroid_y']),float(df_fit['centroid_x'])]
+            except:
+                print("WARNING: could not find the centroid position. ")
+                print("Check the results of the fit in the df_fit data frame.")
+                pdb.set_trace()
         list_cens.append([df_fit[1],df_fit[0]])
     
     list_cens=np.array(list_cens)

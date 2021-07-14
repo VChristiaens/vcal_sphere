@@ -33,10 +33,11 @@ save_space = False # whether to progressively delete intermediate products as ne
 # Preprocessing options
 rec_met = "satspots"     # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
 rec_met_psf = "dft_100"
-xy_spots = [[105,169], [171,181], [117,103], [183,115]] # if recentering by satspots provide here the coordinates of the satellite spots. Two possibilities for the format:
+xy_spots = [[[452,559], [515,559], [451,494], [518,494]],[[452,559], [515,559], [451,494], [518,494]]] # if recentering by satspots provide here the coordinates of the satellite spots. Two possibilities for the format:
 a) provide a list of 4 lists (with 2 elements each) (e.g. in CI mode):  top-left, top-right, bottom-left and bottom-right spots xy coordinates in the first channel's raw images. Position in other channel(s) will be inferred from wavelength scaling. Note: do not do that for IRDIS!
 b) provide a list of n_ch lists of 4 lists (e.g. n_ch is 2 for DBI): in that case all the coordinates for each channel are provided. CHECK in "_left" and "_right" calibrated cen cubes!
 !!! WARNING: these positions can change from one dataset to another, and forgetting to adapt them can lead to a bad centering of the final frames. Examples:
+- for CI: "xy_spots": [[105,169], [171,181], [117,103], [183,115]]
 - for DBI-H23: "xy_spots": [[[452,559], [515,559], [451,494], [518,494]],[[452,559], [515,559], [451,494], [518,494]]]
 - for DBI-K12: "xy_spots": [[[435,568], [524,569], [434,480], [524,479]],[[435,558], [530,558], [434,464], [530,464]]]
 badfr_crit_names = ['corr','bkg'] # Bad frame criteria to be used for OBJ cubes; choice between{'stat','ell','corr','bkg','shifts'}. See description below. NOTE: For very good AO correction, it seems the algorithm used in badfrellipticity() routine (i.e. 'ell' option) would sometimes fail to detect the star! Too many rings? Only use for mediocre to very bad Strehl.
@@ -70,7 +71,7 @@ badfr_crit = [{"thr":0.9,"ref":"median"},{"thr":"2"}] # List of dictionaries ind
 #mode = ['annulus', "circle"] # area used for bad frames identification - given for [OBJ, PSF]. Recommendation: Use annulus for coronagraphic data, circle otherwise.
 #rad = [int(coro_sz), 10]     # radius for the above areas. If annulus: correspond to the inner radius of the annulus
 #width = [int(4*coro_sz), 0]  # width (only used if area is an annulus)
-approx_xy_bkg = 0 # can be 0 or a list of 2 floats: (x,y) coords of background star in full ADI frame obtained after rough centering. NOTE: the pipeline should thus be run up to step #4 (to have the most relevant median-ADI image to be considered to set the value of approx_xy_bkg, if any bkg object). 
+approx_xy_bkg = 0 # can be 0 or a list of 2 floats: [x,y] coords of background star in the ADI frame obtained after rough centering (named "median_ADI1_<filter>.fits") and optionally (recommended) distortion correction (named "median_ADI2_<filter>_DistCorr.fits"). NOTE: the pipeline should thus FIRST be run up to step #3 or #4, to then be able to set this value if any bkg star present, and then run it again for the subsequent steps. 
 snr_thr_bkg = 3. # float corresponding to SNR threshold to select images of the sequence for consideration to compute shifts.
 good_cen_idx = 1 # if some CEN cubes are bad (i.e. star not exactly behind coronagraphic mask), this should be the index of a good CEN cube. If not provided, will assume all CEN cubes have the star perfectly behind mask. Will be used for star-BKG radius and differential shifts. Default: None (not provided in .json file)
 
