@@ -150,12 +150,17 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     bp_crop_sz_psf = params_preproc.get('bp_crop_sz_psf',801)   
     final_crop_sz = params_preproc['final_crop_sz']                                          #823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
     final_crop_sz_psf = params_preproc['final_crop_sz_psf']                                       # 51 => 0.25'' radius (~3.5 FWHM)
-    psf_model = params_preproc['psf_model']                                        #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
-    separate_trim = params_preproc.get('separate_trim', False)                                        # whether to separately trim K1 and K2. If False, will only trim based on the K1 frames
-    bin_fac = params_preproc.get('bin_fac',1)                                          # binning factors for final cube. If the cube is not too large, do not bin.
-    approx_xy_bkg = params_preproc.get('approx_xy_bkg',0)                            # approx bkg star position in full ADI frame obtained after rough centering 
-    snr_thr_bkg = params_preproc.get('snr_thr_bkg',5)                                # SNR threshold for the bkg star: only frames where the SNR is above that threshold are used to find bkg star position 
+    psf_model = params_preproc.get('psf_model','moff')                                       #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
+    separate_trim = params_preproc.get('separate_trim', True)                                        # whether to separately trim K1 and K2. If False, will only trim based on the K1 frames
+    bin_fac = params_preproc.get('bin_fac',1)                                      # binning factors for final cube. If the cube is not too large, do not bin.
+    approx_xy_bkg = params_preproc.get('approx_xy_bkg',0)                          # approx bkg star position in full ADI frame obtained after rough centering 
+    snr_thr_bkg = params_preproc.get('snr_thr_bkg',5)                              # SNR threshold for the bkg star: only frames where the SNR is above that threshold are used to find bkg star position 
     good_cen_idx = params_preproc.get('good_cen_idx', None) # good indices of center cubes (to be used for fine centering)
+    
+    if isinstance(separate_trim,str):
+        trim_ch=filters.index(separate_trim)
+    else:
+        trim_ch=0
     
     # output names
     label_test = params_preproc.get('label_test', '')
@@ -1194,7 +1199,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             derot_angles = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]))
                             
                         # Rejection based on pixel statistics
-                        if ff == 0 or separate_trim:
+                        if ff == trim_ch or separate_trim==1:
                             
                             final_good_index_list = list(range(cube.shape[0]))
                             if len(bad_fr_idx[fi])>0:
@@ -1287,7 +1292,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 med_x, med_y = fit2d_bkg_pos(np.array([cen_adi_img]), 
                                                              np.array([approx_xy_bkg[0]]), 
                                                              np.array([approx_xy_bkg[1]]), 
-                                                             fwhm, fit_type=psf_model)
+                                                             fwhm, fit_type=psf_model,
+                                                             crop_sz=crop_sz,
+                                                             sigfactor=sigfactor)
                                 xy_bkg_derot = (med_x,med_y)
                                 cy, cx = frame_center(cube[0])
                                 center_bkg = (cx, cy)
@@ -1298,7 +1305,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                          x_bkg, 
                                                                          y_bkg, 
                                                                          fwhm, 
-                                                                         fit_type=psf_model)
+                                                                         fit_type=psf_model,
+                                                                         crop_sz=crop_sz,
+                                                                         sigfactor=sigfactor)
                                 # measure bkg star fluxes
                                 n_fr, ny, nx = cube.shape
                                 flux_bkg = np.zeros(n_fr)
@@ -1306,10 +1315,17 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 if not crop_sz%2:
                                     crop_sz+=1
                                 for ii in range(n_fr):
-                                    cond1 = int(final_x_bkg[ii])<crop_sz
-                                    cond2 = int(final_y_bkg[ii])<crop_sz
-                                    cond3 = int(final_x_bkg[ii])>nx-crop_sz
-                                    cond4 = int(final_y_bkg[ii])>ny-crop_sz
+                                    cond1 = np.isnan(final_x_bkg[ii])
+                                    cond3 = False
+                                    if not cond1:
+                                        cond1 = int(final_x_bkg[ii])<crop_sz
+                                        cond3 = int(final_x_bkg[ii])>nx-crop_sz
+                                    cond2 = np.isnan(final_y_bkg[ii])
+                                    cond4 = False
+                                    if not cond2:
+                                        cond2 = int(final_y_bkg[ii])<crop_sz
+                                        cond4 = int(final_y_bkg[ii])>ny-crop_sz
+                                    
                                     if cond1 or cond2 or cond3 or cond4:
                                         flux_bkg[ii] = np.nan
                                     else:
@@ -1392,6 +1408,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 shifts_y += fine_shifts[2]
                                 final_dshifts = np.sqrt(np.power(shifts_x[:]-good_cen_shift_x,2)+np.power(shifts_y[:]-good_cen_shift_y,2))
                                 n_fr = final_dshifts.shape[0]
+                                write_fits(outpath+"TMP_final_dshifts.fits",final_dshifts)
+
                                 if plot or debug:
                                     fig, ax1 = plt.subplots(1,1,figsize=(4,4))
                                     for i in range(n_fr):
@@ -1407,7 +1425,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     plt.savefig(outpath+"Residual_shifts_bkg_VS_satspots_{}_badfrrm.pdf".format(filters[ff]), bbox_inches='tight', format='pdf')
                                 good_index_list = [i for i in range(n_fr) if (final_dshifts[i] < thr and err[i] < thr)]
                                 bad_index_list = [i for i in range(n_fr) if i not in good_index_list]
-                                final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
+                                final_good_index_list = [idx for idx in good_index_list if idx in final_good_index_list]
                                 if 100*len(bad_index_list)/cube.shape[0] > perc:
                                     perc = 100*len(bad_index_list)/cube.shape[0]
                                     print("Percentile updated to {:.1f} based on shifts > {:.1f} px".format(perc,thr))
@@ -1619,7 +1637,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         xy_pos = []
                         for ss in range(4):
                             ## find exact position
-                            y_tmp, x_tmp = fit_2dmoffat(cube[cc], crop=True, cent=xy_spots_tmp[ss],
+                            y_tmp, x_tmp = fit_2dmoffat(cube[cc], crop=True, 
+                                                        cent=xy_spots_tmp[ss],
                                                         cropsize=crop_sz,
                                                         fwhm=int(fwhm),
                                                         threshold=True,

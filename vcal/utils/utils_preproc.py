@@ -21,7 +21,7 @@ from vip_hci.metrics import snr
 from vip_hci.preproc import (cube_derotate, frame_rotate, frame_shift, 
                              approx_stellar_position)
 from vip_hci.var import (get_square, fit_2dgaussian, fit_2dmoffat, dist, 
-                         fit_2dairydisk, frame_center)
+                         fit_2dairydisk, frame_center, cube_filter_lowpass)
 
 
 #from hciplot import plot_frames
@@ -176,7 +176,7 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         write_fits(path_debug+"sub_cube.fits",cube)
     bkg_x, bkg_y = fit2d_bkg_pos(cube, x_pos_arr, y_pos_arr, fwhm, 
                                  fit_type=fit_type, crop_sz=crop_sz,
-                                 sigfactor=sigfactor)
+                                 sigfactor=sigfactor, debug=debug)
 
     #step 5 - TAKE CUBE WITH THRESHOLD SNR
     if debug:
@@ -390,8 +390,8 @@ def interpolate_bkg_pos(approx_xy_bkg, center_bkg, derot_angles):
     return x, y
 
 
-def fit2d_bkg_pos(cube, x_j, y_j, fwhm, fit_type='moffat', crop_sz=None,
-                  sigfactor=3):
+def fit2d_bkg_pos(cube, x_j, y_j, fwhm, fit_type='moff', crop_sz=None,
+                  sigfactor=3, convolve=True, debug=False):
 
     n_frames=cube.shape[0]
 
@@ -404,36 +404,43 @@ def fit2d_bkg_pos(cube, x_j, y_j, fwhm, fit_type='moffat', crop_sz=None,
         crop_sz = int(6*fwhm)
     if not crop_sz%2:
         crop_sz+=1
-    
+ 
+    if convolve:
+        cube_tmp = cube_filter_lowpass(cube, fwhm_size=fwhm)
+    else:
+        cube_tmp = cube.copy()   
+ 
     for sc in range(0,cube.shape[0]):
         cent_coords=(int(x_j[sc]),int(y_j[sc]))
         #tmp_crop, y0[sc], x0[sc] =get_square(tmpn,crop_sz,int(y_j[sc]),int(x_j[sc]),position=True)
         if fit_type=='gauss':
-            bkg_y[sc], bkg_x[sc] = fit_2dgaussian(cube[sc], cent=cent_coords, 
+            bkg_y[sc], bkg_x[sc] = fit_2dgaussian(cube_tmp[sc], cent=cent_coords, 
                                                   crop=True, cropsize=crop_sz,
                                                   fwhmx=fwhm, fwhmy=fwhm, 
                                                   theta=0, threshold=True, 
                                                   sigfactor=sigfactor, 
                                                   full_output=False, 
-                                                  debug=False)
+                                                  debug=debug)
         elif fit_type == 'moff':
-            bkg_y[sc], bkg_x[sc] = fit_2dmoffat(cube[sc], crop=True, 
+            bkg_y[sc], bkg_x[sc] = fit_2dmoffat(cube_tmp[sc], crop=True, 
                                                 cropsize=crop_sz,
                                                 cent=cent_coords, fwhm=fwhm,
                                                 threshold=True, 
                                                 sigfactor=sigfactor, 
-                                                full_output=False, debug=False)            
+                                                full_output=False, debug=debug)            
         elif fit_type == 'airy':
-            bkg_y[sc], bkg_x[sc] = fit_2dairydisk(cube[sc], crop=False, 
+            bkg_y[sc], bkg_x[sc] = fit_2dairydisk(cube_tmp[sc], crop=False, 
                                                   cent=cent_coords, 
                                                   cropsize=crop_sz, fwhm=fwhm,
                                                   threshold=True, 
                                                   sigfactor=sigfactor, 
                                                   full_output=False,
-                                                  debug=False)
+                                                  debug=debug)
         else:
             msg = "Fit type not recognised. Should be moffat, gaussian or airy"
             raise TypeError(msg)
+        if debug:
+            pdb.set_trace()
     
     return bkg_x, bkg_y
 

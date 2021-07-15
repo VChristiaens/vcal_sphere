@@ -34,6 +34,7 @@
     "psf_model": "gauss",
     "bin_fac_list": [1],
     "mask_scal":[0.7,0],
+    "separate_trim":1,
     "final_cubename":"final_cube.fits",
     "final_anglename": "final_derot_angles.fits",
     "final_psfname": "final_psf_med.fits",
