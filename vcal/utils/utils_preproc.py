@@ -37,9 +37,10 @@ pi = np.pi
 
 
 def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
-                      sub_med=True, fit_type='moff', snr_thr=3, rough_cen=False, 
-                      nmin=10, crop_sz=None, full_output=False, verbose=False, 
-                      debug=False, path_debug='./', rel_dist_unc=2e-4):
+                      sub_med=True, fit_type='moff', snr_thr=5, rough_cen=False, 
+                      nmin=10, crop_sz=None, sigfactor=3, full_output=False, 
+                      verbose=False, debug=False, path_debug='./', 
+                      rel_dist_unc=2e-4):
     """ Recenters a cube with a background star seen in the individual 
     images. The algorithm is based on the fact that the trajectory of the bkg 
     star should lie on a perfectly circular arc if the centering is done 
@@ -174,7 +175,8 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         cube = cube-np.median(cube,axis=0)
         write_fits(path_debug+"sub_cube.fits",cube)
     bkg_x, bkg_y = fit2d_bkg_pos(cube, x_pos_arr, y_pos_arr, fwhm, 
-                                 fit_type=fit_type, crop_sz=crop_sz)
+                                 fit_type=fit_type, crop_sz=crop_sz,
+                                 sigfactor=sigfactor)
 
     #step 5 - TAKE CUBE WITH THRESHOLD SNR
     if debug:
@@ -206,11 +208,13 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
 
     #step 6 - median ADI position
     if good_frame is None:
-        good_frame = median_sub(cube[above_thr_idx], derot_angles[above_thr_idx])
+        good_frame = median_sub(cube[above_thr_idx],
+                                derot_angles[above_thr_idx])
     med_x, med_y = fit2d_bkg_pos(np.array([good_frame]), 
                                  np.array([approx_xy_bkg[0]]), 
                                  np.array([approx_xy_bkg[1]]), fwhm, 
-                                 fit_type=fit_type, crop_sz=crop_sz)
+                                 fit_type=fit_type, crop_sz=crop_sz,
+                                 sigfactor=sigfactor)
     med_x = med_x[0]
     med_y = med_y[0]
     cen_y, cen_x = frame_center(good_frame)
@@ -220,6 +224,9 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     if verbose:
         print("Position (x,y) in median frame: ", med_x, med_y)
         print("Radial uncertainty on position from distortion unc: {:.2f} px".format(unc_r))
+        if debug:
+            print("Check position match with the blob in TMP_good_frame_for_fine_centering.fits")
+            pdb.set_trace()
     #if debug:
     #    write_fits(path_debug+"TMP_med_ADI_fine_recentering.fits", good_frame)
     
@@ -228,12 +235,15 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     if verbose:
         print('Calculating shifts in cubes with high SNR for BKG...')
     shifts_x, shifts_y, unc_shifts = shifts_from_med_circ(cube[above_thr_idx], 
-                                              derot_angles[above_thr_idx], 
-                                              med_x, med_y, fwhm=fwhm, 
-                                              crop_sz=crop_sz,
-                                              fit_type=fit_type, debug=debug,
-                                              path_debug=path_debug,
-                                              full_output=True)
+                                                          derot_angles[above_thr_idx], 
+                                                          med_x, med_y, 
+                                                          fwhm=fwhm, 
+                                                          crop_sz=crop_sz,
+                                                          fit_type=fit_type,
+                                                          sigfactor=sigfactor,
+                                                          debug=debug,
+                                                          path_debug=path_debug,
+                                                          full_output=True)
     
     unc_shift_r = np.zeros(ngood)
     for i in range(ngood):
@@ -276,7 +286,8 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     if debug:
         # plotting new BKG pos and best-fit circular arc
         fin_bkg_x, fin_bkg_y = fit2d_bkg_pos(cube, x_pos_arr, y_pos_arr, fwhm, 
-                                             fit_type=fit_type, crop_sz=crop_sz)
+                                             fit_type=fit_type, crop_sz=crop_sz,
+                                             sigfactor=sigfactor)
         xc, yc, R, residu = leastsq_circle(cx, cy, fin_bkg_x[above_thr_idx],
                                            fin_bkg_y[above_thr_idx])
         print(xc, yc, R, residu)
@@ -300,7 +311,8 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         med_y_all = [med_y]*n_fr
         fin_der_x, fin_der_y = fit2d_bkg_pos(derot_cube, np.array(med_x_all), 
                                              np.array(med_y_all), fwhm, 
-                                             fit_type=fit_type, crop_sz=crop_sz)        
+                                             fit_type=fit_type, crop_sz=crop_sz,
+                                             sigfactor=sigfactor)        
         plot_data_derot(med_x, med_y, fin_der_x[above_thr_idx], 
                         fin_der_y[above_thr_idx], final_unc)
         plt.savefig(path_debug+"TMP_double_check_derot_cen.pdf", 
@@ -378,7 +390,8 @@ def interpolate_bkg_pos(approx_xy_bkg, center_bkg, derot_angles):
     return x, y
 
 
-def fit2d_bkg_pos(cube, x_j, y_j, fwhm, fit_type='moffat', crop_sz=None):
+def fit2d_bkg_pos(cube, x_j, y_j, fwhm, fit_type='moffat', crop_sz=None,
+                  sigfactor=3):
 
     n_frames=cube.shape[0]
 
@@ -400,20 +413,22 @@ def fit2d_bkg_pos(cube, x_j, y_j, fwhm, fit_type='moffat', crop_sz=None):
                                                   crop=True, cropsize=crop_sz,
                                                   fwhmx=fwhm, fwhmy=fwhm, 
                                                   theta=0, threshold=True, 
-                                                  sigfactor=5, 
+                                                  sigfactor=sigfactor, 
                                                   full_output=False, 
                                                   debug=False)
         elif fit_type == 'moff':
             bkg_y[sc], bkg_x[sc] = fit_2dmoffat(cube[sc], crop=True, 
                                                 cropsize=crop_sz,
                                                 cent=cent_coords, fwhm=fwhm,
-                                                threshold=True, sigfactor=5, 
+                                                threshold=True, 
+                                                sigfactor=sigfactor, 
                                                 full_output=False, debug=False)            
         elif fit_type == 'airy':
             bkg_y[sc], bkg_x[sc] = fit_2dairydisk(cube[sc], crop=False, 
                                                   cent=cent_coords, 
                                                   cropsize=crop_sz, fwhm=fwhm,
-                                                  threshold=True, sigfactor=5, 
+                                                  threshold=True, 
+                                                  sigfactor=sigfactor, 
                                                   full_output=False,
                                                   debug=False)
         else:
@@ -739,9 +754,9 @@ def plot_data_derot(med_x, med_y, derot_x, derot_y, err, zoom=False):
     plt.title('Least Squares Circle')
     
     
-def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
-                         crop_sz=None, fit_type='moffat', debug=False,
-                         path_debug='./', full_output=False):
+def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5, 
+                         crop_sz=None, fit_type='moffat', sigfactor=3, 
+                         debug=False, path_debug='./', full_output=False):
     
     """
     Note: translation and rotation are not commutative! 
@@ -786,23 +801,19 @@ def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
         cen_unc = []
     for i in range(array.shape[0]):
         if 'moff' in fit_type:
-            df_fit=fit_2dmoffat(derot_small_cubes[i], 
-                                cent=[med_x,med_y], fwhm=fwhm,
-                                threshold=True, sigfactor=5, 
+            df_fit=fit_2dmoffat(derot_small_cubes[i], cent=[med_x,med_y], 
+                                fwhm=fwhm, threshold=True, sigfactor=sigfactor, 
                                 full_output=full_output, debug=False)
         elif 'gauss' in fit_type:
-            df_fit=fit_2dgaussian(derot_small_cubes[i], 
-                                            cent=[med_x,med_y], 
-                                            crop=False, fwhmx=fwhm, fwhmy=fwhm, 
-                                            theta=0, threshold=True, 
-                                            sigfactor=5, full_output=full_output, 
-                                            debug=False)
+            df_fit=fit_2dgaussian(derot_small_cubes[i], cent=[med_x,med_y], 
+                                  crop=False, fwhmx=fwhm, fwhmy=fwhm, theta=0, 
+                                  threshold=True, sigfactor=sigfactor, 
+                                  full_output=full_output, debug=False)
         elif fit_type == 'airy':
             df_fit=fit_2dairydisk(derot_small_cubes[i], crop=False, 
-                                            cent=[med_x,med_y], 
-                                            fwhm=fwhm, threshold=True, 
-                                            sigfactor=5, full_output=full_output, 
-                                            debug=False)
+                                  cent=[med_x,med_y], fwhm=fwhm, 
+                                  threshold=True, sigfactor=sigfactor, 
+                                  full_output=full_output, debug=False)
         else:
             msg = "Fit type not recognised. Should be moff, gauss or airy"
             raise TypeError(msg)

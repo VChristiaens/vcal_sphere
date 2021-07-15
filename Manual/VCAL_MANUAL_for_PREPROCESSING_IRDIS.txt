@@ -30,9 +30,11 @@ overwrite = [1,1,1,1,1,1,1,1]  # list of bools corresponding to parts of pre-pro
 debug = True # whether to print more info - useful for debugging
 save_space = False # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
 
+
 # Preprocessing options
 rec_met = "satspots"     # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
 rec_met_psf = "dft_100"
+sigfactor=3. # float corresponding to the SNR threshold used (anything below the threshold is set to 0) before fitting 2D Moffat or Gaussian to find the centroid of either the satellite spots or bkg star.
 xy_spots = [[[452,559], [515,559], [451,494], [518,494]],[[452,559], [515,559], [451,494], [518,494]]] # if recentering by satspots provide here the coordinates of the satellite spots. Two possibilities for the format:
 a) provide a list of 4 lists (with 2 elements each) (e.g. in CI mode):  top-left, top-right, bottom-left and bottom-right spots xy coordinates in the first channel's raw images. Position in other channel(s) will be inferred from wavelength scaling. Note: do not do that for IRDIS!
 b) provide a list of n_ch lists of 4 lists (e.g. n_ch is 2 for DBI): in that case all the coordinates for each channel are provided. CHECK in "_left" and "_right" calibrated cen cubes!
@@ -40,6 +42,7 @@ b) provide a list of n_ch lists of 4 lists (e.g. n_ch is 2 for DBI): in that cas
 - for CI: "xy_spots": [[105,169], [171,181], [117,103], [183,115]]
 - for DBI-H23: "xy_spots": [[[452,559], [515,559], [451,494], [518,494]],[[452,559], [515,559], [451,494], [518,494]]]
 - for DBI-K12: "xy_spots": [[[435,568], [524,569], [434,480], [524,479]],[[435,558], [530,558], [434,464], [530,464]]]
+
 badfr_crit_names = ['corr','bkg'] # Bad frame criteria to be used for OBJ cubes; choice between{'stat','ell','corr','bkg','shifts'}. See description below. NOTE: For very good AO correction, it seems the algorithm used in badfrellipticity() routine (i.e. 'ell' option) would sometimes fail to detect the star! Too many rings? Only use for mediocre to very bad Strehl.
 badfr_crit_names_psf = ['corr'] # Bad frame criteria to be used for PSF cubes; same description as badfr_crit_names.
 # stat: rej based on mean counts in either circle or annulus.
@@ -65,14 +68,16 @@ badfr_crit_names_psf = ['corr'] # Bad frame criteria to be used for PSF cubes; s
 	- "crop_sz": in fwhm. Default: 6.
 	- "dist": Type of distance/correlation to be used. Cfr. description of vip_hci.preproc.cube_detect_badfr_correlation. Default: "pearson"
 	NOTE: if using perc, final number of bad frames can be larger than perc if other criteria are provided.
+
 badfr_idx = [[5,6,7],None] # Whether to force some frames to be removed (e.g. if impossible to identify with criteria but clear by eye)
-badfr_crit = [{"thr":0.9,"ref":"median"},{"thr":"2"}] # List of dictionaries indicating thresholds & parameters to be used for each bad frame criterion.
-#perc_min = [20,90] #min percentile for badfr by corr (can be updated to higher value by 'stat' or 'ell') - given for [OBJ,PSF]. 
-#mode = ['annulus', "circle"] # area used for bad frames identification - given for [OBJ, PSF]. Recommendation: Use annulus for coronagraphic data, circle otherwise.
-#rad = [int(coro_sz), 10]     # radius for the above areas. If annulus: correspond to the inner radius of the annulus
-#width = [int(4*coro_sz), 0]  # width (only used if area is an annulus)
+
+badfr_crit = [{"thr":0.9,"ref":"median"},{"thr":"2"}] # List of dictionaries indicating thresholds & parameters to be used for each bad frame criterion. IMPORTANT: provide a dictionary for each bad frame criterion called in the badfr_crit_names list, define an empty dictionary {} if needed.
+badfr_crit_psf = [{"thr":0.9,"ref":"median"},{"thr":"2"}] # Same as above, for PSF.
+
 approx_xy_bkg = 0 # can be 0 or a list of 2 floats: [x,y] coords of background star in the ADI frame obtained after rough centering (named "median_ADI1_<filter>.fits") and optionally (recommended) distortion correction (named "median_ADI2_<filter>_DistCorr.fits"). NOTE: the pipeline should thus FIRST be run up to step #3 or #4, to then be able to set this value if any bkg star present, and then run it again for the subsequent steps. 
+
 snr_thr_bkg = 3. # float corresponding to SNR threshold to select images of the sequence for consideration to compute shifts.
+
 good_cen_idx = None # None or int. If some CEN cubes are bad (i.e. star not exactly behind coronagraphic mask), this should be the index of a good CEN cube. If not provided, will assume all CEN cubes have the star perfectly behind mask. Will be used for star-BKG radius and differential shifts. Default: None (i.e. not provided in .json file)
 
 #******************** PARAMS LIKELY GOOD AS DEFAULT ***************************

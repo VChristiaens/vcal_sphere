@@ -145,7 +145,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     true_ncen = params_preproc['true_ncen']                                               # number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
     #norm_per_s = params_preproc['']                                            # if True, divide all frames by respective dit => have all fluxes in adu/s
     template_strehl = params_preproc['template_strehl']
-    distort_corr = params_preproc['distort_corr']                                # whether to correct manually for distortion (anamorphism) or not
+    distort_corr = params_preproc.get('distort_corr',1)                                # whether to correct manually for distortion (anamorphism) or not
     bp_crop_sz = params_preproc.get('bp_crop_sz',801)                                          #823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
     bp_crop_sz_psf = params_preproc.get('bp_crop_sz_psf',801)   
     final_crop_sz = params_preproc['final_crop_sz']                                          #823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
@@ -660,6 +660,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                 _, head_tmp = open_fits(inpath+OBJ_IRDIS_list[fn_tmp]+filters_lab[ff], header = True)
                                                 mjd_all.append(float(head_tmp['MJD-OBS']))
                                             m_idx = find_nearest(mjd_all,mjd_cen[cc])
+                                            mjd_all=np.array(mjd_all)
                                             cube_near = open_fits(outpath+file_list[m_idx]+filt+"_1bpcorr.fits")
                                             cube_cen_sub -= np.median(cube_near,axis=0)
                                         diff = int((ori_sz-bp_crop_sz)/2)
@@ -796,15 +797,21 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             write_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_x_shifts))
                             if plot:
                                 f, (ax1) = plt.subplots(1,1, figsize=(15,10))
-                                ax1.errorbar(np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                             final_y_shifts,final_y_shifts_std,fmt='bo',label='y')
-                                ax1.errorbar(np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                             final_x_shifts,final_x_shifts_std,fmt='ro',label='x')
+                                t0 = np.amin(unique_mjd_cen)
+                                ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
+                                             (mjd_all-t0)*60*24,
+                                             final_y_shifts, final_y_shifts_std,
+                                             fmt='bo', label='y')
+                                ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
+                                             (mjd_all-t0)*60*24,
+                                             final_x_shifts, final_x_shifts_std,
+                                             fmt='ro',label='x')
                                 if "satspots" in rec_met_tmp:
-                                    ax1.errorbar(range(y_shifts_cen.shape[0]),y_shifts_cen,y_shifts_cen_err,
+                                    ax1.errorbar((unique_mjd_cen-t0)/60.,y_shifts_cen,y_shifts_cen_err,
                                                  fmt='co',label='y cen')
-                                    ax1.errorbar(range(x_shifts_cen.shape[0]),x_shifts_cen,x_shifts_cen_err,
+                                    ax1.errorbar((unique_mjd_cen-t0)/60.,x_shifts_cen,x_shifts_cen_err,
                                                  fmt='mo',label='x cen')
+                                ax1.set_xlabel("Time from start of obs. (min)")
                                 plt.legend(loc='best')
                                 plt.savefig(outpath+"Shifts_xy{}_{}.pdf".format(labels[fi],rec_met_tmp),bbox_inches='tight', format='pdf')
                                 plt.clf()  
@@ -972,16 +979,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             good_frame1 = frame_rotate(cen_cube[-1]-cen_cube[0],-cen_derot[-1])
                             good_frame2 = frame_rotate(cen_cube[0]-cen_cube[-1],-cen_derot[0])
                             good_frame = np.median([good_frame1,good_frame2],axis=0)
-                            good_frame1 = frame_rotate(cen_cube[-1]-cen_cube[0],cen_derot[-1])
-                            good_frame2 = frame_rotate(cen_cube[0]-cen_cube[-1],cen_derot[0])
-                            good_frame_rot = np.median([good_frame1,good_frame2],axis=0)
                         elif isinstance(good_cen_idx,int):
                             derot_angles_cen = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[-1]))
                             idx_max = np.argmax(np.abs(derot_angles_cen[good_cen_idx]-derot_angles_cen[:]))
                             good_frame = frame_rotate(cen_cube[good_cen_idx]-cen_cube[idx_max], 
                                                       -derot_angles_cen[good_cen_idx])
-                            good_frame_rot = frame_rotate(cen_cube[good_cen_idx]-cen_cube[idx_max], 
-                                                      derot_angles_cen[good_cen_idx])
                         elif isinstance(good_cen_idx,list):
                             good_frame = []
                             derot_angles_cen = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[-1]))
@@ -992,9 +994,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             good_frame = np.median(good_frame,axis=0)
                         else:
                             raise TypeError("good_cen_idx can only be int, list or None")
-                        if debug:
-                            write_fits(outpath+"TMP_good_frame_for_fine_centering.fits", good_frame)
-                            write_fits(outpath+"TMP_good_frame_for_fine_centering_rot.fits", good_frame_rot)
+                        write_fits(outpath+"TMP_good_frame_for_fine_centering.fits", good_frame)
                         master_cube, shifts, sunc = cube_recenter_bkg(master_cube, 
                                                         derot_angles, 
                                                         fwhm=1.2*resel[ff], 
@@ -1002,8 +1002,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                         fit_type=psf_model,
                                                         snr_thr=snr_thr_bkg,
                                                         verbose=verbose,
-                                                        crop_sz=15,
+                                                        crop_sz=21,
                                                         good_frame=good_frame,
+                                                        sigfactor=sigfactor,
                                                         path_debug=outpath,
                                                         full_output=True,
                                                         debug=debug)
@@ -1381,11 +1382,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 ## Load rough shifts
                                 shifts_y = open_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(labels[0],filters[ff],rec_met))
                                 shifts_x = open_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[0],filters[ff],rec_met))
-                                err = [err]*len(shifts_y)
+                                err = np.array([err]*len(shifts_y))
                                 ## Load fine shifts
                                 #if isfile(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff])):
                                 fine_shifts = open_fits(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff]))
-                                err = fine_shifts[-1]
+                                err = np.sqrt(np.power(err,2)+np.power(fine_shifts[-1],2))
                                 # update shifts
                                 shifts_x += fine_shifts[1]
                                 shifts_y += fine_shifts[2]
@@ -1404,7 +1405,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     ax1.set_ylabel("Differential shift with respect to mask center (px)")
                                     ax1.set_ylim(-0.1,3)
                                     plt.savefig(outpath+"Residual_shifts_bkg_VS_satspots_{}_badfrrm.pdf".format(filters[ff]), bbox_inches='tight', format='pdf')
-                                good_index_list = [i for i in range(n_fr) if final_dshifts[i] < thr]
+                                good_index_list = [i for i in range(n_fr) if (final_dshifts[i] < thr and err[i] < thr)]
                                 bad_index_list = [i for i in range(n_fr) if i not in good_index_list]
                                 final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
                                 if 100*len(bad_index_list)/cube.shape[0] > perc:
@@ -1835,14 +1836,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 resc_cube_res = np.zeros([master_cube.shape[0]+1,master_cube.shape[1],master_cube.shape[2]])
                 resc_cube_res[:-1] = resc_cube
                 resc_cube_res[-1] = resc_cube[-1]-resc_cube[0]
-                write_fits(outpath+"TMP_resc_cube_res_{:.0f}fp.fits".format(nfp), resc_cube_res)
+                write_fits(outpath+"TMP_resc_cube_res.fits", resc_cube_res)
                 resc_cube_res_all.append(resc_cube_res[-1])
             resc_cube_res_all = np.array(resc_cube_res_all)
-            write_fits(outpath+"TMP_resc_cube_res_all_{:.0f}fp.fits".format(nfp), resc_cube_res_all)
+            write_fits(outpath+"TMP_resc_cube_res_all.fits", resc_cube_res_all)
             # perform simple SDI
             derot_cube = cube_derotate(resc_cube_res_all, derot_angles)
             sdi_frame = np.median(derot_cube,axis=0)
-            write_fits(outpath+"final_simple_SDI_{:.0f}fp.fits".format(nfp), 
+            write_fits(outpath+"median_SDI.fits", 
                        mask_circle(sdi_frame,coro_sz))
             stim_map = compute_stim_map(derot_cube)
             inv_stim_map = compute_inverse_stim_map(resc_cube_res_all, derot_angles)
@@ -1851,7 +1852,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             stim_maps = np.array([mask_circle(stim_map,coro_sz),
                                   mask_circle(inv_stim_map,coro_sz),
                                   mask_circle(norm_stim_map,coro_sz)])
-            write_fits(outpath+"final_simple_SDI_stim_{:.0f}fp.fits".format(nfp), stim_maps)
+            write_fits(outpath+"median_SDI_stim.fits", stim_maps)
 
             final_scal_vector = np.median(scal_vector,axis=0)
             final_flux_fac = np.median(flux_fac_vec,axis=0)

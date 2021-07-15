@@ -847,7 +847,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             sci_list_irdis = dico_lists['sci_list_irdis']
             n_sci = len(sci_list_irdis)
             if n_sci>0:
-                curr_path = str(pathlib.Path().absolute())+'/' 
+                curr_path = str(pathlib.Path().absolute())+'/'
                 for ii in range(len(sci_list_irdis)):
                     if not isfile(outpath_irdis_sof+"OBJECT{:.0f}.sof".format(ii)) or overwrite_sof:
                         with open(outpath_irdis_sof+"OBJECT{:.0f}.sof".format(ii), 'w') as f:
@@ -868,9 +868,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             
                     if not isfile(outpath_irdis_fits+"science_dbi{:.0f}.fits".format(ii)) or overwrite_sof or overwrite_fits:
                         command = "esorex sph_ird_{}".format(lab_rec)
-                        command+= " --ird.{}.outfilename={}science_dbi{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
-                        command+= " --ird.{}.outfilename_left={}science_dbi{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
-                        command+= " --ird.{}.outfilename_right={}science_dbi{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
+                        command+= " --ird.{}.outfilename={}science_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
+                        command+= " --ird.{}.outfilename_left={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
+                        command+= " --ird.{}.outfilename_right={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
     #                    if crop_sz_irdis>0 and crop_sz_irdis<1024:
     #                        command+= " --ird.{}.window_size={:.0f}".format(lab_rec,crop_sz_irdis)
                         command+= " {}OBJECT{:.0f}.sof".format(outpath_irdis_sof,ii)
@@ -901,9 +901,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             
                     if not isfile(outpath_irdis_fits+"cen_dbi{:.0f}.fits".format(ii)) or overwrite_sof or overwrite_fits:
                         command = "esorex sph_ird_{}".format(lab_rec)
-                        command+= " --ird.{}.outfilename={}cen_dbi{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
-                        command+= " --ird.{}.outfilename_left={}cen_dbi{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
-                        command+= " --ird.{}.outfilename_right={}cen_dbi{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
+                        command+= " --ird.{}.outfilename={}cen_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
+                        command+= " --ird.{}.outfilename_left={}cen_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
+                        command+= " --ird.{}.outfilename_right={}cen_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
     #                    if crop_sz_irdis>0 and crop_sz_irdis<1024:
     #                        command+= " --ird.{}.window_size={:.0f}".format(lab_rec,crop_sz_irdis)
                         command+= " {}CEN{:.0f}.sof".format(outpath_irdis_sof,ii)
@@ -932,9 +932,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             
                     if not isfile(outpath_irdis_fits+"psf_dbi{:.0f}.fits".format(ii)) or overwrite_sof or overwrite_fits:
                         command = "esorex sph_ird_{}".format(lab_rec)
-                        command+= " --ird.{}.outfilename={}psf_dbi{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
-                        command+= " --ird.{}.outfilename_left={}psf_dbi{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
-                        command+= " --ird.{}.outfilename_right={}psf_dbi{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
+                        command+= " --ird.{}.outfilename={}psf_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
+                        command+= " --ird.{}.outfilename_left={}psf_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
+                        command+= " --ird.{}.outfilename_right={}psf_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
     #                    if crop_sz_psf_irdis>0 and crop_sz_psf_irdis<1024:
     #                        command+= " --ird.{}.window_size={:.0f}".format(lab_rec,crop_sz_psf_irdis)
                         command+= " {}PSF{:.0f}.sof".format(outpath_irdis_sof,ii)
@@ -943,7 +943,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             curr_path = str(pathlib.Path().absolute())+'/'          
             # subtract residual sky level if required (FOR ALL: OBJECT, CENTER, PSF)
             if not pca_subtr or not pca_subtr_psf:
-                lab_ird = ["_left","_right"] # always for IRDIS
+                lab_ird = ["_left","_right"] # always for IRDIS; #whether CI or DBI
                 file_list = os.listdir(curr_path)
                 for rr in range(len(lab_lr)):
                     products_list = [x for x in file_list if (x.startswith(instr) and x.endswith(lab_ird[rr]+".fits"))]
