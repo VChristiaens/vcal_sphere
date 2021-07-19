@@ -111,14 +111,17 @@ template_strehl = ["science_dbi_{}{:.0f}","psf_dbi_{}{:.0f}"]
 distort_corr = 1                                             # whether to correct for distortion (anamorphism) or not (following scal_x_distort and scal_y_distort)
 final_crop_sz = 361                                          # int or list (if list, cubes of different dims will be saved). NOTE: only last odd dim will be saved using final_cubename . 823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
 final_crop_sz_psf = 41                                       # int or list (if list, cubes of different dims will be saved). NOTE: only last odd dim will be saved using final_psfname. 51 => 0.25'' radius (~3.5 FWHM)
-psf_model = 'gauss'                                          #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
+psf_model = 'gauss'                                          #model to be used to measure FWHM and flux, and for bkg star centroid fit (for fine recentering), if requested. Choice between {'gauss', 'moff', 'airy'}
+bin_fit = 1                               # binning factor for consecutive images of the cube, only used for bkg star centroid fitting (useful if bkg star is faint)
+convolve_bkg = 1                          # whether to convolve the image by a gaussian before bkg star centroid fitting (useful if bkg star is faint)
+
 separate_trim = 1    # whether to separately trim bad frames in the individual cubes for each filter (recommended - sometimes there are individual discrepancies).  If False, will only trim based on the first channel. If a string, it should correspond to the channel to be used.
 bin_fac_list = [1]                                           # binning factors for final cube. If the cube is not too large, do not bin.
 corono mask. NOTE: this is the index of the original cubes (not images inside the cube), (e.g. since typically there are only 2 CEN cubes, value would either be 0 or 1)
 
 
 # output names - optional. NOTE: the files below are only written if at least one odd crop size is provided (i.e. VIP convention). Post-processing will not work optimally otherwise.
-use_cen_only = 0                                  # whether to only use CENTER cubes (e.g. if this is meant to be a reference cube for RDI)
+use_cen_only = 0                                  # whether to only reduce CENTER cubes (e.g. if this is meant to be a reference cube for RDI)
 final_cubename = "final_cube"                     # can be provided with or without the suffix ".fits"
 final_anglename = "final_derot_angles.fits"       # can be provided with or without the suffix ".fits"   
 final_psfname = "final_psf"                       # can be provided with or without the suffix ".fits" 

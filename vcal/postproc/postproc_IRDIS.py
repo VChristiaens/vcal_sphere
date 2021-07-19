@@ -508,154 +508,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                 # 2. Skip DBI on large crops
                 elif scale_list is not None:
                     pass
-                # 3. ADI or (A)RDI iterative on smallest crop
-                elif cc ==0 and n_it>0:
-                    for ff, filt in enumerate(filters):
-                        plsc = float(plsc_ori[ff])
-                        if not isdir(outpath_5.format(bin_fac,filt,crop_lab_list[cc])):
-                            os.system("mkdir "+outpath_5.format(bin_fac,filt,crop_lab_list[cc]))
-                        fwhm = float(open_fits(outpath_2+final_fwhmname+"{}.fits".format(filt))[0])
-                        flux = float(open_fits(outpath_2+final_fluxname+"{}.fits".format(filt))[0])
-                        if cc == 0 or not isfile(outpath_2+final_cubename+"_full{}.fits".format(filt)):
-                            ADI_cube= open_fits(outpath_2+final_cubename+"{}.fits".format(filt))
-                        else:
-                            ADI_cube= open_fits(outpath_2+final_cubename+"_full{}.fits".format(filt))
-                        if ref_cube_name is not None:
-                            ref_cube = open_fits(ref_cube_name.format(filt))
-                                
-                        derot_angles = open_fits(outpath_2+final_anglename+"{}.fits".format(filt))
-    #                    if derot_name == "rotnth":
-    #                        derot_angles*=-1
-                        psfn = open_fits(outpath_2+final_psfname+"{}.fits".format(filt)) # this has all the unsat psf frames
-                        #3a. pca it in full (cropped) frames
-                        if do_pca_full and not do_pca_1zone:
-                            final_imgs = np.zeros([len(test_pcs_full),ADI_cube.shape[1],ADI_cube.shape[2]])
-                            #wmean_imgs = np.zeros_like(final_imgs)
-                            if mask_PCA is None:
-                                mask_rdi = None
-                            else:
-                                mask_tmp = np.ones_like(ADI_cube[0])
-                                mask_rdi = mask_circle(mask_tmp, mask_PCA, fillwith=0, mode='in')
-                            for pp, npc in enumerate(test_pcs_full):
-                                res = pca_it(ADI_cube, derot_angles, cube_ref=ref_cube, mask_center_px=mask_IWA_px, fwhm=fwhm,  
-                                             strategy=strategy, thr=thr_it, n_it=n_it, n_neigh=n_neigh, ncomp=npc, scaling=scaling, 
-                                             thru_corr=throughput_corr, psfn=psfn, n_br=n_br, mask_rdi=mask_rdi, full_output=True)
-                                final_imgs[pp], it_cube, sig_cube, res, res_der, thru_2d_cube, stim_cube, it_cube_nd = res
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_last_res.fits".format(label_stg,n_it,thr_it,npc,filt), res)
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_last_res_der.fits".format(label_stg,n_it,thr_it,npc,filt), res_der)
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_it_cube.fits".format(label_stg,n_it,thr_it,npc,filt), it_cube)
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_it_cube_nd.fits".format(label_stg,n_it,thr_it,npc,filt), it_cube_nd)
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_sig_cube.fits".format(label_stg,n_it,thr_it,npc,filt), sig_cube)
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_thru_2d_cube.fits".format(label_stg,n_it,thr_it,npc,filt), thru_2d_cube)
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_stim_cube.fits".format(label_stg,n_it,thr_it,npc,filt), stim_cube)
-                                # stim = compute_stim_map(res_der)
-                                # inv_stim = compute_inverse_stim_map(res, derot_angles)
-                                # norm_stim = stim/np.percentile(inv_stim,99.7)
-                                # write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_stim.fits".format(strategy,n_it,thr_it,npc,filt), 
-                                #            np.array([stim, inv_stim, norm_stim]))
-                                # FIRST: define mask following spirals: max stim map (2-5)!
-                                # good_mask = np.zeros_like(stim)
-                                # good_mask[np.where(norm_stim>1)]=1
-                                # ccorr_coeff = cube_distance(res_der,final_imgs[pp],mode='mask',mask=good_mask)
-                                # norm_cc = ccorr_coeff/np.sum(ccorr_coeff)
-                                # wmean_imgs[pp] = cube_collapse(res_der,mode='wmean',w=norm_cc)
-                            #write_fits(outpath_3.format(data_folder)+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_{}_wmean.fits".format(label_stg,n_it,thr,test_npcs[0], test_npcs[-1],filt), wmean_imgs)
-                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-{}_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_{}.fits".format(label_stg,n_it,thr_it,test_pcs_full[0],test_pcs_full[-1],filt), final_imgs)
-                            # correction by AGPM transmission
-                            # for pp, npc in enumerate(test_npcs):
-                            #     wmean_imgs[pp]/=transmission_2d
-                            #     final_imgs[pp]/=transmission_2d
-                            # #write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_ann{:.0f}_wmean_AGPMcorr.fits".format(n_it,thr_it,test_npcs[0], test_npcs[-1],ann_sz), wmean_imgs)
-                            # write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-RDI_it{:.0f}_thr{:.1f}_ann_{:.0f}-{:.0f}_ann{:.0f}_AGPMcorr.fits".format(n_it,thr_it,test_npcs[0],test_npcs[-1],ann_sz), final_imgs)
-
-                        if do_pca_ann and not do_pca_1zone:
-                            final_imgs = np.zeros([len(test_pcs_ann),ADI_cube.shape[1],ADI_cube.shape[2]])
-                            #wmean_imgs = np.zeros_like(final_imgs)
-                            for pp, npc in enumerate(test_pcs_ann):
-                                res = pca_annular_it(ADI_cube, derot_angles, cube_ref=ref_cube, radius_int=mask_IWA_px, fwhm=fwhm,  
-                                                      thr=thr_it, asize=int(asize*fwhm), n_it=n_it, ncomp=npc, 
-                                                      thru_corr=throughput_corr, psfn=psfn, n_br=n_br,
-                                                      delta_rot=delta_rot, scaling=scaling, full_output=True)
-                                final_imgs[pp], it_cube, sig_cube, res, res_der = res
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}ann_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_last_res.fits".format(label_stg,n_it,thr_it,npc,filt), res)
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}ann_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_last_res_der.fits".format(label_stg,n_it,thr_it,npc,filt), res_der)
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}ann_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_it_cube.fits".format(label_stg,n_it,thr_it,npc,filt), it_cube)
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}ann_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_sig_cube.fits".format(label_stg,n_it,thr_it,npc,filt), sig_cube)
-                                stim = compute_stim_map(res_der)
-                                inv_stim = compute_inverse_stim_map(res, derot_angles)
-                                norm_stim = stim/np.percentile(inv_stim,99.7)
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}ann_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_stim.fits".format(label_stg,n_it,thr_it,npc,filt), 
-                                           np.array([stim, inv_stim, norm_stim]))
-                                # FIRST: define mask following spirals: max stim map (2-5)!
-                                # good_mask = np.zeros_like(stim)
-                                # good_mask[np.where(norm_stim>1)]=1
-                                # ccorr_coeff = cube_distance(res_der,final_imgs[pp],mode='mask',mask=good_mask)
-                                # norm_cc = ccorr_coeff/np.sum(ccorr_coeff)
-                                # wmean_imgs[pp] = cube_collapse(res_der,mode='wmean',w=norm_cc)
-                            #write_fits(outpath_3.format(data_folder)+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_{}_wmean.fits".format(label_stg,n_it,thr,test_npcs[0], test_npcs[-1],filt), wmean_imgs)
-                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-{}ann_it{:.0f}_thr{:.1f}_ann_{:.0f}-{:.0f}_{}.fits".format(label_stg,n_it,thr_it,test_pcs_ann[0],test_pcs_ann[-1],filt), final_imgs)
-                            # correction by AGPM transmission
-                            # for pp, npc in enumerate(test_npcs):
-                            #     wmean_imgs[pp]/=transmission_2d
-                            #     final_imgs[pp]/=transmission_2d
-                            # #write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_ann{:.0f}_wmean_AGPMcorr.fits".format(n_it,thr_it,test_npcs[0], test_npcs[-1],ann_sz), wmean_imgs)
-                            # write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-RDI_it{:.0f}_thr{:.1f}_ann_{:.0f}-{:.0f}_ann{:.0f}_AGPMcorr.fits".format(n_it,thr_it,test_npcs[0],test_npcs[-1],ann_sz), final_imgs)
-                        
-                        if do_pca_1zone:
-                            final_imgs = np.zeros([len(test_pcs_full),ADI_cube.shape[1],ADI_cube.shape[2]])
-                            #wmean_imgs = np.zeros_like(final_imgs)
-                            if mask_PCA is None:
-                                mask_rdi = None
-                            else:
-                                mask_tmp = np.ones_like(ADI_cube[0])
-                                mask_rdi = mask_circle(mask_tmp, mask_PCA, fillwith=0, mode='in')
-                            #res = pca_1zone_it(ADI_cube, derot_angles, cube_ref=ref_cube, 
-                            res = pca_1rho_it(ADI_cube, derot_angles, cube_ref=ref_cube,                  
-                                               fwhm=fwhm, buffer=buffer, strategy=strategy, 
-                                               ncomp_range=test_pcs_1zone, n_it_max=n_it, 
-                                               thr=thr_it, n_neigh=n_neigh, thru_corr=throughput_corr, 
-                                               n_br=n_br, psfn=psfn, starphot=flux, 
-                                               plsc=plsc, svd_mode=svd_mode, 
-                                               scaling=scaling, delta_rot=delta_rot_it, 
-                                               mask_center_px=mask_IWA_px, add_res=add_res, 
-                                               collapse='median',  mask_rdi=mask_rdi, 
-                                               full_output=True, verbose=verbose, 
-                                               weights=None, debug=debug, 
-                                               path=outpath_5.format(bin_fac,filt,crop_lab_list[cc]),
-                                               overwrite=overwrite_it)
-                            if isinstance(thr_it,(int,float)):
-                                thr_it1 = thr_it
-                                thr_it2 = thr_it
-                            else:
-                                thr_it1 = thr_it[0]
-                                thr_it2 = thr_it[-1]
-                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_{:.0f}-{:.0f}_{}.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[0])
-                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_it_cube.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[1])
-                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_stim_cube.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[2])
-                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_sig_cube.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[3])
-                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_drot_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[4])
-                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_thr_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[5])
-                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_npc_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[6])
-                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_nit_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[7])
-                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_cc_rad_ws_ss_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), np.array([res[8], res[9], res[10]]))
-                            # stim = compute_stim_map(res_der)
-                            # inv_stim = compute_inverse_stim_map(res, derot_angles)
-                            # norm_stim = stim/np.percentile(inv_stim,99.7)
-                            # write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_stim.fits".format(strategy,n_it,thr_it,npc,filt), 
-                            #            np.array([stim, inv_stim, norm_stim]))
-                            # FIRST: define mask following spirals: max stim map (2-5)!
-                            # good_mask = np.zeros_like(stim)
-                            # good_mask[np.where(norm_stim>1)]=1
-                            # ccorr_coeff = cube_distance(res_der,final_imgs[pp],mode='mask',mask=good_mask)
-                            # norm_cc = ccorr_coeff/np.sum(ccorr_coeff)
-                            # wmean_imgs[pp] = cube_collapse(res_der,mode='wmean',w=norm_cc)
-                            #write_fits(outpath_3.format(data_folder)+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_{}_wmean.fits".format(label_stg,n_it,thr,test_npcs[0], test_npcs[-1],filt), wmean_imgs)
-                            
-
-
-                
-                # 4. regular ADI/RDI per channel for all crops, as long as no scale_list
-                if scale_list is None:    
+                # 3. regular ADI/RDI per channel for all crops, as long as no scale_list
+                else:    
                     for ff, filt in enumerate(filters):
                         if not isdir(outpath_5.format(bin_fac,filt,crop_lab_list[cc])):
                             os.system("mkdir "+outpath_5.format(bin_fac,filt,crop_lab_list[cc]))
@@ -1652,3 +1506,150 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             DF.to_csv(datafr, path_or_buf=outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'_final_results'+label_emp+'.csv', sep=',', na_rep='', float_format=None)
                             
                         counter += 1
+                        
+                # 4. iterative ADI or (A)RDI on smallest crop, if requested
+                if cc ==0 and n_it>0:
+                    for ff, filt in enumerate(filters):
+                        plsc = float(plsc_ori[ff])
+                        if not isdir(outpath_5.format(bin_fac,filt,crop_lab_list[cc])):
+                            os.system("mkdir "+outpath_5.format(bin_fac,filt,crop_lab_list[cc]))
+                        fwhm = float(open_fits(outpath_2+final_fwhmname+"{}.fits".format(filt))[0])
+                        flux = float(open_fits(outpath_2+final_fluxname+"{}.fits".format(filt))[0])
+                        if cc == 0 or not isfile(outpath_2+final_cubename+"_full{}.fits".format(filt)):
+                            ADI_cube= open_fits(outpath_2+final_cubename+"{}.fits".format(filt))
+                        else:
+                            ADI_cube= open_fits(outpath_2+final_cubename+"_full{}.fits".format(filt))
+                        if ref_cube_name is not None:
+                            ref_cube = open_fits(ref_cube_name.format(filt))
+                                
+                        derot_angles = open_fits(outpath_2+final_anglename+"{}.fits".format(filt))
+    #                    if derot_name == "rotnth":
+    #                        derot_angles*=-1
+                        psfn = open_fits(outpath_2+final_psfname+"{}.fits".format(filt)) # this has all the unsat psf frames
+                        #3a. pca it in full (cropped) frames
+                        if do_pca_full and not do_pca_1zone:
+                            final_imgs = np.zeros([len(test_pcs_full),ADI_cube.shape[1],ADI_cube.shape[2]])
+                            #wmean_imgs = np.zeros_like(final_imgs)
+                            if mask_PCA is None:
+                                mask_rdi = None
+                            else:
+                                mask_tmp = np.ones_like(ADI_cube[0])
+                                mask_rdi = mask_circle(mask_tmp, mask_PCA, fillwith=0, mode='in')
+                            for pp, npc in enumerate(test_pcs_full):
+                                res = pca_it(ADI_cube, derot_angles, cube_ref=ref_cube, mask_center_px=mask_IWA_px, fwhm=fwhm,  
+                                             strategy=strategy, thr=thr_it, n_it=n_it, n_neigh=n_neigh, ncomp=npc, scaling=scaling, 
+                                             thru_corr=throughput_corr, psfn=psfn, n_br=n_br, mask_rdi=mask_rdi, full_output=True)
+                                final_imgs[pp], it_cube, sig_cube, res, res_der, thru_2d_cube, stim_cube, it_cube_nd = res
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_last_res.fits".format(label_stg,n_it,thr_it,npc,filt), res)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_last_res_der.fits".format(label_stg,n_it,thr_it,npc,filt), res_der)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_it_cube.fits".format(label_stg,n_it,thr_it,npc,filt), it_cube)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_it_cube_nd.fits".format(label_stg,n_it,thr_it,npc,filt), it_cube_nd)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_sig_cube.fits".format(label_stg,n_it,thr_it,npc,filt), sig_cube)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_thru_2d_cube.fits".format(label_stg,n_it,thr_it,npc,filt), thru_2d_cube)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_stim_cube.fits".format(label_stg,n_it,thr_it,npc,filt), stim_cube)
+                                # stim = compute_stim_map(res_der)
+                                # inv_stim = compute_inverse_stim_map(res, derot_angles)
+                                # norm_stim = stim/np.percentile(inv_stim,99.7)
+                                # write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_stim.fits".format(strategy,n_it,thr_it,npc,filt), 
+                                #            np.array([stim, inv_stim, norm_stim]))
+                                # FIRST: define mask following spirals: max stim map (2-5)!
+                                # good_mask = np.zeros_like(stim)
+                                # good_mask[np.where(norm_stim>1)]=1
+                                # ccorr_coeff = cube_distance(res_der,final_imgs[pp],mode='mask',mask=good_mask)
+                                # norm_cc = ccorr_coeff/np.sum(ccorr_coeff)
+                                # wmean_imgs[pp] = cube_collapse(res_der,mode='wmean',w=norm_cc)
+                            #write_fits(outpath_3.format(data_folder)+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_{}_wmean.fits".format(label_stg,n_it,thr,test_npcs[0], test_npcs[-1],filt), wmean_imgs)
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-{}_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_{}.fits".format(label_stg,n_it,thr_it,test_pcs_full[0],test_pcs_full[-1],filt), final_imgs)
+                            # correction by AGPM transmission
+                            # for pp, npc in enumerate(test_npcs):
+                            #     wmean_imgs[pp]/=transmission_2d
+                            #     final_imgs[pp]/=transmission_2d
+                            # #write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_ann{:.0f}_wmean_AGPMcorr.fits".format(n_it,thr_it,test_npcs[0], test_npcs[-1],ann_sz), wmean_imgs)
+                            # write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-RDI_it{:.0f}_thr{:.1f}_ann_{:.0f}-{:.0f}_ann{:.0f}_AGPMcorr.fits".format(n_it,thr_it,test_npcs[0],test_npcs[-1],ann_sz), final_imgs)
+
+                        if do_pca_ann and not do_pca_1zone:
+                            final_imgs = np.zeros([len(test_pcs_ann),ADI_cube.shape[1],ADI_cube.shape[2]])
+                            #wmean_imgs = np.zeros_like(final_imgs)
+                            for pp, npc in enumerate(test_pcs_ann):
+                                res = pca_annular_it(ADI_cube, derot_angles, cube_ref=ref_cube, radius_int=mask_IWA_px, fwhm=fwhm,  
+                                                      thr=thr_it, asize=int(asize*fwhm), n_it=n_it, ncomp=npc, 
+                                                      thru_corr=throughput_corr, psfn=psfn, n_br=n_br,
+                                                      delta_rot=delta_rot, scaling=scaling, full_output=True)
+                                final_imgs[pp], it_cube, sig_cube, res, res_der = res
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}ann_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_last_res.fits".format(label_stg,n_it,thr_it,npc,filt), res)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}ann_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_last_res_der.fits".format(label_stg,n_it,thr_it,npc,filt), res_der)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}ann_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_it_cube.fits".format(label_stg,n_it,thr_it,npc,filt), it_cube)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}ann_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_sig_cube.fits".format(label_stg,n_it,thr_it,npc,filt), sig_cube)
+                                stim = compute_stim_map(res_der)
+                                inv_stim = compute_inverse_stim_map(res, derot_angles)
+                                norm_stim = stim/np.percentile(inv_stim,99.7)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}ann_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_stim.fits".format(label_stg,n_it,thr_it,npc,filt), 
+                                           np.array([stim, inv_stim, norm_stim]))
+                                # FIRST: define mask following spirals: max stim map (2-5)!
+                                # good_mask = np.zeros_like(stim)
+                                # good_mask[np.where(norm_stim>1)]=1
+                                # ccorr_coeff = cube_distance(res_der,final_imgs[pp],mode='mask',mask=good_mask)
+                                # norm_cc = ccorr_coeff/np.sum(ccorr_coeff)
+                                # wmean_imgs[pp] = cube_collapse(res_der,mode='wmean',w=norm_cc)
+                            #write_fits(outpath_3.format(data_folder)+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_{}_wmean.fits".format(label_stg,n_it,thr,test_npcs[0], test_npcs[-1],filt), wmean_imgs)
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-{}ann_it{:.0f}_thr{:.1f}_ann_{:.0f}-{:.0f}_{}.fits".format(label_stg,n_it,thr_it,test_pcs_ann[0],test_pcs_ann[-1],filt), final_imgs)
+                            # correction by AGPM transmission
+                            # for pp, npc in enumerate(test_npcs):
+                            #     wmean_imgs[pp]/=transmission_2d
+                            #     final_imgs[pp]/=transmission_2d
+                            # #write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_ann{:.0f}_wmean_AGPMcorr.fits".format(n_it,thr_it,test_npcs[0], test_npcs[-1],ann_sz), wmean_imgs)
+                            # write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-RDI_it{:.0f}_thr{:.1f}_ann_{:.0f}-{:.0f}_ann{:.0f}_AGPMcorr.fits".format(n_it,thr_it,test_npcs[0],test_npcs[-1],ann_sz), final_imgs)
+                        
+                        if do_pca_1zone:
+                            final_imgs = np.zeros([len(test_pcs_full),ADI_cube.shape[1],ADI_cube.shape[2]])
+                            #wmean_imgs = np.zeros_like(final_imgs)
+                            if mask_PCA is None:
+                                mask_rdi = None
+                            else:
+                                mask_tmp = np.ones_like(ADI_cube[0])
+                                mask_rdi = mask_circle(mask_tmp, mask_PCA, fillwith=0, mode='in')
+                            #res = pca_1zone_it(ADI_cube, derot_angles, cube_ref=ref_cube, 
+                            res = pca_1rho_it(ADI_cube, derot_angles, cube_ref=ref_cube,                  
+                                               fwhm=fwhm, buffer=buffer, strategy=strategy, 
+                                               ncomp_range=test_pcs_1zone, n_it_max=n_it, 
+                                               thr=thr_it, n_neigh=n_neigh, thru_corr=throughput_corr, 
+                                               n_br=n_br, psfn=psfn, starphot=flux, 
+                                               plsc=plsc, svd_mode=svd_mode, 
+                                               scaling=scaling, delta_rot=delta_rot_it, 
+                                               mask_center_px=mask_IWA_px, add_res=add_res, 
+                                               collapse='median',  mask_rdi=mask_rdi, 
+                                               full_output=True, verbose=verbose, 
+                                               weights=None, debug=debug, 
+                                               path=outpath_5.format(bin_fac,filt,crop_lab_list[cc]),
+                                               overwrite=overwrite_it)
+                            if isinstance(thr_it,(int,float)):
+                                thr_it1 = thr_it
+                                thr_it2 = thr_it
+                            else:
+                                thr_it1 = thr_it[0]
+                                thr_it2 = thr_it[-1]
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_{:.0f}-{:.0f}_{}.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[0])
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_it_cube.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[1])
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_stim_cube.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[2])
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_sig_cube.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[3])
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_drot_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[4])
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_thr_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[5])
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_npc_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[6])
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_nit_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[7])
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_cc_rad_ws_ss_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), np.array([res[8], res[9], res[10]]))
+                            # stim = compute_stim_map(res_der)
+                            # inv_stim = compute_inverse_stim_map(res, derot_angles)
+                            # norm_stim = stim/np.percentile(inv_stim,99.7)
+                            # write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_stim.fits".format(strategy,n_it,thr_it,npc,filt), 
+                            #            np.array([stim, inv_stim, norm_stim]))
+                            # FIRST: define mask following spirals: max stim map (2-5)!
+                            # good_mask = np.zeros_like(stim)
+                            # good_mask[np.where(norm_stim>1)]=1
+                            # ccorr_coeff = cube_distance(res_der,final_imgs[pp],mode='mask',mask=good_mask)
+                            # norm_cc = ccorr_coeff/np.sum(ccorr_coeff)
+                            # wmean_imgs[pp] = cube_collapse(res_der,mode='wmean',w=norm_cc)
+                            #write_fits(outpath_3.format(data_folder)+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_{}_wmean.fits".format(label_stg,n_it,thr,test_npcs[0], test_npcs[-1],filt), wmean_imgs)
+                            
+
+
+  
