@@ -28,7 +28,7 @@ import vip_hci as vip
 from vip_hci.fits import open_fits, write_fits
 from vip_hci.pca import pca, pca_annular
 try:
-    from vip_hci.itpca import pca_it, pca_annular_it, pca_1zone_it, pca_1rho_it
+    from vip_hci.itpca import pca_it, pca_annular_it, pca_1zone_it, pca_1rho_it, feves
 except:
     print("Note: iterative pca not available in your version of VIP")
 from vip_hci.pca.utils_pca import pca_annulus
@@ -158,6 +158,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
     do_pca_1zone = params_postproc.get('do_pca_1zone',0)
     #do_pca_2zones = params_postproc.get('do_pca_2zones',0)
     do_nmf = params_postproc.get('do_nmf',0)
+    do_feves = params_postproc.get('do_feves',0)
     
     ## Planet?
     planet = params_postproc.get('planet',0)                      # is there a companion?
@@ -166,7 +167,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
     subtract_planet = params_postproc.get('subtract_planet',0)    # this should only be used as a second iteration, after negfc on the companion has enabled to determine its parameters
     
     ## Inject fake companions? If True => will compute contrast curves
-    fake_planet = params_postproc.get('planet',0)                 #  FIRST RUN IT AS FALSE TO CHECK FOR THE PRESENCE OF TRUE COMPANIONS
+    fake_planet = params_postproc.get('fake_planet',0)                 #  FIRST RUN IT AS FALSE TO CHECK FOR THE PRESENCE OF TRUE COMPANIONS
     fcp_pos_r_crop = np.array(params_postproc.get('fcp_pos_r_crop',[0.5]))   # list of r in arcsec where the fcps are injected in the cropped cube
     fcp_pos_r_full = np.array(params_postproc.get('fcp_pos_r_full',[0.5])) # same for the uncropped cube
     injection_fac = params_postproc.get('injection_fac',1.)  # scaling factor for the injection of fcps with respect to first 5-sigma contrast estimate (e.g. 3/5. to inject at 3 sigma instead of 5 sigma)
@@ -463,11 +464,17 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                          collapse='median', check_memory=True, full_output=True, 
                                          verbose=verbose, conv=do_conv)
                             RDBI_res[i], residuals, residuals_der = DBI_res
-                            if npc < 10:
+                            if npc < 5:
                                 write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'TMP_PCA-RDBI_indiv_{}_npc{:.0f}_res.fits'.format(adimsdi,npc), 
                                        residuals, verbose=False)
                                 write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'TMP_PCA-RDBI_indiv_{}_npc{:.0f}_res_der.fits'.format(adimsdi,npc), 
                                    residuals_der, verbose=False)
+                                if do_stim_map[1]:
+                                    stim_map = compute_stim_map(residuals_der)
+                                    inv_stim_map = compute_inverse_stim_map(residuals, derot_angles)
+                                    norm_stim_map = stim_map/np.percentile(inv_stim_map,99.9)
+                                    write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'TMP_PCA-RDBI_STIM_inv_norm_{}_npc{:.0f}.fits'.format(adimsdi, npc), 
+                                               np.array([stim_map, inv_stim_map, norm_stim_map]))
                         write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'final_PCA-RDBI_indiv_{}{}.fits'.format(adimsdi,test_pcs_str), 
                                    RDBI_res, verbose=False)
                         
@@ -1348,12 +1355,12 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                         pn_contr_curve_full_rr['sigma corr'][jj] = rsvd_list[idx_min]['sigma corr'][jj]
                                 else:
                                     pn_contr_curve_full_rr = vip.metrics.contrast_curve(PCA_ADI_cube_ori, derot_angles, psfn,
-                                                                      fwhm, plsc, starphot=starphot, 
-                                                                      algo=vip.pca.pca, sigma=5., nbranch=n_br, 
-                                                                      theta=0, inner_rad=1, wedge=wedge,fc_snr=fc_snr,
-                                                                      student=True, transmission=transmission, 
-                                                                      plot=True, dpi=100, cube_ref=ref_cube,scaling=scaling,
-                                                                      verbose=verbose, ncomp=int(id_npc_full_df[rr]), svd_mode=svd_mode_all[cc])
+                                                                                        fwhm, plsc, starphot=starphot, 
+                                                                                        algo=vip.pca.pca, sigma=5., nbranch=n_br, 
+                                                                                        theta=0, inner_rad=1, wedge=wedge,fc_snr=fc_snr,
+                                                                                        student=True, transmission=transmission, 
+                                                                                        plot=True, dpi=100, cube_ref=ref_cube,scaling=scaling,
+                                                                                        verbose=verbose, ncomp=int(id_npc_full_df[rr]), svd_mode=svd_mode_all[cc])
                                 DF.to_csv(pn_contr_curve_full_rr, path_or_buf=outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'contrast_curve_PCA-{}-full_optimal_at_{:.1f}as{}.csv'.format(label_stg,rad*plsc,label_emp), sep=',', na_rep='', float_format=None)
                                 df_list.append(pn_contr_curve_full_rr)
                             pn_contr_curve_full_opt = pn_contr_curve_full_rr.copy()
@@ -1600,6 +1607,47 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             # #write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_ann{:.0f}_wmean_AGPMcorr.fits".format(n_it,thr_it,test_npcs[0], test_npcs[-1],ann_sz), wmean_imgs)
                             # write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-RDI_it{:.0f}_thr{:.1f}_ann_{:.0f}-{:.0f}_ann{:.0f}_AGPMcorr.fits".format(n_it,thr_it,test_npcs[0],test_npcs[-1],ann_sz), final_imgs)
                         
+                        if do_feves and not do_pca_1zone:
+                            final_imgs = np.zeros([len(test_pcs_ann),ADI_cube.shape[1],ADI_cube.shape[2]])
+                            #wmean_imgs = np.zeros_like(final_imgs)
+                            for pp, npc in enumerate(test_pcs_ann):
+                                res = feves(ADI_cube, derot_angles, cube_ref=ref_cube, 
+                                            ncomp=npc, n_it=n_it, fwhm=fwhm, thr=thr_it, 
+                                            thr_per_ann=False, asizes=[16,8,4,2,2,2], 
+                                            n_segments=[1,1,1,1,3,6], thru_corr=False, 
+                                            n_neigh=0, strategy='ADI', psfn=None, n_br=6, 
+                                            radius_int=mask_IWA_px, delta_rot=delta_rot, 
+                                            svd_mode=svd_mode, nproc=1, 
+                                            min_frames_lib=2, max_frames_lib=200, 
+                                            tol=1e-1, scaling=scaling, imlib='opencv', 
+                                            interpolation='lanczos4', collapse='median', 
+                                            full_output=True, verbose=True, weights=None, 
+                                            add_res=False, interp_order=2, rtol=1e-2, atol=1)
+                                final_imgs[pp], it_cube, sig_cube, res, res_der = res
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_feves-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_last_res.fits".format(label_stg,n_it,thr_it,npc,filt), res)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP-feves-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_last_res_der.fits".format(label_stg,n_it,thr_it,npc,filt), res_der)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_feves-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_it_cube.fits".format(label_stg,n_it,thr_it,npc,filt), it_cube)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_feves-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_sig_cube.fits".format(label_stg,n_it,thr_it,npc,filt), sig_cube)
+                                stim = compute_stim_map(res_der)
+                                inv_stim = compute_inverse_stim_map(res, derot_angles)
+                                norm_stim = stim/np.percentile(inv_stim,99.7)
+                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_feves-{}ann_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_stim.fits".format(label_stg,n_it,thr_it,npc,filt), 
+                                           np.array([stim, inv_stim, norm_stim]))
+                                # FIRST: define mask following spirals: max stim map (2-5)!
+                                # good_mask = np.zeros_like(stim)
+                                # good_mask[np.where(norm_stim>1)]=1
+                                # ccorr_coeff = cube_distance(res_der,final_imgs[pp],mode='mask',mask=good_mask)
+                                # norm_cc = ccorr_coeff/np.sum(ccorr_coeff)
+                                # wmean_imgs[pp] = cube_collapse(res_der,mode='wmean',w=norm_cc)
+                            #write_fits(outpath_3.format(data_folder)+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_{}_wmean.fits".format(label_stg,n_it,thr,test_npcs[0], test_npcs[-1],filt), wmean_imgs)
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_feves-{}ann_it{:.0f}_thr{:.1f}_ann_{:.0f}-{:.0f}_{}.fits".format(label_stg,n_it,thr_it,test_pcs_ann[0],test_pcs_ann[-1],filt), final_imgs)
+                            # correction by AGPM transmission
+                            # for pp, npc in enumerate(test_npcs):
+                            #     wmean_imgs[pp]/=transmission_2d
+                            #     final_imgs[pp]/=transmission_2d
+                            # #write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_ann{:.0f}_wmean_AGPMcorr.fits".format(n_it,thr_it,test_npcs[0], test_npcs[-1],ann_sz), wmean_imgs)
+                            # write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"final_PCA-RDI_it{:.0f}_thr{:.1f}_ann_{:.0f}-{:.0f}_ann{:.0f}_AGPMcorr.fits".format(n_it,thr_it,test_npcs[0],test_npcs[-1],ann_sz), final_imgs)
+                        
                         if do_pca_1zone:
                             final_imgs = np.zeros([len(test_pcs_full),ADI_cube.shape[1],ADI_cube.shape[2]])
                             #wmean_imgs = np.zeros_like(final_imgs)
@@ -1610,18 +1658,18 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 mask_rdi = mask_circle(mask_tmp, mask_PCA, fillwith=0, mode='in')
                             #res = pca_1zone_it(ADI_cube, derot_angles, cube_ref=ref_cube, 
                             res = pca_1rho_it(ADI_cube, derot_angles, cube_ref=ref_cube,                  
-                                               fwhm=fwhm, buffer=buffer, strategy=strategy, 
-                                               ncomp_range=test_pcs_1zone, n_it_max=n_it, 
-                                               thr=thr_it, n_neigh=n_neigh, thru_corr=throughput_corr, 
-                                               n_br=n_br, psfn=psfn, starphot=flux, 
-                                               plsc=plsc, svd_mode=svd_mode, 
-                                               scaling=scaling, delta_rot=delta_rot_it, 
-                                               mask_center_px=mask_IWA_px, add_res=add_res, 
-                                               collapse='median',  mask_rdi=mask_rdi, 
-                                               full_output=True, verbose=verbose, 
-                                               weights=None, debug=debug, 
-                                               path=outpath_5.format(bin_fac,filt,crop_lab_list[cc]),
-                                               overwrite=overwrite_it)
+                                              fwhm=fwhm, buffer=buffer, strategy=strategy, 
+                                              ncomp_range=test_pcs_1zone, n_it_max=n_it, 
+                                              thr=thr_it, n_neigh=n_neigh, thru_corr=throughput_corr, 
+                                              n_br=n_br, psfn=psfn, starphot=flux, 
+                                              plsc=plsc, svd_mode=svd_mode, 
+                                              scaling=scaling, delta_rot=delta_rot_it, 
+                                              mask_center_px=mask_IWA_px, add_res=add_res, 
+                                              collapse='median',  mask_rdi=mask_rdi, 
+                                              full_output=True, verbose=verbose, 
+                                              weights=None, debug=debug, 
+                                              path=outpath_5.format(bin_fac,filt,crop_lab_list[cc]),
+                                              overwrite=overwrite_it)
                             if isinstance(thr_it,(int,float)):
                                 thr_it1 = thr_it
                                 thr_it2 = thr_it

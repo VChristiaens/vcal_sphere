@@ -179,7 +179,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
 
     
     ## Inject fake companions? If True => will compute contrast curves
-    fake_planet = params_postproc.get('planet',0)                 #  FIRST RUN IT AS FALSE TO CHECK FOR THE PRESENCE OF TRUE COMPANIONS
+    fake_planet = params_postproc.get('fake_planet',0)                 #  FIRST RUN IT AS FALSE TO CHECK FOR THE PRESENCE OF TRUE COMPANIONS
     fcp_pos_r = np.array(params_postproc.get('fcp_pos_r',[0.2,0.4]))
     fc_snr = params_postproc.get('fc_snr',10.) # snr of the injected fcp in contrast_curve to compute throughput
     nspi = params_postproc.get('nspi',9)        # number of spirals where fcps should be injected - also corresponds to number of PAs where the contrast curve is computed
