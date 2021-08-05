@@ -624,7 +624,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                         ################# 3. First quick contrast curve ###################
                         # This is to determine the level at which each fcp should be injected
                         if fake_planet and cc == 0:
-                            if not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_5sig_sensitivity_'+label_stg+label_filt+'.fits') or not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_optimal_contrast_curve_PCA-ADI-full_randsvd.csv') or overwrite_pp:
+                            if not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_5sig_sensitivity_'+label_stg+label_filt+'.fits') or not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_contrast_curve_PCA-{}-full.csv'.format(label_stg)) or overwrite_pp:
                                 df_list = []
                                                         # CROP ADI / REF CUBE to min size for sizes to match
                             if ref_cube is not None:
@@ -660,7 +660,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                     pn_contr_curve_full_rsvd_opt['throughput'][jj] = df_list[idx_min]['throughput'][jj]
                                     pn_contr_curve_full_rsvd_opt['noise'][jj] = df_list[idx_min]['noise'][jj]
                                     pn_contr_curve_full_rsvd_opt['sigma corr'][jj] = df_list[idx_min]['sigma corr'][jj]
-                                DF.to_csv(pn_contr_curve_full_rsvd_opt, path_or_buf=outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_optimal_contrast_curve_PCA-{}-full_randsvd.csv'.format(label_stg), sep=',', na_rep='', float_format=None)
+                                DF.to_csv(pn_contr_curve_full_rsvd_opt, path_or_buf=outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_contrast_curve_PCA-{}-full.csv'.format(label_stg), sep=',', na_rep='', float_format=None)
                                 arr_dist = np.array(pn_contr_curve_full_rsvd_opt['distance'])
                                 arr_contrast = np.array(pn_contr_curve_full_rsvd_opt['sensitivity_student'])
                                 
@@ -1456,9 +1456,9 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 plt.semilogy(pn_contr_curve_adi['distance']*plsc, pn_contr_curve_adi['sensitivity_student'],'r', linewidth=2, label='median-ADI (Student correction)')
                             if do_pca_full and fake_planet:
                                 plt.semilogy(pn_contr_curve_full_opt['distance']*plsc, pn_contr_curve_full_opt['sensitivity_student'],'b', linewidth=2, label='PCA-{} full frame (Student, lapack)'.format(label_stg))
-                            if cc == 0 and fake_planet:
-                                pn_contr_curve_full_rsvd_opt = pandas.read_csv(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_optimal_contrast_curve_PCA-{}-full_randsvd.csv'.format(label_stg))
-                                plt.semilogy(pn_contr_curve_full_rsvd_opt['distance']*plsc, pn_contr_curve_full_rsvd_opt['sensitivity_student'],'c', linewidth=2, label='PCA-{} full frame (Student, randsvd)'.format(label_stg))
+                            # if cc == 0 and fake_planet:
+                            #     pn_contr_curve_full_rsvd_opt = pandas.read_csv(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_contrast_curve_PCA-{}-full.csv'.format(label_stg))
+                            #     plt.semilogy(pn_contr_curve_full_rsvd_opt['distance']*plsc, pn_contr_curve_full_rsvd_opt['sensitivity_student'],'c', linewidth=2, label='PCA-{} full frame (Student, randsvd)'.format(label_stg))
                             if do_pca_ann and cc == 0 and bin_fac == np.amax(bin_fac_list) and fake_planet:
                                 plt.semilogy(pn_contr_curve_ann_opt['distance']*plsc, pn_contr_curve_ann_opt['sensitivity_student'],'g', linewidth=2, label='PCA-{} annular (Student)'.format(label_stg))                                    
                             plt.legend()
@@ -1477,8 +1477,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 plt.plot(pn_contr_curve_adi['distance']*plsc, -2.5*np.log10(pn_contr_curve_adi['sensitivity_student']),'r', linewidth=2, label='median-ADI (Student)')
                             if do_pca_full and fake_planet:
                                 plt.plot(pn_contr_curve_full_opt['distance']*plsc, -2.5*np.log10(pn_contr_curve_full_opt['sensitivity_student']),'b', linewidth=2, label='PCA-{} full frame (Student, lapack)'.format(label_stg))
-                            if cc == 0 and fake_planet:
-                                plt.plot(pn_contr_curve_full_rsvd_opt['distance']*plsc, -2.5*np.log10(pn_contr_curve_full_rsvd_opt['sensitivity_student']),'c', linewidth=2, label='PCA-{} full frame (Student, randsvd)'.format(label_stg))
+                            # if cc == 0 and fake_planet:
+                            #     plt.plot(pn_contr_curve_full_rsvd_opt['distance']*plsc, -2.5*np.log10(pn_contr_curve_full_rsvd_opt['sensitivity_student']),'c', linewidth=2, label='PCA-{} full frame (Student, {})'.format(label_stg, svd_mode_all[0]))
                             if do_pca_ann and cc == 0 and bin_fac == np.amax(bin_fac_list) and fake_planet:
                                 plt.plot(pn_contr_curve_ann_opt['distance']*plsc, -2.5*np.log10(pn_contr_curve_ann_opt['sensitivity_student']),
                                          'g', linewidth=2, label='PCA-{} annular - npc={:.0f} (Student)'.format(label_stg,id_npc_ann_df[rr]))                                    
@@ -1501,9 +1501,9 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 datafr10 = DF(data=id_npc_full_df, columns=["Ideal npc (PCA-{} full)".format(label_stg)])
                                 datafr12 = DF(data=sensitivity_5sig_full_df, columns=["5-sig Student sensitivity (PCA-{} full, lapack)".format(label_stg)])
                                 datafr = datafr.join(datafr10).join(datafr12)
-                            if cc == 0 and do_pca_full:
-                                datafr11 = DF(data=sensitivity_5sig_full_rsvd_df, columns=["5-sig Student sensitivity (PCA-{} full, randsvd)".format(label_stg)])
-                                datafr = datafr.join(datafr11)
+                            # if cc == 0 and do_pca_full:
+                            #     datafr11 = DF(data=sensitivity_5sig_full_rsvd_df, columns=["5-sig Student sensitivity (PCA-{} full, {})".format(label_stg,svd_mode_all[0])])
+                            #     datafr = datafr.join(datafr11)
                             if do_pca_ann and cc == 0 and bin_fac == np.amax(bin_fac_list) and fake_planet:
                                 datafr14 = DF(data=id_npc_ann_df, columns=["Ideal npc (PCA-{} ann)".format(label_stg)])
                                 datafr16 = DF(data=sensitivity_5sig_ann_df, columns=["5-sig Student sensitivity (PCA-{} ann)".format(label_stg)])
