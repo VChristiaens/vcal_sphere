@@ -638,19 +638,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_npc_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[6])
                             write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_nit_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), res[7])
                             write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_1rhoPCA-{}_it{:.0f}_thr{:.1f}-{:.1f}_npc{:.0f}-{:.0f}_{}_cc_rad_ws_ss_opt_arr.fits".format(label_stg,n_it,thr_it1,thr_it2,test_pcs_1zone[0],test_pcs_1zone[-1],filt), np.array([res[8], res[9], res[10]]))
-                            # stim = compute_stim_map(res_der)
-                            # inv_stim = compute_inverse_stim_map(res, derot_angles)
-                            # norm_stim = stim/np.percentile(inv_stim,99.7)
-                            # write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+"TMP_PCA-{}_it{:.0f}_thr{:.1f}_npc{:.0f}_{}_stim.fits".format(strategy,n_it,thr_it,npc,filt), 
-                            #            np.array([stim, inv_stim, norm_stim]))
-                            # FIRST: define mask following spirals: max stim map (2-5)!
-                            # good_mask = np.zeros_like(stim)
-                            # good_mask[np.where(norm_stim>1)]=1
-                            # ccorr_coeff = cube_distance(res_der,final_imgs[pp],mode='mask',mask=good_mask)
-                            # norm_cc = ccorr_coeff/np.sum(ccorr_coeff)
-                            # wmean_imgs[pp] = cube_collapse(res_der,mode='wmean',w=norm_cc)
-                            #write_fits(outpath_3.format(data_folder)+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_{}_wmean.fits".format(label_stg,n_it,thr,test_npcs[0], test_npcs[-1],filt), wmean_imgs)
-                            
+                          
 
 
                 
@@ -729,34 +717,9 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 rad_arr = fcp_pos_r_crop/plsc
                             else:
                                 rad_arr = fcp_pos_r_full/plsc
-                            while rad_arr[-1] >= PCA_ADI_cube_ori.shape[2]:
+                            while rad_arr[-1] >= PCA_ADI_cube_ori.shape[2]/2:
                                 rad_arr = rad_arr[:-1]
                             nfcp = rad_arr.shape[0]                        
-#                        else:
-#                            if not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'.fits') or overwrite_pp:
-#                                crop_sz = min(crop_sz,ADI_cube.shape[1])
-#                                if not crop_sz%2:
-#                                    crop_sz -=1
-#                                print("New cube x and y dimensions for PCA: {} x {}".format(crop_sz, crop_sz))
-#                                PCA_ADI_cube_ori = vip.preproc.cube_crop_frames(ADI_cube, crop_sz)
-#                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'.fits', PCA_ADI_cube_ori)
-#                                #vip.fits.append_extension(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'.fits', derot_angles)
-#                            else:
-#                                PCA_ADI_cube_ori = vip.fits.open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'.fits')
-#                            if planet or fake_planet:
-#                                cy, cx = vip.var.frame_center(PCA_ADI_cube_ori[0])
-#                            if planet:
-#                                xx_comp = planet_pos_crop[0]
-#                                yy_comp = planet_pos_crop[1]
-#                                r_pl = np.sqrt((xx_comp-cx)**2+(yy_comp-cy)**2)   
-#                                if verbose:
-#                                    print("planet position: ({:.1f},{:.1f})".format(xx_comp,yy_comp))
-#                            if fake_planet:
-#                                rad_arr = fcp_pos_r_crop/plsc
-#                                while rad_arr[-1] >= crop_sz/2.:
-#                                    rad_arr = rad_arr[:-1]
-#                                nfcp = rad_arr.shape[0]
-#                                print(rad_arr)
                         if not do_adi:
                             ADI_cube = None  
             
@@ -773,44 +736,44 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 elif ref_cube.shape[-1] < PCA_ADI_cube_ori.shape[-1]:
                                     ref_cube_tmp = ref_cube.copy()
                                     PCA_ADI_cube_tmp = cube_crop_frames(PCA_ADI_cube_ori, ref_cube.shape[-1])
+                            for nn, npc in enumerate(firstguess_pcs):
+                                pn_contr_curve_full_rr = vip.metrics.contrast_curve(PCA_ADI_cube_tmp, derot_angles, psfn,
+                                                                                    fwhm, plsc, starphot=starphot, 
+                                                                                    algo=vip.pca.pca, sigma=5., nbranch=n_br, 
+                                                                                    theta=0, inner_rad=1, wedge=(0,360),
+                                                                                    fc_snr=fc_snr, cube_ref=ref_cube_tmp,
+                                                                                    scaling=scaling,
+                                                                                    student=True, transmission=transmission, 
+                                                                                    plot=True, dpi=100, 
+                                                                                    verbose=verbose, ncomp=int(npc), 
+                                                                                    svd_mode=svd_mode_all[0])
+                                #DF.to_csv(pn_contr_curve_full_nn, path_or_buf=outpath_4.format(crop_lab_list[cc])+'contrast_curve_PCA-ADI-full_optimal_at_{:.1f}as.csv'.format(rad*plsc), sep=',', na_rep='', float_format=None)
+                                df_list.append(pn_contr_curve_full_rr)
+                            pn_contr_curve_full_rsvd_opt = pn_contr_curve_full_rr.copy()
+            
+                            for jj in range(pn_contr_curve_full_rsvd_opt.shape[0]):  
+                                sensitivities = []
                                 for nn, npc in enumerate(firstguess_pcs):
-                                    pn_contr_curve_full_rr = vip.metrics.contrast_curve(PCA_ADI_cube_tmp, derot_angles, psfn,
-                                                                                        fwhm, plsc, starphot=starphot, 
-                                                                                        algo=vip.pca.pca, sigma=5., nbranch=n_br, 
-                                                                                        theta=0, inner_rad=1, wedge=(0,360),
-                                                                                        fc_snr=fc_snr, cube_ref=ref_cube_tmp,
-                                                                                        scaling=scaling,
-                                                                                        student=True, transmission=transmission, 
-                                                                                        plot=True, dpi=100, 
-                                                                                        verbose=verbose, ncomp=int(npc), 
-                                                                                        svd_mode=svd_mode_all[0])
-                                    #DF.to_csv(pn_contr_curve_full_nn, path_or_buf=outpath_4.format(crop_lab_list[cc])+'contrast_curve_PCA-ADI-full_optimal_at_{:.1f}as.csv'.format(rad*plsc), sep=',', na_rep='', float_format=None)
-                                    df_list.append(pn_contr_curve_full_rr)
-                                pn_contr_curve_full_rsvd_opt = pn_contr_curve_full_rr.copy()
-                
-                                for jj in range(pn_contr_curve_full_rsvd_opt.shape[0]):  
-                                    sensitivities = []
-                                    for rr, rad in enumerate(rad_arr):
-                                        sensitivities.append(df_list[rr]['sensitivity_student'][jj])
-                                    print("Sensitivities at {}: ".format(df_list[rr]['distance'][jj]), sensitivities)
-                                    idx_min = np.argmin(sensitivities)
-                                    pn_contr_curve_full_rsvd_opt['sensitivity_student'][jj] = df_list[idx_min]['sensitivity_student'][jj]
-                                    pn_contr_curve_full_rsvd_opt['sensitivity_gaussian'][jj] = df_list[idx_min]['sensitivity_gaussian'][jj]
-                                    pn_contr_curve_full_rsvd_opt['throughput'][jj] = df_list[idx_min]['throughput'][jj]
-                                    pn_contr_curve_full_rsvd_opt['noise'][jj] = df_list[idx_min]['noise'][jj]
-                                    pn_contr_curve_full_rsvd_opt['sigma corr'][jj] = df_list[idx_min]['sigma corr'][jj]
-                                DF.to_csv(pn_contr_curve_full_rsvd_opt, path_or_buf=outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_optimal_contrast_curve_PCA-{}-full_randsvd.csv'.format(label_stg), sep=',', na_rep='', float_format=None)
-                                arr_dist = np.array(pn_contr_curve_full_rsvd_opt['distance'])
-                                arr_contrast = np.array(pn_contr_curve_full_rsvd_opt['sensitivity_student'])
-                                
-                                sensitivity_5sig_full_rsvd_df = np.zeros(nfcp)
-                                for ff in range(nfcp):
-                                    idx = find_nearest(arr_dist, rad_arr[ff])
-                                    sensitivity_5sig_full_rsvd_df[ff] = arr_contrast[idx]
-                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_5sig_sensitivity_{}'.format(label_stg)+label_filt+'.fits', sensitivity_5sig_full_rsvd_df)
-                            else:
-                                sensitivity_5sig_full_rsvd_df = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_5sig_sensitivity_{}'.format(label_stg)+label_filt+'.fits')               
-                                
+                                    sensitivities.append(df_list[nn]['sensitivity_student'][jj])
+                                print("Sensitivities at {}: ".format(df_list[nn]['distance'][jj]), sensitivities)
+                                idx_min = np.argmin(sensitivities)
+                                pn_contr_curve_full_rsvd_opt['sensitivity_student'][jj] = df_list[idx_min]['sensitivity_student'][jj]
+                                pn_contr_curve_full_rsvd_opt['sensitivity_gaussian'][jj] = df_list[idx_min]['sensitivity_gaussian'][jj]
+                                pn_contr_curve_full_rsvd_opt['throughput'][jj] = df_list[idx_min]['throughput'][jj]
+                                pn_contr_curve_full_rsvd_opt['noise'][jj] = df_list[idx_min]['noise'][jj]
+                                pn_contr_curve_full_rsvd_opt['sigma corr'][jj] = df_list[idx_min]['sigma corr'][jj]
+                            DF.to_csv(pn_contr_curve_full_rsvd_opt, path_or_buf=outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_optimal_contrast_curve_PCA-{}-full_randsvd.csv'.format(label_stg), sep=',', na_rep='', float_format=None)
+                            arr_dist = np.array(pn_contr_curve_full_rsvd_opt['distance'])
+                            arr_contrast = np.array(pn_contr_curve_full_rsvd_opt['sensitivity_student'])
+                            
+                            sensitivity_5sig_full_rsvd_df = np.zeros(nfcp)
+                            for ff in range(nfcp):
+                                idx = find_nearest(arr_dist, rad_arr[ff])
+                                sensitivity_5sig_full_rsvd_df[ff] = arr_contrast[idx]
+                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_5sig_sensitivity_{}'.format(label_stg)+label_filt+'.fits', sensitivity_5sig_full_rsvd_df)
+                        else:
+                            sensitivity_5sig_full_rsvd_df = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_5sig_sensitivity_{}'.format(label_stg)+label_filt+'.fits')               
+                            
                              
                         ############### 4. INJECT FAKE PLANETS AT 5-sigma #################
                         if fake_planet:
@@ -1026,53 +989,6 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             plt.legend(["PCA-{} single annulus (optimal npc ={:.0f})".format(label_stg,opt_npc)])
                             plt.savefig(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'SNR_vs_npc_PCA_{}_sann.pdf'.format(label_stg), format='pdf')
             
-        #                    idx_ini = min(idx_best_snr,idx_best_snr2)
-        #                    idx_fin = max(idx_best_snr,idx_best_snr2)
-        #                    new_ntest_pcs = min(20,test_pcs_sann[idx_fin]-test_pcs_sann[idx_ini]+1)
-        #                    new_test_pcs = np.linspace(test_pcs_sann[idx_ini], test_pcs_sann[idx_fin], new_ntest_pcs).astype(int)
-        #                    new_test_pcs_str_list = [str(x) for x in new_test_pcs]
-        #                    new_test_pcs_str = "npc"+"-".join(new_test_pcs_str_list)
-        #                    tmp_tmp = np.zeros([new_ntest_pcs,PCA_ADI_cube_sann.shape[1],PCA_ADI_cube_sann.shape[2]])
-        #                    snr_tmp = np.zeros(new_ntest_pcs)
-        #                    for pp, npc in enumerate(new_test_pcs):
-        #                        tmp_tmp[pp] = pca_annulus(PCA_ADI_cube_sann, derot_angles, int(npc), asize*fwhm, r_pl, cube_ref=None,
-        #                                                  svd_mode=svd_mode_2, scaling=None, collapse='median',
-        #                                                  imlib='opencv', interpolation='lanczos4')
-        #                        snr_tmp[pp] = vip.metrics.snr(tmp_tmp[pp], (xx_comp,yy_comp), fwhm, plot=False, exclude_negative_lobes=True,
-        #                                                              verbose=False)
-        #                        if verbose:                                     
-        #                            print("SNR of the candidate at ({},{}) for npc = {:.0f} : {:.1f}".format(xx_comp,yy_comp,npc,snr_tmp[pp]))                                         
-        #                    write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-ADI_sann_'+new_test_pcs_str+label_filt+'.fits', tmp_tmp)
-        #                    write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-ADI_sann_SNR_'+test_pcs_str+label_filt+'.fits', snr_tmp)
-        #                    idx_best_snr = np.argmax(snr_tmp)
-        #                    opt_npc = new_test_pcs[idx_best_snr]                     
-        #                        
-        #                    ## SNR vs npc      
-        #                    snr_new_list = snr_tmp.tolist()
-        #                    all_npc = test_pcs_sann+new_test_pcs.tolist()
-        #                    all_npc_unique_full, indices = np.unique(all_npc, return_index=True)
-        #                    all_snr = snr_list+snr_new_list
-        #                    all_snr = np.array(all_snr)      
-        #                    all_snr_unique_full = all_snr[indices]
-        #                                                      
-        #                    plt.close()                
-        #                    plt.figure()
-        #                    plt.title('SNR of '+sourcename+' b '+details)
-        #                    plt.ylabel('SNR')
-        #                    plt.xlabel('npc')
-        #                    for ii, npc in enumerate(all_npc_unique_full):
-        #                        if all_snr_unique_full[ii] > 5:
-        #                            marker = 'go'
-        #                        elif all_snr_unique_full[ii] > 3:
-        #                            marker = 'bo'
-        #                        else:
-        #                            marker = 'ro'
-        #                            plt.plot(all_npc_unique_full[ii], all_snr_unique_full[ii],marker)                            
-        #                    plt.legend(["PCA-ADI single annulus (optimal npc ={:.0f})".format(opt_npc)])
-        #                    try:
-        #                        plt.savefig(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'SNR_vs_npc_PCA_ADI_sann'+'.pdf', format='pdf')
-        #                    except:
-        #                        pass
                             PCA_ADI_cube_sann = None
                         
             
