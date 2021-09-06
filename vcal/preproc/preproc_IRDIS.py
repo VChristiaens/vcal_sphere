@@ -32,7 +32,7 @@ from vip_hci.specfit import find_nearest
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle)
-from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos
+from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, set_backend
 
 #**************************** PARAMS TO BE ADAPTED ****************************  
 
@@ -98,11 +98,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     verbose = params_preproc['verbose']
     plot_obs_cond = params_preproc.get('plot_obs_cond',False)
     
+    if debug:
+        set_backend()
+    
     # Preprocessing options
     rec_met = params_preproc['rec_met']    # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
     rec_met_psf = params_preproc['rec_met_psf']
     xy_spots = params_preproc.get('xy_spots',[])# if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
-    sigfactor = params_preproc['sigfactor']
+    sigfactor = params_preproc.get('sigfactor',3)
     badfr_crit_names = params_preproc['badfr_crit_names']
     badfr_crit_names_psf = params_preproc['badfr_crit_names_psf']
     badfr_crit = params_preproc['badfr_crit']
@@ -142,17 +145,24 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     true_ncen = params_preproc['true_ncen']                                               # number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
     #norm_per_s = params_preproc['']                                            # if True, divide all frames by respective dit => have all fluxes in adu/s
     template_strehl = params_preproc['template_strehl']
-    distort_corr = params_preproc['distort_corr']                                # whether to correct manually for distortion (anamorphism) or not
+    distort_corr = params_preproc.get('distort_corr',1)                                # whether to correct manually for distortion (anamorphism) or not
     bp_crop_sz = params_preproc.get('bp_crop_sz',801)                                          #823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
     bp_crop_sz_psf = params_preproc.get('bp_crop_sz_psf',801)   
     final_crop_sz = params_preproc['final_crop_sz']                                          #823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
     final_crop_sz_psf = params_preproc['final_crop_sz_psf']                                       # 51 => 0.25'' radius (~3.5 FWHM)
-    psf_model = params_preproc['psf_model']                                        #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
-    separate_trim = params_preproc.get('separate_trim', False)                                        # whether to separately trim K1 and K2. If False, will only trim based on the K1 frames
-    bin_fac = params_preproc.get('bin_fac',1)                                          # binning factors for final cube. If the cube is not too large, do not bin.
-    approx_xy_bkg = params_preproc.get('approx_xy_bkg',0)                            # approx bkg star position in full ADI frame obtained after rough centering 
-    snr_thr_bkg = params_preproc.get('snr_thr_bkg',5)                                # SNR threshold for the bkg star: only frames where the SNR is above that threshold are used to find bkg star position 
+    psf_model = params_preproc.get('psf_model','moff')                                       #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
+    separate_trim = params_preproc.get('separate_trim', True)                                        # whether to separately trim K1 and K2. If False, will only trim based on the K1 frames
+    bin_fac = params_preproc.get('bin_fac',1)                                      # binning factors for final cube. If the cube is not too large, do not bin.
+    approx_xy_bkg = params_preproc.get('approx_xy_bkg',0)                          # approx bkg star position in full ADI frame obtained after rough centering 
+    snr_thr_bkg = params_preproc.get('snr_thr_bkg',5)                              # SNR threshold for the bkg star: only frames where the SNR is above that threshold are used to find bkg star position 
     good_cen_idx = params_preproc.get('good_cen_idx', None) # good indices of center cubes (to be used for fine centering)
+    bin_fit = params_preproc.get('bin_fit',1)
+    convolve_bkg = params_preproc.get('convolve_bkg',1)
+    
+    if isinstance(separate_trim,str):
+        trim_ch=filters.index(separate_trim)
+    else:
+        trim_ch=0
     
     # output names
     label_test = params_preproc.get('label_test', '')
@@ -373,7 +383,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             cube = cube_crop_frames(cube,bp_crop_sz_tmp)
                         
                         cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resel[fi], 
-                                                     sig=5., protect_psf=False, verbose=full_output,
+                                                     sig=6., protect_psf=False, verbose=full_output,
                                                      half_res_y=False, max_nit=10, full_output=full_output)
                         if full_output:
                             write_fits(outpath+filename+"_1bpcorr_bpmap.fits", cube[1], header=header) 
@@ -473,11 +483,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             cube_cen -= np.median(cube,axis=0)
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[ff][i][0]-diff,xy_spots[ff][i][1]-diff) for i in range(len(xy_spots[ff]))])
-                                        _, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen, xy_spots_tmp, subi_size=cen_box_sz[fi], 
-                                                                                         sigfactor=sigfactor, plot=plot,
-                                                                                         fit_type='moff', lbda=None, 
-                                                                                         debug=False, verbose=True, 
-                                                                                         full_output=True)
+                                        _, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen, xy_spots_tmp, 
+                                                                                       subi_size=cen_box_sz[2], 
+                                                                                       sigfactor=sigfactor, plot=plot,
+                                                                                       fit_type='moff', lbda=None, 
+                                                                                       debug=False, verbose=True, 
+                                                                                       full_output=True)
                                         y_shifts_cen_tmp.append(y_tmp)
                                         x_shifts_cen_tmp.append(x_tmp)
                                         y_shifts_cen_med.append(np.median(y_tmp))
@@ -657,11 +668,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                 _, head_tmp = open_fits(inpath+OBJ_IRDIS_list[fn_tmp]+filters_lab[ff], header = True)
                                                 mjd_all.append(float(head_tmp['MJD-OBS']))
                                             m_idx = find_nearest(mjd_all,mjd_cen[cc])
+                                            mjd_all=np.array(mjd_all)
                                             cube_near = open_fits(outpath+file_list[m_idx]+filt+"_1bpcorr.fits")
                                             cube_cen_sub -= np.median(cube_near,axis=0)
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[ff][i][0]-diff,xy_spots[ff][i][1]-diff) for i in range(len(xy_spots[ff]))])
-                                        cube_cen_sub, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[fi], 
+                                        cube_cen_sub, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[2], 
                                                                                          sigfactor=sigfactor, plot=plot,
                                                                                          fit_type='moff', lbda=None, 
                                                                                          debug=debug, verbose=verbose, 
@@ -793,15 +805,21 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             write_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_x_shifts))
                             if plot:
                                 f, (ax1) = plt.subplots(1,1, figsize=(15,10))
-                                ax1.errorbar(np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                             final_y_shifts,final_y_shifts_std,fmt='bo',label='y')
-                                ax1.errorbar(np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                             final_x_shifts,final_x_shifts_std,fmt='ro',label='x')
+                                t0 = np.amin(unique_mjd_cen)
+                                ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
+                                             (mjd_all-t0)*60*24,
+                                             final_y_shifts, final_y_shifts_std,
+                                             fmt='bo', label='y')
+                                ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
+                                             (mjd_all-t0)*60*24,
+                                             final_x_shifts, final_x_shifts_std,
+                                             fmt='ro',label='x')
                                 if "satspots" in rec_met_tmp:
-                                    ax1.errorbar(range(y_shifts_cen.shape[0]),y_shifts_cen,y_shifts_cen_err,
+                                    ax1.errorbar((unique_mjd_cen-t0)/60.,y_shifts_cen,y_shifts_cen_err,
                                                  fmt='co',label='y cen')
-                                    ax1.errorbar(range(x_shifts_cen.shape[0]),x_shifts_cen,x_shifts_cen_err,
+                                    ax1.errorbar((unique_mjd_cen-t0)/60.,x_shifts_cen,x_shifts_cen_err,
                                                  fmt='mo',label='x cen')
+                                ax1.set_xlabel("Time from start of obs. (min)")
                                 plt.legend(loc='best')
                                 plt.savefig(outpath+"Shifts_xy{}_{}.pdf".format(labels[fi],rec_met_tmp),bbox_inches='tight', format='pdf')
                                 plt.clf()  
@@ -813,6 +831,13 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 for fi,file_list in enumerate(obj_psf_list):
                     if fi == 0 and use_cen_only:
                         continue
+                    elif fi == 2 and not "satspots" in rec_met_tmp:
+                        msg = "Are you sure not to want to use the satellite spots for centering?"
+                        msg += "(press c to continue, q to abort)"
+                        print(msg)
+                        pdb.set_trace()
+                        print("Will proceed with {}".format(rec_met_tmp))
+                        break
                     if not isfile(outpath+"1_master_cube{}_{}.fits".format(labels[fi],filters[ff])) or not isfile(outpath+"1_master_derot_angles.fits") or overwrite[2]:
                         if fi!=1 and ff==0: # only SCI and CEN
                             parang_st = []
@@ -886,6 +911,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     continue
                 if fi == 1:
                     dist_lab_tmp = "" # no need for PSF
+                elif fi == 2 and not "satspots" in rec_met_tmp: # no 2cen files
+                    break
                 else:
                     dist_lab_tmp = dist_lab
                 for ff, filt in enumerate(filters):
@@ -969,16 +996,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             good_frame1 = frame_rotate(cen_cube[-1]-cen_cube[0],-cen_derot[-1])
                             good_frame2 = frame_rotate(cen_cube[0]-cen_cube[-1],-cen_derot[0])
                             good_frame = np.median([good_frame1,good_frame2],axis=0)
-                            good_frame1 = frame_rotate(cen_cube[-1]-cen_cube[0],cen_derot[-1])
-                            good_frame2 = frame_rotate(cen_cube[0]-cen_cube[-1],cen_derot[0])
-                            good_frame_rot = np.median([good_frame1,good_frame2],axis=0)
                         elif isinstance(good_cen_idx,int):
                             derot_angles_cen = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[-1]))
                             idx_max = np.argmax(np.abs(derot_angles_cen[good_cen_idx]-derot_angles_cen[:]))
                             good_frame = frame_rotate(cen_cube[good_cen_idx]-cen_cube[idx_max], 
                                                       -derot_angles_cen[good_cen_idx])
-                            good_frame_rot = frame_rotate(cen_cube[good_cen_idx]-cen_cube[idx_max], 
-                                                      derot_angles_cen[good_cen_idx])
                         elif isinstance(good_cen_idx,list):
                             good_frame = []
                             derot_angles_cen = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[-1]))
@@ -989,9 +1011,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             good_frame = np.median(good_frame,axis=0)
                         else:
                             raise TypeError("good_cen_idx can only be int, list or None")
-                        if debug:
-                            write_fits(outpath+"TMP_good_frame_for_fine_centering.fits", good_frame)
-                            write_fits(outpath+"TMP_good_frame_for_fine_centering_rot.fits", good_frame_rot)
+                        write_fits(outpath+"TMP_good_frame_for_fine_centering.fits", good_frame)
+                        if ff ==0:
+                            debug = False
+                        else:
+                            debug=True
                         master_cube, shifts, sunc = cube_recenter_bkg(master_cube, 
                                                         derot_angles, 
                                                         fwhm=1.2*resel[ff], 
@@ -999,8 +1023,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                         fit_type=psf_model,
                                                         snr_thr=snr_thr_bkg,
                                                         verbose=verbose,
-                                                        crop_sz=15,
+                                                        crop_sz=21,
                                                         good_frame=good_frame,
+                                                        sigfactor=sigfactor,
+                                                        bin_fit=bin_fit, 
+                                                        convolve=convolve_bkg, 
                                                         path_debug=outpath,
                                                         full_output=True,
                                                         debug=debug)
@@ -1190,7 +1217,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             derot_angles = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]))
                             
                         # Rejection based on pixel statistics
-                        if ff == 0 or separate_trim:
+                        if ff == trim_ch or separate_trim==1:
                             
                             final_good_index_list = list(range(cube.shape[0]))
                             if len(bad_fr_idx[fi])>0:
@@ -1241,7 +1268,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 # default params
                                 roundhi = 0.2
                                 roundlo = -0.2
-                                crop_sz = 10
+                                crop_sz = 11
                                 # Update if provided
                                 if "roundhi" in badfr_crit_tmp[idx_ell].keys():
                                     roundhi = badfr_crit_tmp[idx_ell]["roundhi"]
@@ -1272,6 +1299,13 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 
                             if "bkg" in badfr_critn_tmp:
                                 idx_bkg = badfr_critn_tmp.index("bkg")
+                                crop_sz = 21
+                                # Update if provided
+                                if "crop_sz" in badfr_crit_tmp[idx_bkg].keys():
+                                    crop_sz = badfr_crit_tmp[idx_bkg]["crop_sz"]
+                                crop_size = int(crop_sz*fwhm)
+                                if not crop_sz%2:
+                                    crop_size+=1
                                 # default params
                                 sigma = 3
                                 # Update if provided
@@ -1283,7 +1317,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 med_x, med_y = fit2d_bkg_pos(np.array([cen_adi_img]), 
                                                              np.array([approx_xy_bkg[0]]), 
                                                              np.array([approx_xy_bkg[1]]), 
-                                                             fwhm, fit_type=psf_model)
+                                                             fwhm, fit_type=psf_model,
+                                                             crop_sz=crop_sz,
+                                                             sigfactor=sigfactor)
                                 xy_bkg_derot = (med_x,med_y)
                                 cy, cx = frame_center(cube[0])
                                 center_bkg = (cx, cy)
@@ -1294,29 +1330,46 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                          x_bkg, 
                                                                          y_bkg, 
                                                                          fwhm, 
-                                                                         fit_type=psf_model)
+                                                                         fit_type=psf_model,
+                                                                         crop_sz=crop_sz,
+                                                                         sigfactor=sigfactor)
                                 # measure bkg star fluxes
-                                n_fr = cube.shape[0]
+                                n_fr, ny, nx = cube.shape
                                 flux_bkg = np.zeros(n_fr)
                                 crop_sz = int(6*fwhm)
                                 if not crop_sz%2:
                                     crop_sz+=1
                                 for ii in range(n_fr):
-                                    subframe = frame_crop(cube[ii], crop_sz,
-                                                          cenxy=(int(final_x_bkg[ii]), 
-                                                                  int(final_y_bkg[ii])),
-                                                                  force=True, verbose=verbose)
-                                    subpx_shifts = (final_x_bkg[ii]-int(final_x_bkg[ii]),
-                                                    final_y_bkg[ii]-int(final_y_bkg[ii]))
-                                    subframe = frame_shift(subframe, subpx_shifts[1],
-                                                           subpx_shifts[0])
-                                    _, flux_bkg[ii], _ = normalize_psf(subframe, fwhm=fwhm, 
-                                                                       full_output=True, 
-                                                                       verbose=verbose, debug=debug)
+                                    cond1 = np.isnan(final_x_bkg[ii])
+                                    cond3 = False
+                                    if not cond1:
+                                        cond1 = int(final_x_bkg[ii])<crop_sz
+                                        cond3 = int(final_x_bkg[ii])>nx-crop_sz
+                                    cond2 = np.isnan(final_y_bkg[ii])
+                                    cond4 = False
+                                    if not cond2:
+                                        cond2 = int(final_y_bkg[ii])<crop_sz
+                                        cond4 = int(final_y_bkg[ii])>ny-crop_sz
+                                    
+                                    if cond1 or cond2 or cond3 or cond4:
+                                        flux_bkg[ii] = np.nan
+                                    else:
+                                        subframe = frame_crop(cube[ii], crop_sz,
+                                                              cenxy=(int(final_x_bkg[ii]), 
+                                                                      int(final_y_bkg[ii])),
+                                                                      force=True, verbose=verbose)
+                                        subpx_shifts = (final_x_bkg[ii]-int(final_x_bkg[ii]),
+                                                        final_y_bkg[ii]-int(final_y_bkg[ii]))
+                                        subframe = frame_shift(subframe, subpx_shifts[1],
+                                                               subpx_shifts[0])
+                                        _, flux_bkg[ii], _ = normalize_psf(subframe, fwhm=fwhm, 
+                                                                           full_output=True, 
+                                                                           verbose=verbose, debug=debug)
                                 # infer outliers
-                                med_fbkg = np.median(flux_bkg)
-                                std_fbkg = np.std(flux_bkg)
-                                good_index_list = [i for i in range(n_fr) if flux_bkg[i] > med_fbkg-sigma*std_fbkg]
+                                med_fbkg = np.nanmedian(flux_bkg)
+                                std_fbkg = np.nanstd(flux_bkg)
+                                nonan_index_list = [i for i in range(n_fr) if not np.isnan(flux_bkg[i])]
+                                good_index_list = [i for i in nonan_index_list if flux_bkg[i] > med_fbkg-sigma*std_fbkg]
                                 bad_index_list = [i for i in range(n_fr) if i not in good_index_list]
                                 final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
                                 if 100*len(bad_index_list)/cube.shape[0] > perc:
@@ -1325,17 +1378,21 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 if plot_obs_cond:
                                     val = counter + (2*(ff%2)-1)*0.2
                                     if fi!= 1:
-                                        label=filt+'- stat'
+                                        label=filt+'- bkg'
                                     else:
                                         label = None
                                     ax5.plot(UTC[good_index_list]-UTC_0, [val]*len(good_index_list), cols[ff][0]+markers_1[fi], label=label)
                                 counter+=1        
                                 
                             if "shifts" in badfr_critn_tmp:
-                                if not isfile(outpath+"TMP_shifts_fine_recentering_bkg.fits"):
-                                    msg = "File with fine recentering does not exist. "
+                                # Note: this only makes sense for bkg-based centering, 
+                                # since satspots centering will linearly interpolate CEN cube stellar position 
+                                # hence should not identify any outlier.
+                                if not isfile(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filt)):
+                                    msg = "File with fine recentering {} does not exist. "
                                     msg+= "Is there a BKG star and have you run step 5?"
-                                    raise NameError(msg)
+                                    fn = outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filt)
+                                    raise NameError(msg.format(fn))
                                 if rec_met != 'satspots':
                                     raise TypeError("For this bad frame removal criterion to work, only 'CENTER' i.e. satellite spot images must be used")
                                 idx_shifts = badfr_critn_tmp.index("shifts")
@@ -1357,22 +1414,27 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 elif isinstance(good_cen_idx,int):
                                     good_cen_shift_x = good_cen_shift_x[good_cen_idx]
                                     good_cen_shift_y = good_cen_shift_y[good_cen_idx]
+                                elif isinstance(good_cen_idx,list):
+                                    good_cen_shift_x = np.median(good_cen_shift_x[good_cen_idx])
+                                    good_cen_shift_y = np.median(good_cen_shift_y[good_cen_idx])                                    
                                 else:
                                     raise TypeError("good_cen_idx can only be int or None")
                                 # INFER TOTAL CUBE SHIFTS
                                 ## Load rough shifts
                                 shifts_y = open_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(labels[0],filters[ff],rec_met))
                                 shifts_x = open_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[0],filters[ff],rec_met))
-                                err = [err]*len(shifts_y)
-                                ## Load fine shifts if they exist
-                                if isfile(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff])):
-                                    fine_shifts = open_fits(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff]))
-                                    err = fine_shifts[-1]
-                                    # update shifts
-                                    shifts_x += fine_shifts[1]
-                                    shifts_y += fine_shifts[2]
+                                err = np.array([err]*len(shifts_y))
+                                ## Load fine shifts
+                                #if isfile(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff])):
+                                fine_shifts = open_fits(outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff]))
+                                err = np.sqrt(np.power(err,2)+np.power(fine_shifts[-1],2))
+                                # update shifts
+                                shifts_x += fine_shifts[1]
+                                shifts_y += fine_shifts[2]
                                 final_dshifts = np.sqrt(np.power(shifts_x[:]-good_cen_shift_x,2)+np.power(shifts_y[:]-good_cen_shift_y,2))
                                 n_fr = final_dshifts.shape[0]
+                                write_fits(outpath+"TMP_final_dshifts.fits",final_dshifts)
+
                                 if plot or debug:
                                     fig, ax1 = plt.subplots(1,1,figsize=(4,4))
                                     for i in range(n_fr):
@@ -1384,17 +1446,18 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     ax1.plot([0,n_fr+1],[thr,thr],'k--')
                                     ax1.set_xlabel("Index of frame in cube")
                                     ax1.set_ylabel("Differential shift with respect to mask center (px)")
+                                    ax1.set_ylim(-0.1,3)
                                     plt.savefig(outpath+"Residual_shifts_bkg_VS_satspots_{}_badfrrm.pdf".format(filters[ff]), bbox_inches='tight', format='pdf')
-                                good_index_list = [i for i in range(n_fr) if final_dshifts[i] < thr]
+                                good_index_list = [i for i in range(n_fr) if (final_dshifts[i] < thr and err[i] < thr)]
                                 bad_index_list = [i for i in range(n_fr) if i not in good_index_list]
-                                final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
+                                final_good_index_list = [idx for idx in good_index_list if idx in final_good_index_list]
                                 if 100*len(bad_index_list)/cube.shape[0] > perc:
                                     perc = 100*len(bad_index_list)/cube.shape[0]
                                     print("Percentile updated to {:.1f} based on shifts > {:.1f} px".format(perc,thr))
                                 if plot_obs_cond:
                                     val = counter + (2*(ff%2)-1)*0.2
                                     if fi != 1:
-                                        label=filt+'- stat'
+                                        label=filt+'- shifts'
                                     else:
                                         label = None
                                     ax5.plot(UTC[good_index_list]-UTC_0, [val]*len(good_index_list), cols[ff][0]+markers_1[fi], label=label)
@@ -1599,7 +1662,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         xy_pos = []
                         for ss in range(4):
                             ## find exact position
-                            y_tmp, x_tmp = fit_2dmoffat(cube[cc], crop=True, cent=xy_spots_tmp[ss],
+                            y_tmp, x_tmp = fit_2dmoffat(cube[cc], crop=True, 
+                                                        cent=xy_spots_tmp[ss],
                                                         cropsize=crop_sz,
                                                         fwhm=int(fwhm),
                                                         threshold=True,
@@ -1816,14 +1880,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 resc_cube_res = np.zeros([master_cube.shape[0]+1,master_cube.shape[1],master_cube.shape[2]])
                 resc_cube_res[:-1] = resc_cube
                 resc_cube_res[-1] = resc_cube[-1]-resc_cube[0]
-                write_fits(outpath+"TMP_resc_cube_res_{:.0f}fp.fits".format(nfp), resc_cube_res)
+                write_fits(outpath+"TMP_resc_cube_res.fits", resc_cube_res)
                 resc_cube_res_all.append(resc_cube_res[-1])
             resc_cube_res_all = np.array(resc_cube_res_all)
-            write_fits(outpath+"TMP_resc_cube_res_all_{:.0f}fp.fits".format(nfp), resc_cube_res_all)
+            write_fits(outpath+"TMP_resc_cube_res_all.fits", resc_cube_res_all)
             # perform simple SDI
             derot_cube = cube_derotate(resc_cube_res_all, derot_angles)
             sdi_frame = np.median(derot_cube,axis=0)
-            write_fits(outpath+"final_simple_SDI_{:.0f}fp.fits".format(nfp), 
+            write_fits(outpath+"median_SDI.fits", 
                        mask_circle(sdi_frame,coro_sz))
             stim_map = compute_stim_map(derot_cube)
             inv_stim_map = compute_inverse_stim_map(resc_cube_res_all, derot_angles)
@@ -1832,7 +1896,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             stim_maps = np.array([mask_circle(stim_map,coro_sz),
                                   mask_circle(inv_stim_map,coro_sz),
                                   mask_circle(norm_stim_map,coro_sz)])
-            write_fits(outpath+"final_simple_SDI_stim_{:.0f}fp.fits".format(nfp), stim_maps)
+            write_fits(outpath+"median_SDI_stim.fits", stim_maps)
 
             final_scal_vector = np.median(scal_vector,axis=0)
             final_flux_fac = np.median(flux_fac_vec,axis=0)

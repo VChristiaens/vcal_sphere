@@ -19,9 +19,9 @@ from vip_hci.fits import open_fits, write_fits
 from vip_hci.medsub import median_sub
 from vip_hci.metrics import snr
 from vip_hci.preproc import (cube_derotate, frame_rotate, frame_shift, 
-                             approx_stellar_position)
+                             approx_stellar_position, cube_subsample)
 from vip_hci.var import (get_square, fit_2dgaussian, fit_2dmoffat, dist, 
-                         fit_2dairydisk, frame_center)
+                         fit_2dairydisk, frame_center, cube_filter_lowpass)
 
 
 #from hciplot import plot_frames
@@ -37,8 +37,9 @@ pi = np.pi
 
 
 def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
-                      sub_med=True, fit_type='moff', snr_thr=3, rough_cen=False, 
-                      nmin=10, crop_sz=None, full_output=False, verbose=False, 
+                      sub_med=True, fit_type='moff', snr_thr=5, bin_fit=1, 
+                      convolve=True, rough_cen=False, nmin=10, crop_sz=None, 
+                      sigfactor=3, full_output=False, verbose=False, 
                       debug=False, path_debug='./', rel_dist_unc=2e-4):
     """ Recenters a cube with a background star seen in the individual 
     images. The algorithm is based on the fact that the trajectory of the bkg 
@@ -75,6 +76,9 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         Minimum threshold in SNR of the BKG star for images of the sequence to 
         be considered for 2D fit. Recentering shifts in images where threshold 
         is not met will be interpolated.
+    bin_fit: int, opt
+        Binning factor to median-combine consecutive images, in order to 
+        increase SNR of BKG star.
     rough_cen : {True, False}, bool optional
         Whether to attempt a rough centering of the cube before centering based
         on circular arc fit.
@@ -173,8 +177,10 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     if sub_med:
         cube = cube-np.median(cube,axis=0)
         write_fits(path_debug+"sub_cube.fits",cube)
-    bkg_x, bkg_y = fit2d_bkg_pos(cube, x_pos_arr, y_pos_arr, fwhm, 
-                                 fit_type=fit_type, crop_sz=crop_sz)
+    bkg_x, bkg_y = fit2d_bkg_pos(cube, x_pos_arr, y_pos_arr, fwhm, bin_fit,
+                                 fit_type=fit_type, crop_sz=crop_sz,
+                                 convolve=convolve, sigfactor=sigfactor, 
+                                 debug=False)
 
     #step 5 - TAKE CUBE WITH THRESHOLD SNR
     if debug:
@@ -206,11 +212,14 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
 
     #step 6 - median ADI position
     if good_frame is None:
-        good_frame = median_sub(cube[above_thr_idx], derot_angles[above_thr_idx])
+        good_frame = median_sub(cube[above_thr_idx],
+                                derot_angles[above_thr_idx])
     med_x, med_y = fit2d_bkg_pos(np.array([good_frame]), 
                                  np.array([approx_xy_bkg[0]]), 
                                  np.array([approx_xy_bkg[1]]), fwhm, 
-                                 fit_type=fit_type, crop_sz=crop_sz)
+                                 fit_type=fit_type, crop_sz=crop_sz, 
+                                 convolve=convolve, sigfactor=sigfactor,
+                                 debug=debug)
     med_x = med_x[0]
     med_y = med_y[0]
     cen_y, cen_x = frame_center(good_frame)
@@ -220,6 +229,9 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     if verbose:
         print("Position (x,y) in median frame: ", med_x, med_y)
         print("Radial uncertainty on position from distortion unc: {:.2f} px".format(unc_r))
+        if debug:
+            print("Check position match with the blob in TMP_good_frame_for_fine_centering.fits")
+            pdb.set_trace()
     #if debug:
     #    write_fits(path_debug+"TMP_med_ADI_fine_recentering.fits", good_frame)
     
@@ -228,19 +240,24 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     if verbose:
         print('Calculating shifts in cubes with high SNR for BKG...')
     shifts_x, shifts_y, unc_shifts = shifts_from_med_circ(cube[above_thr_idx], 
-                                              derot_angles[above_thr_idx], 
-                                              med_x, med_y, fwhm=fwhm, 
-                                              crop_sz=crop_sz,
-                                              fit_type=fit_type, debug=debug,
-                                              path_debug=path_debug,
-                                              full_output=True)
+                                                          derot_angles[above_thr_idx], 
+                                                          med_x, med_y, 
+                                                          fwhm=fwhm, 
+                                                          crop_sz=crop_sz,
+                                                          fit_type=fit_type,
+                                                          sigfactor=sigfactor,
+                                                          bin_fit=bin_fit,
+                                                          convolve=convolve,
+                                                          debug=debug,
+                                                          path_debug=path_debug,
+                                                          full_output=True)
     
     unc_shift_r = np.zeros(ngood)
     for i in range(ngood):
         unc_shift_r[i] = np.sqrt(np.sum(np.power(unc_shifts[i,:],2)))
-    med_unc_shifts = np.median(unc_shift_r)
+    med_unc_shifts = np.nanmedian(unc_shift_r)
     final_med_unc = np.sqrt(unc_r**2+med_unc_shifts**2)
-    final_unc = np.sqrt(unc_r**2+np.power(unc_shift_r,2))
+    uncs = np.sqrt(unc_r**2+np.power(unc_shift_r,2))
     
     if verbose:
         print("Median uncertainty on BKG star position: {:.2f}, px".format(med_unc_shifts))
@@ -252,13 +269,18 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     if len(above_thr_idx) < cube.shape[0]:
         if verbose:
             print('Interpolating shifts in cubes with low SNR for BKG...')
-        final_shifts_fx = interp1d(derot_angles[above_thr_idx], shifts_x)
+        final_shifts_fx = interp1d(derot_angles[above_thr_idx], shifts_x,
+                                   bounds_error=False, fill_value='extrapolate')
         final_shifts_x = final_shifts_fx(derot_angles)
-        final_shifts_fy = interp1d(derot_angles[above_thr_idx], shifts_y)
+        final_shifts_fy = interp1d(derot_angles[above_thr_idx], shifts_y,
+                                   bounds_error=False, fill_value='extrapolate')
         final_shifts_y = final_shifts_fy(derot_angles)
+        final_unc = np.ones_like(final_shifts_x)*100 # arbitrary high unc
+        final_unc[above_thr_idx] = uncs
     else:
         final_shifts_x = shifts_x
         final_shifts_y = shifts_y
+        final_unc = uncs
         
     #step 9 - final recentering with all shifts
     if verbose:
@@ -271,7 +293,9 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     if debug:
         # plotting new BKG pos and best-fit circular arc
         fin_bkg_x, fin_bkg_y = fit2d_bkg_pos(cube, x_pos_arr, y_pos_arr, fwhm, 
-                                             fit_type=fit_type, crop_sz=crop_sz)
+                                             fit_type=fit_type, crop_sz=crop_sz,
+                                             bin_fit=bin_fit, convolve=convolve,
+                                             sigfactor=sigfactor)
         xc, yc, R, residu = leastsq_circle(cx, cy, fin_bkg_x[above_thr_idx],
                                            fin_bkg_y[above_thr_idx])
         print(xc, yc, R, residu)
@@ -295,7 +319,9 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         med_y_all = [med_y]*n_fr
         fin_der_x, fin_der_y = fit2d_bkg_pos(derot_cube, np.array(med_x_all), 
                                              np.array(med_y_all), fwhm, 
-                                             fit_type=fit_type, crop_sz=crop_sz)        
+                                             fit_type=fit_type, crop_sz=crop_sz,
+                                             bin_fit=bin_fit, convolve=convolve,
+                                             sigfactor=sigfactor)        
         plot_data_derot(med_x, med_y, fin_der_x[above_thr_idx], 
                         fin_der_y[above_thr_idx], final_unc)
         plt.savefig(path_debug+"TMP_double_check_derot_cen.pdf", 
@@ -373,47 +399,81 @@ def interpolate_bkg_pos(approx_xy_bkg, center_bkg, derot_angles):
     return x, y
 
 
-def fit2d_bkg_pos(cube, x_j, y_j, fwhm, fit_type='moffat', crop_sz=None):
+def fit2d_bkg_pos(cube, x_j, y_j, fwhm, bin_fit=1, fit_type='moff', 
+                  crop_sz=None, sigfactor=3, convolve=True, debug=False):
 
     n_frames=cube.shape[0]
 
-    bkg_x = np.zeros(n_frames)
-    bkg_y = np.zeros(n_frames)
     #y0=np.zeros([n_frames])
     #x0=np.zeros([n_frames])
     #counter = 0
-    if crop_sz is None:
-        crop_sz = int(6*fwhm)
-    if not crop_sz%2:
-        crop_sz+=1
+    # if crop_sz is None:
+    #     crop_sz = int(6*fwhm)
+    # if not crop_sz%2:
+    #     crop_sz+=1
+ 
+    if convolve:
+        cube_tmp = cube_filter_lowpass(cube, fwhm_size=fwhm)
+    else:
+        cube_tmp = cube.copy()
+        
+    if bin_fit>1:
+        cube_tmp = cube_subsample(cube_tmp, bin_fit, mode="median")
+        m = int(n_frames/ bin_fit)
+        x_j_new = np.empty(m)
+        for i in range(m):
+            x_j_new[i] = np.median(x_j[bin_fit*i:bin_fit*i+bin_fit])
+        y_j_new = np.empty(m)
+        for i in range(m):
+            y_j_new[i] = np.median(y_j[bin_fit*i:bin_fit*i+bin_fit])
+        x_j = x_j_new
+        y_j = y_j_new
+ 
+    bkg_x = np.zeros(cube_tmp.shape[0])
+    bkg_y = np.zeros(cube_tmp.shape[0])
     
-    for sc in range(0,cube.shape[0]):
+    for sc in range(0,cube_tmp.shape[0]):
         cent_coords=(int(x_j[sc]),int(y_j[sc]))
         #tmp_crop, y0[sc], x0[sc] =get_square(tmpn,crop_sz,int(y_j[sc]),int(x_j[sc]),position=True)
         if fit_type=='gauss':
-            bkg_y[sc], bkg_x[sc] = fit_2dgaussian(cube[sc], cent=cent_coords, 
+            bkg_y[sc], bkg_x[sc] = fit_2dgaussian(cube_tmp[sc], cent=cent_coords, 
                                                   crop=True, cropsize=crop_sz,
                                                   fwhmx=fwhm, fwhmy=fwhm, 
                                                   theta=0, threshold=True, 
-                                                  sigfactor=5, 
+                                                  sigfactor=sigfactor, 
                                                   full_output=False, 
-                                                  debug=False)
+                                                  debug=debug)
         elif fit_type == 'moff':
-            bkg_y[sc], bkg_x[sc] = fit_2dmoffat(cube[sc], crop=True, 
+            bkg_y[sc], bkg_x[sc] = fit_2dmoffat(cube_tmp[sc], crop=True, 
                                                 cropsize=crop_sz,
                                                 cent=cent_coords, fwhm=fwhm,
-                                                threshold=True, sigfactor=5, 
-                                                full_output=False, debug=False)            
+                                                threshold=True, 
+                                                sigfactor=sigfactor, 
+                                                full_output=False, debug=debug)            
         elif fit_type == 'airy':
-            bkg_y[sc], bkg_x[sc] = fit_2dairydisk(cube[sc], crop=False, 
+            bkg_y[sc], bkg_x[sc] = fit_2dairydisk(cube_tmp[sc], crop=False, 
                                                   cent=cent_coords, 
                                                   cropsize=crop_sz, fwhm=fwhm,
-                                                  threshold=True, sigfactor=5, 
+                                                  threshold=True, 
+                                                  sigfactor=sigfactor, 
                                                   full_output=False,
-                                                  debug=False)
+                                                  debug=debug)
         else:
             msg = "Fit type not recognised. Should be moffat, gaussian or airy"
             raise TypeError(msg)
+
+    if bin_fit>1:
+        x_ini = -(1./bin_fit)*(bin_fit-1)/2.
+        x_interp = [x_ini+i*(1./bin_fit) for i in range(n_frames)]
+        x_bin = list(range(cube_tmp.shape[0]))
+        fbkg_x = interp1d(x_bin, bkg_x, bounds_error=False, 
+                          fill_value='extrapolate')
+        bkg_x_fin = fbkg_x(x_interp)
+        fbkg_y = interp1d(x_bin, bkg_y, bounds_error=False, 
+                          fill_value='extrapolate')
+        bkg_y_fin = fbkg_y(x_interp)
+        bkg_x = bkg_x_fin
+        bkg_y = bkg_y_fin
     
     return bkg_x, bkg_y
 
@@ -734,15 +794,16 @@ def plot_data_derot(med_x, med_y, derot_x, derot_y, err, zoom=False):
     plt.title('Least Squares Circle')
     
     
-def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
-                         crop_sz=None, fit_type='moffat', debug=False,
-                         path_debug='./', full_output=False):
+def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5, 
+                         crop_sz=None, fit_type='moff', sigfactor=3, bin_fit=1, 
+                         convolve=True, debug=False, path_debug='./', 
+                         full_output=False):
     
     """
     Note: translation and rotation are not commutative! 
     Trick: find the shift in polar coordinates and apply it at original coords.
     """
-    
+    n_frames = array.shape[0]
     if crop_sz is None:
         crop_sz = int(8*fwhm)
     if not crop_sz%2:
@@ -775,38 +836,82 @@ def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
     if debug:
         write_fits(path_debug+"TMP_derot_cube_crop.fits", derot_small_cubes)
     
+    if convolve:
+        dsc_tmp = cube_filter_lowpass(derot_small_cubes, fwhm_size=fwhm)
+        if debug:
+            write_fits(path_debug+"TMP_derot_cube_crop_conv.fits", 
+                       derot_small_cubes)
+    else:
+        dsc_tmp = derot_small_cubes.copy()
+        
+    if bin_fit>1:
+        dsc_tmp = cube_subsample(dsc_tmp, bin_fit, mode="median")
+        if debug:
+            write_fits(path_debug+"TMP_derot_cube_crop_bin{:.0f}.fits".format(bin_fit), 
+                       derot_small_cubes)
+    
     list_cens=[]
     #list_cens_err=[]
     if full_output:
         cen_unc = []
-    for i in range(array.shape[0]):
+    
+    for i in range(dsc_tmp.shape[0]):
         if 'moff' in fit_type:
-            df_fit=fit_2dmoffat(derot_small_cubes[i], 
-                                cent=[med_x,med_y], fwhm=fwhm,
-                                threshold=True, sigfactor=5, 
+            df_fit=fit_2dmoffat(dsc_tmp[i], cent=[med_x,med_y], 
+                                fwhm=fwhm, threshold=True, sigfactor=sigfactor, 
                                 full_output=full_output, debug=False)
         elif 'gauss' in fit_type:
-            df_fit=fit_2dgaussian(derot_small_cubes[i], 
-                                            cent=[med_x,med_y], 
-                                            crop=False, fwhmx=fwhm, fwhmy=fwhm, 
-                                            theta=0, threshold=True, 
-                                            sigfactor=5, full_output=full_output, 
-                                            debug=False)
+            df_fit=fit_2dgaussian(dsc_tmp[i], cent=[med_x,med_y], 
+                                  crop=False, fwhmx=fwhm, fwhmy=fwhm, theta=0, 
+                                  threshold=True, sigfactor=sigfactor, 
+                                  full_output=full_output, debug=False)
         elif fit_type == 'airy':
-            df_fit=fit_2dairydisk(derot_small_cubes[i], crop=False, 
-                                            cent=[med_x,med_y], 
-                                            fwhm=fwhm, threshold=True, 
-                                            sigfactor=5, full_output=full_output, 
-                                            debug=False)
+            df_fit=fit_2dairydisk(dsc_tmp[i], crop=False, 
+                                  cent=[med_x,med_y], fwhm=fwhm, 
+                                  threshold=True, sigfactor=sigfactor, 
+                                  full_output=full_output, debug=False)
         else:
             msg = "Fit type not recognised. Should be moff, gauss or airy"
             raise TypeError(msg)
         if full_output:
-            cen_unc.append([float(df_fit['centroid_x_err']),float(df_fit['centroid_y_err'])])
-            df_fit=[float(df_fit['centroid_y']),float(df_fit['centroid_x'])]
+            try:
+                cen_unc.append([float(df_fit['centroid_x_err']),float(df_fit['centroid_y_err'])])
+            except:
+                print("WARNING: could not infer uncertainty on centroid position. ")
+                print("Setting it to large value (100. px)")
+                cen_unc.append([100,100])
+            try:
+                df_fit=[float(df_fit['centroid_y']),float(df_fit['centroid_x'])]
+            except:
+                print("WARNING: could not find the centroid position. ")
+                print("Check the results of the fit in the df_fit data frame.")
+                pdb.set_trace()
         list_cens.append([df_fit[1],df_fit[0]])
+        
+    list_cens = np.array(list_cens)
+    cen_unc = np.array(cen_unc)
     
-    list_cens=np.array(list_cens)
+    if bin_fit>1:
+        x_ini = -(1./bin_fit)*(bin_fit-1)/2.
+        x_interp = [x_ini+i*(1./bin_fit) for i in range(n_frames)]
+        x_bin = list(range(dsc_tmp.shape[0]))
+        fbkg_x = interp1d(x_bin, list_cens[:,0], bounds_error=False, 
+                          fill_value='extrapolate')
+        cen_x_fin = fbkg_x(x_interp)
+        fbkg_y = interp1d(x_bin, list_cens[:,1], bounds_error=False, 
+                          fill_value='extrapolate')
+        cen_y_fin = fbkg_y(x_interp)
+        list_cens = [[cen_x_fin[i],cen_y_fin[i]] for i in range(n_frames)]
+        list_cens = np.array(list_cens)
+        fbkg_x = interp1d(x_bin, cen_unc[:,0], bounds_error=False, 
+                          fill_value='extrapolate')
+        unc_x_fin = fbkg_x(x_interp)
+        fbkg_y = interp1d(x_bin, cen_unc[:,1], bounds_error=False, 
+                          fill_value='extrapolate')
+        unc_y_fin = fbkg_y(x_interp)
+        cen_unc = [[unc_x_fin[i],unc_y_fin[i]] for i in range(n_frames)]
+        cen_unc = np.array(cen_unc)
+        
     coords_derot=list_cens+corner_coords_small_cube
     if debug:
         print("Position (x,y) inferred in individual frames: ", coords_derot)
@@ -840,13 +945,8 @@ def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
     shifts_y = new_y_ori-y_ori
 
     if debug:
-        print("Ori shifts (x) inferred in individual frames (MET1): ", shifts_x)
-        print("Ori shifts (y) inferred in individual frames (MET1): ", shifts_y)
-
-    # METHOD 2:
-    if debug:
-        print("Ori shifts (x) inferred in individual frames (MET2): ", shifts_x)
-        print("Ori shifts (y) inferred in individual frames (MET2): ", shifts_y)
+        print("Ori shifts (x) inferred in individual frames: ", shifts_x)
+        print("Ori shifts (y) inferred in individual frames: ", shifts_y)
         
 #    xc_v, yc_v, R_v, residu_v = leastsq_circle(coords_derot_med[:,0],
 #                                               coords_derot_med[:,1])
@@ -865,6 +965,6 @@ def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
 #    final_master=np.array(final_master)
     #write_fits('final_master.fits',final_master)
     if full_output:
-        return shifts_x, shifts_y, np.array(cen_unc)
+        return shifts_x, shifts_y, cen_unc
     else:
         return shifts_x, shifts_y

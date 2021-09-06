@@ -5,14 +5,47 @@ General utility routines used in vcal.
 """
 
 __author__='V. Christiaens'
-__all__=['find_nearest',
+__all__=['set_backend',
+         'find_nearest',
          'nonzero_median',
          'cube_crop_quadrant']
 
 # coding: utf-8
-
+import matplotlib
 import numpy as np
+import os
 import vip_hci as vip
+
+def set_backend():
+    gui_env = [i for i in matplotlib.rcsetup.interactive_bk]
+    non_gui_backends = matplotlib.rcsetup.non_interactive_bk
+    print("Non Gui backends are:", non_gui_backends)
+    print("Gui backends I will test for", gui_env)
+    for gui in gui_env:
+        print("testing", gui)
+        try:
+            matplotlib.use(gui)
+            from matplotlib import pyplot as plt
+            print("    ",gui, "Is Available")
+            #plt.plot([1.5,2.0,2.5])
+            #fig = plt.gcf()
+            #fig.suptitle(gui)
+            #plt.show()
+            print("Using ..... ",matplotlib.get_backend())
+            return None
+        except:
+            print("    ",gui, "Not found")
+    # if code reaches here, it couldn't find any GUI backend, so install one
+    os.system("conda install -c anaconda pyqt")
+    matplotlib.use('Qt5Agg')
+    from matplotlib import pyplot as plt
+    plt.plot([1.5,2.0,2.5])
+    fig = plt.gcf()
+    fig.suptitle(gui)
+    plt.show()
+    print("Using ..... ",matplotlib.get_backend())
+    
+    return None
 
 def find_nearest(array, value, output='index', constraint=None, n=1):
     """
