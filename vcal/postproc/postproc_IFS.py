@@ -1316,9 +1316,9 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             rad_in = mask_IWA # we comment it for a better visualization of the snr map (there are spurious values in the center)
                             #rad_in = 1.5
                             tmp_tmp = np.ones_like(tmp)
-                            tmp_tmp = vip.var.mask_circle(tmp_tmp,rad_in*fwhm_med)
                             for pp in range(tmp.shape[0]):
                                 tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm_med, plot=False)
+                            tmp = vip.var.mask_circle(tmp,rad_in*fwhm_med)
                             write_fits(outpath+'final_PCA-SADI2_ann_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp, verbose=False)                     
             
             label_test = label_test_ori

@@ -28,7 +28,7 @@ import vip_hci as vip
 from vip_hci.fits import open_fits, write_fits
 from vip_hci.pca import pca, pca_annular
 try:
-    from vip_hci.itpca import pca_it, pca_annular_it, pca_1zone_it, pca_1rho_it, feves
+    from vip_hci.itpca import pca_it, pca_annular_it, pca_1rho_it, feves
 except:
     print("Note: iterative pca not available in your version of VIP")
 from vip_hci.pca.utils_pca import pca_annulus
@@ -843,8 +843,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'_snrmap.fits') or overwrite_ADI) and do_snr_map[0]:
                                 tmp = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'.fits')
                                 #rad_in = mask_IWA 
-                                tmp = mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
                                 tmp_tmp = vip.metrics.snrmap(tmp, fwhm, plot=False)
+                                tmp_tmp = mask_circle(tmp_tmp,mask_IWA_px)#rad_in*fwhm)
                                 write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'_snrmap.fits', tmp_tmp, verbose=False)
                             if flux_weights:
                                 label_filt=label_filt[:-3] # remove _fw
@@ -1103,9 +1103,9 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                     #rad_in = mask_IWA # we comment it for a better visualization of the snr map (there are spurious values in the center)
                                     #rad_in = 1.5
                                     tmp_tmp = np.ones_like(tmp)
-                                    tmp_tmp = vip.var.mask_circle(tmp_tmp,mask_IWA_px)#rad_in*fwhm)
                                     for pp in range(tmp.shape[0]):
                                         tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm, plot=False)
+                                    tmp = vip.var.mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_'.format(label_stg)+test_pcs_str+label_filt+'_snrmap.fits', tmp, verbose=False)  
                                 if flux_weights:
                                     label_filt = label_filt[:-3]
@@ -1193,9 +1193,9 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                     #rad_in = mask_IWA # we comment it for a better visualization of the snr map (there are spurious values in the center)
                                     #rad_in = 1.5
                                     tmp_tmp = np.ones_like(tmp)
-                                    tmp_tmp = vip.var.mask_circle(tmp_tmp,mask_IWA_px)#rad_in*fwhm)
                                     for pp in range(tmp.shape[0]):
                                         tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm, plot=False)
+                                    tmp = vip.var.mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_snrmap.fits', tmp, verbose=False)            
                         
                         ######################## 8. PCA-ADI annular #######################
@@ -1277,9 +1277,9 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                     #rad_in = mask_IWA # we comment it for a better visualization of the snr map (there are spurious values in the center)
                                     #rad_in = 1.5
                                     tmp_tmp = np.ones_like(tmp)
-                                    tmp_tmp = vip.var.mask_circle(tmp_tmp,mask_IWA_px)#rad_in*fwhm)
                                     for pp in range(tmp.shape[0]):
                                         tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm, plot=False)
+                                    tmp = vip.var.mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_'.format(label_stg)+test_pcs_str+label_filt+'_snrmap.fits', tmp, verbose=False)  
                                 if flux_weights:
                                     label_filt = label_filt[:-3]
@@ -1373,9 +1373,9 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                     #rad_in = mask_IWA # we comment it for a better visualization of the snr map (there are spurious values in the center)
                                     #rad_in = 1.5
                                     tmp_tmp = np.ones_like(tmp)
-                                    tmp_tmp = vip.var.mask_circle(tmp_tmp,mask_IWA_px)#rad_in*fwhm)
                                     for pp in range(tmp.shape[0]):
                                         tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm, plot=False)
+                                    tmp = vip.var.mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_snrmap.fits', tmp, verbose=False)                     
                             if flux_weights:
                                 label_filt = label_filt[:-3]
