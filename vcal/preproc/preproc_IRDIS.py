@@ -34,6 +34,8 @@ from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle)
 from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, set_backend
 
+from vcal import __path__ as vcal_path
+
 #**************************** PARAMS TO BE ADAPTED ****************************  
 
 def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json', 
@@ -64,8 +66,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     path = params_calib['path'] #"/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/" # parent path
     path_irdis = path+"IRDIS_reduction/"
     inpath = path_irdis+"1_calib_esorex/fits/"
-    inpath_coro = params_preproc['inpath_coro']
-    nd_filename = inpath_coro+"SPHERE_CPI_ND.dat" # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
+    nd_filename = vcal_path[0] + "/../Filters/SPHERE_CPI_ND.dat" # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
 
     # OBS
     coro = params_preproc['coro']  # whether the observations were coronagraphic or not
@@ -309,8 +310,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         # TRANSMISSION in case of a neutral density filter is used
         nd_filter_SCI = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
         
-        nd_file = pd.read_csv(nd_filename, sep = '   ', 
-                              header=0, names=['wavelength', 'ND_0.0', 'ND_1.0','ND_2.0', 'ND_3.5'])
+        nd_file = pd.read_csv(nd_filename, sep = "   ", 
+                              header=None, names=['wavelength', 'ND_0.0', 'ND_1.0','ND_2.0', 'ND_3.5'])
         nd_wavelen = nd_file['wavelength']
         try:
             nd_transmission_SCI = nd_file[nd_filter_SCI]

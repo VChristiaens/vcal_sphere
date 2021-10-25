@@ -36,6 +36,8 @@ from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
 
 from ..utils import set_backend
 
+from vcal import __path__ as vcal_path
+
 def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json', 
                 params_calib_name='VCAL_params_calib.json'):
     """
@@ -66,8 +68,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     inpath = path+"IFS_reduction/1_calib_esorex/calib/"
     label_test = params_preproc.get('label_test', '')
     outpath = path+"IFS_reduction/2_preproc_vip{}/".format(label_test)
-    inpath_coro = params_preproc['inpath_coro'] # "/Users/Valentin/Documents/Coronagraphy/"
-    nd_filename = inpath_coro+"SPHERE_CPI_ND.dat" # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
+    nd_filename = vcal_path[0] + "/../Filters/SPHERE_CPI_ND.dat" # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
     use_cen_only = params_preproc.get('use_cen_only', 0)
     
     sky = params_calib['sky']
@@ -263,7 +264,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         nd_filter_SCI = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
         
         nd_file = pd.read_csv(nd_filename, sep = '   ', 
-                              header=0, names=['wavelength', 'ND_0.0', 'ND_1.0','ND_2.0', 'ND_3.5'])
+                              header=None, names=['wavelength', 'ND_0.0', 'ND_1.0','ND_2.0', 'ND_3.5'])
         nd_wavelen = nd_file['wavelength']
         try:
             nd_transmission_SCI = nd_file[nd_filter_SCI]
