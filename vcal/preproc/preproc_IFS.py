@@ -263,7 +263,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         lbdas = np.linspace(lbda_0, lbda_0+(n_z-1)*delta_lbda, n_z)
         nd_filter_SCI = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
         
-        nd_file = pd.read_csv(nd_filename, sep = '   ', 
+        nd_file = pd.read_csv(nd_filename, sep = "   ", comment='#', engine="python",
                               header=None, names=['wavelength', 'ND_0.0', 'ND_1.0','ND_2.0', 'ND_3.5'])
         nd_wavelen = nd_file['wavelength']
         try:
