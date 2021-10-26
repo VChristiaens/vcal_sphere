@@ -1,6 +1,6 @@
 {
     "path": "/Users/iain/Documents/PhD/Data/CQTau/SPHERE/IRDIS\ test/",
-    "inpath_filt_table": "/Users/sand-jrd/Desktop/vcal_sphere/DataStatic/sph_ird_filt_table.fits",
+    "inpath_filt_table": "/Users/Valentin/GitHub/vcal_sphere/DataStatic/sph_ird_filt_table.fits",
     "dit_ifs": 96,
     "dit_irdis" : 16,
     "dit_psf_ifs" : 2,

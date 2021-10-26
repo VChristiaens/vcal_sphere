@@ -9,24 +9,26 @@ coro_sz = 12  # if coronagraphic, provide radius of the coronagraph in pixels (c
 #dit_psf_irdis = 4.   # read later from header
 
 # Parts of pipeline to be run/overwritten
-to_do = {1,2,3,4,5,6,7,8} # parts of pre-processing to be run. 
-#1. crop odd + bad pix corr
-#   a. with provided mask (static) => iterative because clumps
-#   b. sigma filtering (cosmic rays) => non-iterative
-#2. Recentering
-#3. Create master cube + compute derot_angles
-#4. Distortion correction
-#5. Fine recentering based on BKG star (optional)
-#6. Bad frame rejection
-#   a. Plots before rejection
-#   b. Rejection
-#   c. Plots after rejection
-#7. FWHM + unsat flux (PSF)
-#   a. Gaussian
-#   b. Airy
-#8. final ADI cubes writing: bin & crop if requested
+to_do = {1,2,3,4,5,6,7,8,9,10} # parts of pre-processing to be run. 
+    #1. crop odd + bad pix corr
+    #   a. with provided mask (static) => iterative because clumps
+    #   b. sigma filtering (cosmic rays) => non-iterative
+    #2. Recentering
+    #3. Make first master cube + derot angles calculation
+    #4. anamorphism correction + final ADI cube writing
+    #5. fine recentering based on bkg star (if relevant)
+    #6. bad frame rejection
+    #   a. Plots before rejection
+    #   b. Rejection
+    #   c. Plots after rejection
+    #7. final PSF cube + FWHM + unsat flux (PSF)
+    #   a. Gaussian
+    #   b. Airy
+    #8. Subtract satspots if 'CENTER' used as object (e.g. if OBJ is a ref cube)
+    #9. final ADI cube (bin+crop)
+    #10. Calculate scale factors (if DBI)
 
-overwrite = [1,1,1,1,1,1,1,1]  # list of bools corresponding to parts of pre-processing to be run again even if files already exist. Same order as to_do
+overwrite = [1,1,1,1,1,1,1,1,1,1]  # list of bools corresponding to parts of pre-processing to be run again even if files already exist. Same order as to_do
 debug = True # whether to print more info - useful for debugging
 save_space = False # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
 
@@ -99,8 +101,7 @@ scal_x_distort = 1.      # for IFS: 1.0059
 scal_y_distort = 1.0062  # for IFS: 1.0011
 mask_scal=[0.15,0]       # mask parameters to find optimal scaling factors. Either: string with full path and filename of a 2D array binary mask, or list of 2 elements: inner and outer radii in arcsec for the binary mask. This binary mask defines where the residuals are minimised after scaling each IFS channel with respect to each other. If both values are set to 0: no mask is used. If the second value is set to 0: just an inner mask will be used.
 
-# preprocessing options
-overwrite_flux = False
+# preprocessing options 
 window = [15,None]                                           # size of the window to smooth moving median for px stats
 idx_test_cube = 0                                            # if rec_met is list: provide index of test cube (should be the most tricky one) where all methods will be tested => best method should correspond min(stddev of shifts)
 idx_test_cube_psf = 0                                        # id as above for psf
