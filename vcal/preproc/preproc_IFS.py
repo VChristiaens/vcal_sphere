@@ -68,7 +68,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     inpath = path+"IFS_reduction/1_calib_esorex/calib/"
     label_test = params_preproc.get('label_test', '')
     outpath = path+"IFS_reduction/2_preproc_vip{}/".format(label_test)
-    nd_filename = vcal_path[0] + "/../Filters/SPHERE_CPI_ND.dat" # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
+    nd_filename = vcal_path[0] + "/../Static/SPHERE_CPI_ND.dat" # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
     use_cen_only = params_preproc.get('use_cen_only', 0)
     
     sky = params_calib['sky']
@@ -263,7 +263,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         lbdas = np.linspace(lbda_0, lbda_0+(n_z-1)*delta_lbda, n_z)
         nd_filter_SCI = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
         
-        nd_file = pd.read_csv(nd_filename, sep = '   ', 
+        nd_file = pd.read_csv(nd_filename, sep = "   ", comment='#', engine="python",
                               header=None, names=['wavelength', 'ND_0.0', 'ND_1.0','ND_2.0', 'ND_3.5'])
         nd_wavelen = nd_file['wavelength']
         try:
