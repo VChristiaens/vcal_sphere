@@ -21,6 +21,8 @@ import photutils
 import vip_hci
 from ..utils import make_lists, sph_ifs_correct_spectral_xtalk
 
+from vcal import __path__ as vcal_path
+
 
 def calib(params_calib_name='VCAL_params_calib.json'):
     """
@@ -41,6 +43,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     with open(params_calib_name, 'r') as read_file_params_calib:
         params_calib = json.load(read_file_params_calib)
         
+    with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
+        filt_spec = json.load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combinaison
+    
     path = params_calib['path'] #"/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/" # parent path
     inpath = path+"raw/"
     inpath_filt_table = params_calib.get('inpath_filt_table','~/') #"/Applications/ESO/spher-calib-0.38.0/cal/"
@@ -81,9 +86,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     dit_cen_ifs = params_calib.get('dit_cen_ifs',None) # or None if there is no CEN cube
     dit_cen_irdis = params_calib.get('dit_cen_irdis',None) # or None if there is no CEN cube
     
-    filt1 = params_calib.get('filt1',None) #'INS1.FILT.NAME'
-    filt2 = params_calib.get('filt2',None) #'INS1.OPTI2.NAME'
-    filters = params_calib.get('filters',None) #DBI filters (list of 2 elements) or CI filter (single string)
+    # !! When no filters, filt is written as 'CLEAR' instead of None
+    filt1 = filt_spec['IRFW1'] #'INS1.FILT.NAME' IRFW1
+    filt2 = filt_spec['IRFW2'] #'INS1.OPTI2.NAME' IRFW2
+    filters = filt_spec['filters'] #DBI filters (list of 2 elements) or CI filter (single string)
       
     # Reduction params
     ## Check the sky cubes by eye to select appropriate value for params below:

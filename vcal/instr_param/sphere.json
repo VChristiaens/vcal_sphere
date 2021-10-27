@@ -1,0 +1,9 @@
+{
+ "diam": 8.1,
+ "plsc": [0.012255,0.012250],
+ "pup_off": 135.99,
+ "TN": -1.75,
+ "ifs_off": 0,
+ "scal_x_distort": 1,
+ "scal_y_distort": 1.0062
+}
