@@ -45,6 +45,9 @@ from vip_hci.metrics import compute_stim_map, compute_inverse_stim_map
 from vip_hci.var import mask_circle
 from ..utils import find_nearest
 
+from vcal import __path__ as vcal_path
+
+
 ############### PARAMETERS to be adapted to each dataset #####################
 #from C_2019_10_J19003645.IFS_reduction.VCAL_2_preproc_IFS import distort_corr_labs # adapt location of 2nd script
 #from C_2019_10_J19003645.IFS_reduction.VCAL_2_preproc_IFS import final_cubename, final_anglename, final_psfnname, final_lbdaname
@@ -118,7 +121,6 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     
     # from preproc
     coro = params_preproc['coro']
-    inpath_coro = params_preproc['inpath_coro']
     plsc = np.array(params_preproc['plsc'])
     final_crop_sz = params_preproc.get('final_crop_sz', 101)
     final_cubename = params_preproc.get('final_cubename', 'final_cube_ASDI_norm')
@@ -258,8 +260,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
 
         
     if coro:
-        transmission_name = "SPHERE_IFS_ALC_transmission_px.fits"
-        transmission = open_fits(inpath_coro+transmission_name)
+        transmission_name = vcal_path[0] + "/../Static/" + "SPHERE_IRDIS_ALC_transmission_px.fits"
+        transmission = open_fits(transmission_name)
         transmission = (transmission[1],transmission[0])
     else:
         transmission = None

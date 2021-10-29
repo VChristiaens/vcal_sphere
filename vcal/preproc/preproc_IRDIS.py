@@ -70,9 +70,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         
     path = params_calib['path'] #"/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/" # parent path
     path_irdis = path+"IRDIS_reduction/"
-    inpath = path_irdis+"1_calib_esorex/fits/"
-    nd_filename = vcal_path[0] + "/../Filters/SPHERE_CPI_ND.dat" # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
-    
+    nd_filename = vcal_path[0] + "/../Static/SPHERE_CPI_ND.dat" # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
+
     # OBS
     coro = params_preproc['coro']  # whether the observations were coronagraphic or not
     coro_sz = params_preproc.get('coro_sz',8)  # if coronagraphic, provide radius of the coronagraph in pixels (check header for size in mas and convert)
