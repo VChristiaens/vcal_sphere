@@ -112,7 +112,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     # Preprocessing options
     rec_met = params_preproc['rec_met']    # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
     rec_met_psf = params_preproc['rec_met_psf']
-    xy_spots = params_preproc.get('xy_spots',[])# if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
+    
+    # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
+    xy_spots = params_preproc.get('xy_spots',[])    
+    if " xy_spots" in filt_spec.keys() : xy_spots = filt_spec["xy_spots"]
+    
     sigfactor = params_preproc.get('sigfactor',3)
     badfr_crit_names = params_preproc['badfr_crit_names']
     badfr_crit_names_psf = params_preproc['badfr_crit_names_psf']
