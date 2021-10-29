@@ -177,9 +177,13 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 dit_psf_irdis=dit_psf_irdis, dit_cen_ifs=dit_cen_ifs, 
                                 dit_cen_irdis=dit_cen_irdis,filt1=filt1, 
                                 filt2=filt2)
-        w = csv.writer(open(path+"dico_files.csv", "w"))
-        for key, val in dico_lists.items():
-            w.writerow([key, val])
+        with open(path+"dico_files.csv",'w') as dico_file:
+            w =  csv.writer(dico_file)
+            for key, val in dico_lists.items():
+                w.writerow([key, val])
+                dico_file.flush()
+            dico_file.close()
+
     else:
         dico_lists = {}
         reader = csv.reader(open(path+'dico_files.csv', 'r'))
