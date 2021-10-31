@@ -66,7 +66,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     path = params_calib['path'] #"/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/" # parent path
     path_irdis = path+"IRDIS_reduction/"
     inpath = path_irdis+"1_calib_esorex/fits/"
-    nd_filename = vcal_path[0] + "/../Filters/SPHERE_CPI_ND.dat" # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
+    nd_filename = vcal_path[0] + "/../Static/SPHERE_CPI_ND.dat" # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
 
     # OBS
     coro = params_preproc['coro']  # whether the observations were coronagraphic or not
@@ -90,12 +90,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     #7. final PSF cube + FWHM + unsat flux (PSF)
     #   a. Gaussian
     #   b. Airy
-    #8. final ADI cube (bin+crop)
+    #8. Subtract satspots if 'CENTER' used as object (e.g. if OBJ is a ref cube)
+    #9. final ADI cube (bin+crop)
+    #10. Calculate scale factors (if DBI)
 
-    overwrite = params_preproc['overwrite']  # list of bools corresponding to parts of pre-processing to be run again even if files already exist. Same order as to_do
-    debug = params_preproc['debug'] # whether to print more info - useful for debugging
+    overwrite = params_preproc.get('overwrite',[1]*10)   # list of bools corresponding to parts of pre-processing to be run again even if files already exist. Same order as to_do
+    debug = params_preproc['debug']           # whether to print more info - useful for debugging
     save_space = params_preproc['save_space'] # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
-    plot = params_preproc['plot']                                                 # whether to plot additional info (evo of: Strehl, cross-corr level, airmass, flux)
+    plot = params_preproc['plot']             # whether to plot additional info (evo of: Strehl, cross-corr level, airmass, flux)
     verbose = params_preproc['verbose']
     plot_obs_cond = params_preproc.get('plot_obs_cond',False)
     
@@ -139,7 +141,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         raise TypeError("if a tuple/list, mask_scal should have 2 elements")
 
     # preprocessing options
-    overwrite_flux = params_preproc['overwrite_flux']
     idx_test_cube = params_preproc.get('idx_test_cube', [0,0,0])                                            # if rec_met is list: provide index of test cube (should be the most tricky one) where all methods will be tested => best method should correspond min(stddev of shifts)
     #idx_test_cube_psf = params_preproc['']                                    # id as above for psf
     cen_box_sz = params_preproc.get('cen_box_sz',[31,71,31])                   # size of the subimage for 2d fit, for OBJ, PSF and CEN
@@ -310,7 +311,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         # TRANSMISSION in case of a neutral density filter is used
         nd_filter_SCI = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
         
-        nd_file = pd.read_csv(nd_filename, sep = "   ", 
+        nd_file = pd.read_csv(nd_filename, sep = "   ", comment='#', engine="python",
                               header=None, names=['wavelength', 'ND_0.0', 'ND_1.0','ND_2.0', 'ND_3.5'])
         nd_wavelen = nd_file['wavelength']
         try:
@@ -1154,7 +1155,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         _, _, fwhm = normalize_psf(np.median(cube,axis=0), fwhm='fit', size=crop_sz, threshold=None, mask_core=None,
                                                    model=psf_model, imlib='opencv', interpolation='lanczos4',
                                                    force_odd=True, full_output=True, verbose=debug, debug=False)
-                        if not isfile(outpath+"TMP_fluxes{}_{}.fits".format(labels[fi],filt)) or overwrite_flux:
+                        if not isfile(outpath+"TMP_fluxes{}_{}.fits".format(labels[fi],filt)) or overwrite[5]:
                             fluxes = np.zeros(ntot)
                             for nn in range(ntot):                            
                                 _, fluxes[nn], _ = normalize_psf(cube[nn], fwhm=fwhm, size=crop_sz, threshold=None, mask_core=None,
@@ -1592,7 +1593,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             if save_space:
                 os.system("rm {}*1bpcorr.fits".format(outpath))                                    
 
-        #************************* FINAL PSF + FLUX + FWHM (incl. CROP) *************p***********              
+        #************** 7. FINAL PSF + FLUX + FWHM (incl. CROP) ***************              
         if 7 in to_do:
             if isinstance(final_crop_szs[1], (float,int)):
                 crop_sz_list = [int(final_crop_szs[1])]
@@ -1638,7 +1639,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                       
                 
                 
-        #********** SUBTRACT SAT SPOTS IF CEN cubes USED as OBJ cubes *********
+        #********** 8. SUBTRACT SAT SPOTS IF CEN cubes USED as OBJ cubes *********
         if 8 in to_do and use_cen_only:
             diff = int((ori_sz-bp_crop_sz)/2)
             for ff, filt in enumerate(filters):
@@ -1700,7 +1701,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         write_fits(outpath+"3_master_cube_clean_{}{}{}.fits".format(filt,dist_lab,"-".join(badfr_crit_names)), cube)
                                 
                         
-        #********************* FINAL OBJ CUBE (BIN & CROP IF NECESSARY) ******************
+        #******************** 9. FINAL OBJ CUBE (BIN & CROP IF NECESSARY) ******************
         if 9 in to_do:
             if isinstance(final_crop_szs[0], (float,int)):
                 crop_sz_list = [int(final_crop_szs[0])]
@@ -1788,39 +1789,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             if save_space:
                 os.system("rm {}*3crop.fits".format(outpath))            
                 
-#        #******************************* FINAL CROP - TO BE REMOVED*******************************
-#        if 9 in to_do:
-##            for fi,file_list in enumerate(file_lists): 
-##                if fi==0:
-##                    str_idx=5
-##                else:
-##                    str_idx=6
-#            # ADAPT BELOW FOR ODD AND EVEN CROPS
-#            for eo in range(2):
-#                # loop on even and odd dimension cubes
-#                if not eo:
-#                    lab = "_even"
-#                else:
-#                    lab = "_odd"
-#                if not isfile(outpath+file_list[-1]+"_3crop") or overwrite[3]:    
-#                   #for ff, filename in enumerate(file_list):
-#                        #if ncen>0 :
-#                        #    if filename[:-str_idx] in obj_psf_list[2]:
-#                        #        #pdb.set_trace()
-#                        #        continue
-#                        crop_sz_tmp = final_crop_szs[0]
-#                        cube, header = open_fits(outpath+filename+"_2cen", header=True)
-#                        if npsf>0 :
-#                            if filename[:-str_idx] in obj_psf_list[1]:
-#                                crop_sz_tmp = final_crop_szs[1]
-#                        if cube.shape[1] > crop_sz_tmp or cube.shape[2] > crop_sz_tmp:
-#                            cube = cube_crop_frames(cube,crop_sz_tmp,verbose=verbose)
-#                            header["NAXIS1"] = cube.shape[1]
-#                            header["NAXIS2"] = cube.shape[2]
-#                        write_fits(outpath+final_cubename.format(bin_fac,dist_lab,filt), cube, header=header) 
-#                      
-#            if save_space:
-#                os.system("rm {}*3crop.fits".format(outpath))
+        #******************* 10. SCALE FACTOR CALCULATION *********************
+
                 
         if 10 in to_do and len(filters)>1 and not separate_trim:
             nfp = 2 # number of free parameters for simplex search

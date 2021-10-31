@@ -41,6 +41,8 @@ from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import mask_circle
 from ..utils import find_nearest
 
+from vcal import __path__ as vcal_path
+
 
 def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                    params_preproc_name='VCAL_params_preproc_IRDIS.json', 
@@ -100,7 +102,6 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
     
     # from preproc
     coro = params_preproc['coro']
-    inpath_coro = params_preproc['inpath_coro']
     plsc_ori = np.array(params_preproc['plsc'])
     bin_fac = params_preproc.get('bin_fac',1)
     distort_corr = params_preproc['distort_corr']
@@ -242,8 +243,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
             mask_PCA = int(mask_PCA/np.median(plsc_ori))
         
     if coro:
-        transmission_name = "SPHERE_IRDIS_ALC_transmission_px.fits"
-        transmission = open_fits(inpath_coro+transmission_name)
+        transmission_name = vcal_path[0] + "/../Static/" + "SPHERE_IRDIS_ALC_transmission_px.fits"
+        transmission = open_fits(transmission_name)
         transmission = (transmission[1],transmission[0])
     else:
         transmission = None
