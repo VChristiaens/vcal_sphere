@@ -115,7 +115,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     
     # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
     xy_spots = params_preproc.get('xy_spots',[])    
-    if " xy_spots" in filt_spec.keys() : xy_spots = filt_spec["xy_spots"]
+    if "xy_spots" in filt_spec.keys() : xy_spots = filt_spec["xy_spots"]
     
     sigfactor = params_preproc.get('sigfactor',3)
     badfr_crit_names = params_preproc['badfr_crit_names']
@@ -849,7 +849,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         print(msg)
                         pdb.set_trace()
                         print("Will proceed with {}".format(rec_met_tmp))
-                        break
+                        #break
                     if not isfile(outpath+"1_master_cube{}_{}.fits".format(labels[fi],filters[ff])) or not isfile(outpath+"1_master_derot_angles.fits") or overwrite[2]:
                         if fi!=1 and ff==0: # only SCI and CEN
                             parang_st = []

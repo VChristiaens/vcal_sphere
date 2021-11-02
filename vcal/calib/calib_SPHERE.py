@@ -343,13 +343,18 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 #master_sky = np.median(master_sky,axis=0)
                 vip_hci.fits.write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky[:counter]) 
 
+
         if not isfile("{}master_sky_cube.fits".format(outpath_irdis_fits)):
             pca_subtr = False
             manual_sky_irdis = True
         if not isfile("{}master_sky_psf_cube.fits".format(outpath_irdis_fits)):
             pca_subtr_psf = False
             manual_sky_irdis_psf = True
-
+            psf_list_irdis = dico_lists['psf_list_irdis']
+            
+            for ii in range(len(psf_list_irdis)):
+                os.system("cp " + inpath+psf_list_irdis[ii] + inpath++ "skysub/" +psf_list_irdis[ii])
+            pdb.set_trace()
         # FLAT + final bp map
         if 4 in to_do:
             if not isfile(outpath_irdis_sof+"master_flat.sof") or overwrite_sof:
@@ -825,7 +830,6 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 print("WARNING: NO SKY NOR INS BG - PROXY SKY SUBTR AFTER REDUCTION WILL BE PERFORMED")
                                 #raise ValueError("There is no appropriate sky nor ins bg")
                             f.write("{}master_badpixelmap.fits".format(outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
-                    pdb.set_trace()
                     if len(sky_list_irdis)>0:
                         if not isfile(outpath_irdis_fits+"psf_sky_bg.fits") or overwrite_sof or overwrite_fits:
                             command = "esorex sph_ird_sky_bg"
