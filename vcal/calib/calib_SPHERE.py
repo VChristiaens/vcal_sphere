@@ -353,8 +353,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             psf_list_irdis = dico_lists['psf_list_irdis']
             
             for ii in range(len(psf_list_irdis)):
-                os.system("cp " + inpath+psf_list_irdis[ii] + inpath++ "skysub/" +psf_list_irdis[ii])
-            pdb.set_trace()
+                os.system( "cp " + inpath + psf_list_irdis[ii] + " " + inpath + "skysub/" + psf_list_irdis[ii])
         # FLAT + final bp map
         if 4 in to_do:
             if not isfile(outpath_irdis_sof+"master_flat.sof") or overwrite_sof:
