@@ -94,15 +94,20 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
         params_preproc = json.load(read_file_params_preproc)
     with open(params_calib_name, 'r') as read_file_params_calib:
         params_calib = json.load(read_file_params_calib)
+    
+    with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
+        filt_spec = json.load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combinaison
+    with open(vcal_path[0] + "/instr_param/sphere.json", 'r') as instr_param_file:
+        instr_cst = json.load(instr_param_file)
 
     # from calib
     path = params_calib['path']
-    filters = params_calib['filters']
+    filters = filt_spec['filters'] 
     path_irdis = path+"IRDIS_reduction/"
     
     # from preproc
     coro = params_preproc['coro']
-    plsc_ori = np.array(params_preproc['plsc'])
+    plsc_ori = np.array(instr_cst['plsc'])
     bin_fac = params_preproc.get('bin_fac',1)
     distort_corr = params_preproc['distort_corr']
     if distort_corr:

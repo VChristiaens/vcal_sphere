@@ -843,12 +843,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 for fi,file_list in enumerate(obj_psf_list):
                     if fi == 0 and use_cen_only:
                         continue
-                    elif fi == 2 and not "satspots" in rec_met_tmp:
+                    elif fi == 2 and not "satspots" in rec_met:
                         msg = "Are you sure not to want to use the satellite spots for centering?"
                         msg += "(press c to continue, q to abort)"
                         print(msg)
                         pdb.set_trace()
-                        print("Will proceed with {}".format(rec_met_tmp))
+                        print("Will proceed with {}".format(rec_met))
                         #break
                     if not isfile(outpath+"1_master_cube{}_{}.fits".format(labels[fi],filters[ff])) or not isfile(outpath+"1_master_derot_angles.fits") or overwrite[2]:
                         if fi!=1 and ff==0: # only SCI and CEN
