@@ -189,7 +189,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
 
     ## Post-processing
     sadi_steps  =params_postproc.get('sadi_steps',1)
-    mask_IWA = params_postproc.get('mask_IWA',1)  # just show pca images beyond the provided mask radius (in fwhm units)
+    mask_IWA_px = params_postproc.get('mask_IWA',10)  # just show pca images beyond the provided mask radius (in fwhm units)
     do_conv = params_postproc.get('do_conv',0) # whether to smooth final images
     do_snr_map = params_postproc.get('do_snr_map',[0,0,0]) # to plot the snr_map (warning: computer intensive); useful only when point-like features are seen in the image
     if not isinstance(do_snr_map, list):
@@ -292,7 +292,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     else:
         scale_list = np.amax(lbdas)/lbdas 
 
-    mask_IWA_px = int(mask_IWA*fwhm_med)
+    #mask_IWA_px = int(mask_IWA*fwhm_med)
+    mask_IWA = mask_IWA_px/fwhm_med
     ref_cube = [None]*nz
     if ref_cube_name is not None:
         label_stg = "RDI"

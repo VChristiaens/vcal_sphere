@@ -736,20 +736,18 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                         if fake_planet and cc == 0:
                             if not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_5sig_sensitivity_'+label_stg+label_filt+'.fits') or not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_contrast_curve_PCA-{}-full.csv'.format(label_stg)) or overwrite_pp:
                                 df_list = []
-                                                        # CROP ADI / REF CUBE to min size for sizes to match
+                            # CROP ADI / REF CUBE to min size for sizes to match
                             if ref_cube is not None:
                                 if ref_cube.shape[-1] > PCA_ADI_cube_ori.shape[-1]:
-                                    ref_cube_tmp = cube_crop_frames(ref_cube, PCA_ADI_cube_ori.shape[-1])
-                                    PCA_ADI_cube_tmp = PCA_ADI_cube_ori.copy()
+                                    ref_cube = cube_crop_frames(ref_cube, PCA_ADI_cube_ori.shape[-1])
                                 elif ref_cube.shape[-1] < PCA_ADI_cube_ori.shape[-1]:
-                                    ref_cube_tmp = ref_cube.copy()
-                                    PCA_ADI_cube_tmp = cube_crop_frames(PCA_ADI_cube_ori, ref_cube.shape[-1])
+                                    PCA_ADI_cube_ori = cube_crop_frames(PCA_ADI_cube_ori, ref_cube.shape[-1])
                             for nn, npc in enumerate(firstguess_pcs):
-                                pn_contr_curve_full_rr = vip.metrics.contrast_curve(PCA_ADI_cube_tmp, derot_angles, psfn,
+                                pn_contr_curve_full_rr = vip.metrics.contrast_curve(PCA_ADI_cube_ori, derot_angles, psfn,
                                                                                     fwhm, plsc, starphot=starphot, 
                                                                                     algo=vip.pca.pca, sigma=5., nbranch=n_br, 
                                                                                     theta=0, inner_rad=1, wedge=(0,360),
-                                                                                    fc_snr=fc_snr, cube_ref=ref_cube_tmp,
+                                                                                    fc_snr=fc_snr, cube_ref=ref_cube,
                                                                                     scaling=scaling,
                                                                                     student=True, transmission=transmission, 
                                                                                     plot=True, dpi=100, 
@@ -784,11 +782,12 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             
                              
                         ############### 4. INJECT FAKE PLANETS AT 5-sigma #################
+                        PCA_ADI_cube = PCA_ADI_cube_ori.copy()
                         if fake_planet:
                             th_step = (wedge[1]-wedge[0])/nspi
                             for ns in range(nspi):
                                 theta0 = th0+ns*th_step
-                                PCA_ADI_cube = PCA_ADI_cube_ori.copy()
+                                
                                 for ff in range(nfcp):
                                     if ff+1 > sensitivity_5sig_full_rsvd_df.shape[0]:
                                         flevel = np.median(starphot)*sensitivity_5sig_full_rsvd_df[-1]*injection_fac/np.sqrt(((rad_arr[ff]*plsc)/0.5))
@@ -809,9 +808,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 sensitivity_5sig_full_df = np.zeros(nfcp)
                             if do_pca_ann and cc == 0 and bin_fac == np.amax(bin_fac_list):
                                 id_npc_ann_df = np.zeros(nfcp)
-                                sensitivity_5sig_ann_df = np.zeros(nfcp)                           
-                        else:
-                            PCA_ADI_cube = PCA_ADI_cube_ori.copy()
+                                sensitivity_5sig_ann_df = np.zeros(nfcp)
                         
                         
                         

@@ -3,7 +3,7 @@
     "label_test":"_all_cen",
     "coro": 1,
     "coro_sz": 8,
-    "rec_met": "satspots" ,
+    "rec_met": "satspots",
     "rec_met_psf": "dft_100",
     "xy_spots": [[[452,559], [515,559], [451,494], [518,494]],[[452,559], [515,559], [451,494], [518,494]]],
     "sigfactor":3,
