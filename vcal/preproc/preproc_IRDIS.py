@@ -329,18 +329,18 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         except:
             nd_transmission_SCI = [1]*len(nd_wavelen)
     
+        if PSF_IRDIS_list : 
+            _, header = open_fits(inpath+PSF_IRDIS_list[0]+'_left.fits', header=True)
+            #dit_psf_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
+            #ndit_psf_ifs = float(header['HIERARCH ESO DET NDIT'])
+            nd_filter_PSF = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
         
-        _, header = open_fits(inpath+PSF_IRDIS_list[0]+'_left.fits', header=True)
-        #dit_psf_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
-        #ndit_psf_ifs = float(header['HIERARCH ESO DET NDIT'])
-        nd_filter_PSF = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
-        try:
-            nd_transmission_PSF = nd_file[nd_filter_PSF]
-        except:
-            nd_transmission_PSF = [1]*len(nd_wavelen)
-              
-        nd_trans = [nd_transmission_SCI, nd_transmission_PSF, nd_transmission_SCI]
-        
+            try:
+                nd_transmission_PSF = nd_file[nd_filter_PSF]
+            except:
+                nd_transmission_PSF = [1]*len(nd_wavelen)
+                
+            nd_trans = [nd_transmission_SCI, nd_transmission_PSF, nd_transmission_SCI] 
         
         # Format xy_spots if provided
         if len(xy_spots) == len(lbdas):
@@ -818,13 +818,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             if plot:
                                 f, (ax1) = plt.subplots(1,1, figsize=(15,10))
                                 t0 = np.amin(unique_mjd_cen)
-                                ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                             (mjd_all-t0)*60*24,
-                                             final_y_shifts, final_y_shifts_std,
+                                ax1.errorbar(np.arange(len(final_x_shifts)),final_y_shifts, yerr=final_y_shifts_std,
                                              fmt='bo', label='y')
-                                ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                             (mjd_all-t0)*60*24,
-                                             final_x_shifts, final_x_shifts_std,
+                                ax1.errorbar(np.arange(len(final_x_shifts)),final_x_shifts, yerr=final_x_shifts_std,
                                              fmt='ro',label='x')
                                 if "satspots" in rec_met_tmp:
                                     ax1.errorbar((unique_mjd_cen-t0)/60.,y_shifts_cen,y_shifts_cen_err,
@@ -923,7 +919,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     continue
                 if fi == 1:
                     dist_lab_tmp = "" # no need for PSF
-                elif fi == 2 and not "satspots" in rec_met_tmp: # no 2cen files
+                elif fi == 2 and not "satspots" in rec_met: # no 2cen files
                     break
                 else:
                     dist_lab_tmp = dist_lab

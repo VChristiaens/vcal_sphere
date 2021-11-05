@@ -741,14 +741,17 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                         if fake_planet and cc == 0:
                             if not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_5sig_sensitivity_'+label_stg+label_filt+'.fits') or not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_first_guess_contrast_curve_PCA-{}-full.csv'.format(label_stg)) or overwrite_pp:
                                 df_list = []
-                                                        # CROP ADI / REF CUBE to min size for sizes to match
-                            if ref_cube is not None:
+                                
+                            PCA_ADI_cube_tmp = PCA_ADI_cube_ori          
+                            
+                            # CROP ADI / REF CUBE to min size for sizes to match
+                            if ref_cube is not None: 
                                 if ref_cube.shape[-1] > PCA_ADI_cube_ori.shape[-1]:
-                                    ref_cube_tmp = cube_crop_frames(ref_cube, PCA_ADI_cube_ori.shape[-1])
-                                    PCA_ADI_cube_tmp = PCA_ADI_cube_ori.copy()
+                                    ref_cube_tmp = cube_crop_frames(ref_cube, PCA_ADI_cube_ori.shape[-1])    
                                 elif ref_cube.shape[-1] < PCA_ADI_cube_ori.shape[-1]:
                                     ref_cube_tmp = ref_cube.copy()
                                     PCA_ADI_cube_tmp = cube_crop_frames(PCA_ADI_cube_ori, ref_cube.shape[-1])
+                            
                             for nn, npc in enumerate(firstguess_pcs):
                                 pn_contr_curve_full_rr = vip.metrics.contrast_curve(PCA_ADI_cube_tmp, derot_angles, psfn,
                                                                                     fwhm, plsc, starphot=starphot, 
@@ -761,6 +764,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                                     verbose=verbose, ncomp=int(npc), 
                                                                                     svd_mode=svd_mode_all[0])
                                 #DF.to_csv(pn_contr_curve_full_nn, path_or_buf=outpath_4.format(crop_lab_list[cc])+'contrast_curve_PCA-ADI-full_optimal_at_{:.1f}as.csv'.format(rad*plsc), sep=',', na_rep='', float_format=None)
+                                
                                 df_list.append(pn_contr_curve_full_rr)
                             pn_contr_curve_full_rsvd_opt = pn_contr_curve_full_rr.copy()
             
