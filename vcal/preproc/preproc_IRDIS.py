@@ -115,7 +115,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     
     # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
     xy_spots = params_preproc.get('xy_spots',[])    
-    if "xy_spots" in filt_spec.keys() : xy_spots = filt_spec["xy_spots"]    sigfactor = params_preproc.get('sigfactor',3)
+    if "xy_spots" in filt_spec.keys() : xy_spots = filt_spec["xy_spots"]    
+    sigfactor = params_preproc.get('sigfactor',3)
     
     badfr_crit_names = params_preproc['badfr_crit_names']
     badfr_crit_names_psf = params_preproc['badfr_crit_names_psf']
