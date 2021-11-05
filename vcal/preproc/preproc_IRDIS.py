@@ -32,7 +32,7 @@ from vip_hci.specfit import find_nearest
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle)
-from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, set_backend, circ_interp
+from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, set_backend
 
 from vcal import __path__ as vcal_path
 
@@ -339,7 +339,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 nd_transmission_PSF = [1]*len(nd_wavelen)
                   
             nd_trans = [nd_transmission_SCI, nd_transmission_PSF, nd_transmission_SCI]
-
+        else : nd_trans = [nd_transmission_SCI, None, nd_transmission_SCI]
         
         # Format xy_spots if provided
         if len(xy_spots) == len(lbdas):
@@ -417,8 +417,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 elif fi == 1:
                     negative=False
                     rec_met_tmp = rec_met_psf
-                else: # CEN
-                    break
+                else : break # CEN
+                if not file_list : break # If file_list is empty, which append when there is no psf/cen then we break.
+                
                 for ff, filt in enumerate(filters_lab):
                     if not isfile(outpath+"{}_2cen.fits".format(file_list[-1])) or overwrite[1]:
                         if isinstance(rec_met, list):
@@ -857,6 +858,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         pdb.set_trace()
                         print("Will proceed with {}".format(rec_met))
                         break
+                    elif not file_list : break # If file_list is empty, which append when there is no psf/cen then we break.
+                   
                     if not isfile(outpath+"1_master_cube{}_{}.fits".format(labels[fi],filters[ff])) or not isfile(outpath+"1_master_derot_angles.fits") or overwrite[2]:
                         if fi!=1 and ff==0: # only SCI and CEN
                             parang_st = []
@@ -934,6 +937,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     break
                 else:
                     dist_lab_tmp = dist_lab
+                if not file_list : break # If file_list is empty, which append when there is no psf/cen then we break.
+
                 for ff, filt in enumerate(filters):
                     if not isfile(outpath+"2_master{}_cube_{}{}.fits".format(labels[fi],filters[ff],dist_lab_tmp)) or overwrite[3]:
                         cube, header = open_fits(outpath+"1_master{}_cube_{}.fits".format(labels[fi],filters[ff]), 
@@ -1140,6 +1145,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     continue
                 elif fi == 2 and not use_cen_only: # no need for CEN, except if no OBJ
                     break
+                if not file_list : break # If file_list is empty, which append when there is no psf/cen then we break.
+                
                 for ff, filt in enumerate(filters):            
                     cube = open_fits(outpath+"2{}_master{}_cube_{}{}.fits".format(label_cen_tmp,labels[fi],filt,dist_lab_tmp))
                     ntot = cube.shape[0]
