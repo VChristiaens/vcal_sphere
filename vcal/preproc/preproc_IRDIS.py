@@ -244,16 +244,16 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     labels2 = ['obj']
     final_crop_szs = [final_crop_sz]
       
-    #if npsf>0:
-    obj_psf_list.append(PSF_IRDIS_list)
-    labels.append('_psf')
-    labels2.append('psf')
-    final_crop_szs.append(final_crop_sz_psf)
-    #if ncen>0:
-    obj_psf_list.append(CEN_IRDIS_list)
-    labels.append('_cen')
-    labels2.append('cen')
-    final_crop_szs.append(final_crop_sz)
+    if npsf>0:
+        obj_psf_list.append(PSF_IRDIS_list)
+        labels.append('_psf')
+        labels2.append('psf')
+        final_crop_szs.append(final_crop_sz_psf)
+    if ncen>0:
+        obj_psf_list.append(CEN_IRDIS_list)
+        labels.append('_cen')
+        labels2.append('cen')
+        final_crop_szs.append(final_crop_sz)
     
     #if len(prefix) == 3:
     #    CEN_IRDIS_list = [x[:-5] for x in os.listdir(inpath) if x.startswith(prefix[2])]  # don't include ".fits"
@@ -1616,44 +1616,45 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
 
         #************** 7. FINAL PSF + FLUX + FWHM (incl. CROP) ***************              
         if 7 in to_do:
-            if isinstance(final_crop_szs[1], (float,int)):
-                crop_sz_list = [int(final_crop_szs[1])]
-            elif isinstance(final_crop_szs[1], list):
-                crop_sz_list = final_crop_szs[1]
-            else:
-                raise TypeError("final_crop_sz_psf should be either int or list of int")
-            for crop_sz in crop_sz_list:
-                # PSF ONLY
-                for ff, filt in enumerate(filters):
-                    if not isfile(outpath+final_psfname+".fits") or overwrite[6]:
-                        cube = open_fits(outpath+"3_master_psf_cube_clean_{}{}.fits".format(filt,"-".join(badfr_crit_names_psf)))
-                        # crop
-                        if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
-                            if crop_sz%2 != cube.shape[1]%2:
-                                cube = cube_shift(cube,0.5,0.5)
-                                cube = cube[:,1:,1:]
-                            cube = cube_crop_frames(cube, crop_sz, verbose=verbose)
-                        med_psf = np.median(cube,axis=0)
-                        norm_psf, med_flux, fwhm = normalize_psf(med_psf, fwhm='fit', size=None, threshold=None, mask_core=None,
+            if len(obj_psf_list)>1:
+                if isinstance(final_crop_szs[1], (float,int)):
+                    crop_sz_list = [int(final_crop_szs[1])]
+                elif isinstance(final_crop_szs[1], list):
+                    crop_sz_list = final_crop_szs[1]
+                else:
+                    raise TypeError("final_crop_sz_psf should be either int or list of int")
+                for crop_sz in crop_sz_list:
+                    # PSF ONLY
+                    for ff, filt in enumerate(filters):
+                        if not isfile(outpath+final_psfname+".fits") or overwrite[6]:
+                            cube = open_fits(outpath+"3_master_psf_cube_clean_{}{}.fits".format(filt,"-".join(badfr_crit_names_psf)))
+                            # crop
+                            if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
+                                if crop_sz%2 != cube.shape[1]%2:
+                                    cube = cube_shift(cube,0.5,0.5)
+                                    cube = cube[:,1:,1:]
+                                cube = cube_crop_frames(cube, crop_sz, verbose=verbose)
+                            med_psf = np.median(cube,axis=0)
+                            norm_psf, med_flux, fwhm = normalize_psf(med_psf, fwhm='fit', size=None, threshold=None, mask_core=None,
+                                                                     model=psf_model, imlib='opencv', interpolation='lanczos4',
+                                                                     force_odd=False, full_output=True, verbose=debug, debug=False)
+                            if crop_sz%2: # only save final with VIP conventions, for use in postproc.  
+                                write_fits(outpath+final_psfname+"{}.fits".format(filt), med_psf)
+                                write_fits(outpath+final_psfname_norm+"{}.fits".format(filt), norm_psf)
+                                write_fits(outpath+final_fluxname+"{}.fits".format(filt), np.array([med_flux]))
+                                write_fits(outpath+final_fwhmname+"{}.fits".format(filt), np.array([fwhm]))
+                            write_fits(outpath+"4_final_psf_med{}_{}{:.0f}.fits".format(filt,psf_model,crop_sz), med_psf)
+                            write_fits(outpath+"4_final_psf_med{}_{}_norm{:.0f}.fits".format(filt,psf_model,crop_sz), norm_psf)
+                            write_fits(outpath+"4_final_psf_flux_med_{}_{}{:.0f}.fits".format(filt,psf_model,crop_sz), np.array([med_flux]))
+                            write_fits(outpath+"4_final_psf_fwhm_{}_{}.fits".format(filt,psf_model), np.array([fwhm]))
+                            
+                            ntot = cube.shape[0]
+                            fluxes = np.zeros(ntot)
+                            for nn in range(ntot):
+                                _, fluxes[nn], _ = normalize_psf(cube[nn], fwhm=fwhm, size=None, threshold=None, mask_core=None,
                                                                  model=psf_model, imlib='opencv', interpolation='lanczos4',
                                                                  force_odd=False, full_output=True, verbose=debug, debug=False)
-                        if crop_sz%2: # only save final with VIP conventions, for use in postproc.  
-                            write_fits(outpath+final_psfname+"{}.fits".format(filt), med_psf)
-                            write_fits(outpath+final_psfname_norm+"{}.fits".format(filt), norm_psf)
-                            write_fits(outpath+final_fluxname+"{}.fits".format(filt), np.array([med_flux]))
-                            write_fits(outpath+final_fwhmname+"{}.fits".format(filt), np.array([fwhm]))
-                        write_fits(outpath+"4_final_psf_med{}_{}{:.0f}.fits".format(filt,psf_model,crop_sz), med_psf)
-                        write_fits(outpath+"4_final_psf_med{}_{}_norm{:.0f}.fits".format(filt,psf_model,crop_sz), norm_psf)
-                        write_fits(outpath+"4_final_psf_flux_med_{}_{}{:.0f}.fits".format(filt,psf_model,crop_sz), np.array([med_flux]))
-                        write_fits(outpath+"4_final_psf_fwhm_{}_{}.fits".format(filt,psf_model), np.array([fwhm]))
-                        
-                        ntot = cube.shape[0]
-                        fluxes = np.zeros(ntot)
-                        for nn in range(ntot):
-                            _, fluxes[nn], _ = normalize_psf(cube[nn], fwhm=fwhm, size=None, threshold=None, mask_core=None,
-                                                             model=psf_model, imlib='opencv', interpolation='lanczos4',
-                                                             force_odd=False, full_output=True, verbose=debug, debug=False)
-                        write_fits(outpath+"4_final_psf_fluxes_{}_{}.fits".format(filt,psf_model), fluxes)            
+                            write_fits(outpath+"4_final_psf_fluxes_{}_{}.fits".format(filt,psf_model), fluxes)            
 
             if save_space:
                 os.system("rm {}*2cen.fits".format(outpath))
