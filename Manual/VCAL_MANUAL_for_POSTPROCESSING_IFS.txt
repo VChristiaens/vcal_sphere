@@ -33,7 +33,7 @@ This file describes the structure of the postprocessing pipeline for IRDIS, and 
 "wedge":[0,360]			# in which range of PA should the contrast curve be computed
 
 # Post-proc options
-"mask_IWA": 1 			# numerical mask to hide central region of final images, to be provided in fwhm
+"mask_IWA": 10 			# numerical mask to hide central region of final images, to be provided in pixels
 "exclude_negative_lobes":0      # when computing SNR (maps) whether to exclude apertures in negative lobes
 
 # PCA options

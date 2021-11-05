@@ -32,7 +32,7 @@ from vip_hci.specfit import find_nearest
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle)
-from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, set_backend
+from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, set_backend, circ_interp
 
 from vcal import __path__ as vcal_path
 
@@ -62,11 +62,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         params_preproc = json.load(read_file_params_preproc)
     with open(params_calib_name, 'r') as read_file_params_calib:
         params_calib = json.load(read_file_params_calib)
-
-    with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
-        filt_spec = json.load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combinaison
-    with open(vcal_path[0] + "/instr_param/sphere.json", 'r') as instr_param_file:
-        instr_cst = json.load(instr_param_file)
         
     path = params_calib['path'] #"/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/" # parent path
     path_irdis = path+"IRDIS_reduction/"
@@ -112,11 +107,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     # Preprocessing options
     rec_met = params_preproc['rec_met']    # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
     rec_met_psf = params_preproc['rec_met_psf']
-    
-    # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
-    xy_spots = params_preproc.get('xy_spots',[])    
-    if "xy_spots" in filt_spec.keys() : xy_spots = filt_spec["xy_spots"]
-    
+    xy_spots = params_preproc.get('xy_spots',[])# if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
     sigfactor = params_preproc.get('sigfactor',3)
     badfr_crit_names = params_preproc['badfr_crit_names']
     badfr_crit_names_psf = params_preproc['badfr_crit_names_psf']
@@ -128,19 +119,19 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     instr = params_calib['instr'] # instrument name in file name
     # First run  dfits *.fits |fitsort DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
     # then adapt below
-    filters = filt_spec['filters'] #DBI filters
+    filters = params_calib['filters'] #DBI filters
     filters_lab = ['_left','_right'] # should be hard-coded because not an option in calib
-    lbdas = np.array( filt_spec['lbda'] ) # get lamba(s) assosiated with filter(s)
+    lbdas = np.array(params_preproc['lbdas'])
     #n_z = lbdas.shape[0]
-    diam = instr_cst['diam']
-    plsc = np.array(instr_cst['plsc']) #0.01227 #arcsec/pixel
+    diam = params_preproc['diam']
+    plsc = np.array(params_preproc['plsc']) #0.01227 #arcsec/pixel
 
     # Systematic errors (cfr. Maire et al. 2016)
-    pup_off = instr_cst.get('pup_off',135.99) #=-0.11de d dg  ## !!! MANUAL IS WRONG ACCORDING TO ALICE: should be +135.99 (in particular if TN = -1.75)
-    TN = instr_cst.get('TN',-1.75) # pm0.08 deg
-    ifs_off = instr_cst.get('ifs_off',0)            # for ifs data: -100.48 pm 0.13 deg # for IRDIS: 0
-    scal_x_distort = instr_cst.get('scal_x_distort',1.0)      # for IFS: 1.0059
-    scal_y_distort = instr_cst.get('scal_y_distort',1.0062) # for IFS: 1.0011
+    pup_off = params_preproc.get('pup_off',135.99) #=-0.11de d dg  ## !!! MANUAL IS WRONG ACCORDING TO ALICE: should be +135.99 (in particular if TN = -1.75)
+    TN = params_preproc.get('TN',-1.75) # pm0.08 deg
+    ifs_off = params_preproc.get('ifs_off',0)            # for ifs data: -100.48 pm 0.13 deg # for IRDIS: 0
+    scal_x_distort = params_preproc.get('scal_x_distort',1.0)      # for IFS: 1.0059
+    scal_y_distort = params_preproc.get('scal_y_distort',1.0062) # for IFS: 1.0011
     mask_scal = params_preproc.get('mask_scal',[0.15,0])
     if isinstance(mask_scal,str):
         pass
@@ -268,7 +259,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         plsc_med = plsc
     else:
         plsc_med = np.median(plsc)
-        
     resel = lbdas*0.206265/(plsc*diam)
     print("Resel:")
     for i in range(len(resel)):
@@ -329,18 +319,18 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         except:
             nd_transmission_SCI = [1]*len(nd_wavelen)
     
-        if PSF_IRDIS_list : 
-            _, header = open_fits(inpath+PSF_IRDIS_list[0]+'_left.fits', header=True)
-            #dit_psf_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
-            #ndit_psf_ifs = float(header['HIERARCH ESO DET NDIT'])
-            nd_filter_PSF = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
         
-            try:
-                nd_transmission_PSF = nd_file[nd_filter_PSF]
-            except:
-                nd_transmission_PSF = [1]*len(nd_wavelen)
-                
-            nd_trans = [nd_transmission_SCI, nd_transmission_PSF, nd_transmission_SCI] 
+        _, header = open_fits(inpath+PSF_IRDIS_list[0]+'_left.fits', header=True)
+        #dit_psf_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
+        #ndit_psf_ifs = float(header['HIERARCH ESO DET NDIT'])
+        nd_filter_PSF = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
+        try:
+            nd_transmission_PSF = nd_file[nd_filter_PSF]
+        except:
+            nd_transmission_PSF = [1]*len(nd_wavelen)
+              
+        nd_trans = [nd_transmission_SCI, nd_transmission_PSF, nd_transmission_SCI]
+        
         
         # Format xy_spots if provided
         if len(xy_spots) == len(lbdas):
@@ -593,7 +583,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             #infer best method from min(stddev of shifts)
                             std_shift = np.array(std_shift)
                             idx_min_shift = np.nanargmin(std_shift)
-                            rec_met_tmp = rec_met_tmp[idx_min_shift] 
+                            rec_met_tmp = rec_met_tmp[idx_min_shift]
                             if fi == 1:
                                 rec_met_psf = rec_met_tmp[idx_min_shift] 
                             else:
@@ -677,8 +667,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         if not use_cen_only:
                                             mjd_all = []
                                             for fn_tmp, filename_tmp in enumerate(file_list):
-                                                _, head_tmp = open_fits(inpath+OBJ_IRDIS_list[fn_tmp]+filters_lab[ff], header = True)
-                                                mjd_all.append(float(head_tmp['MJD-OBS']))
+                                                cube_tmp, head_tmp = open_fits(inpath+OBJ_IRDIS_list[fn_tmp]+filters_lab[ff], header = True)
+                                                mjd_tmp = float(head_tmp['MJD-OBS'])
+                                                mjd_tmp_list = [mjd_tmp+i*dit_irdis for i in range(cube_tmp.shape[0])]
+                                                mjd_all.extend(mjd_tmp_list)
                                             m_idx = find_nearest(mjd_all,mjd_cen[cc])
                                             mjd_all=np.array(mjd_all)
                                             cube_near = open_fits(outpath+file_list[m_idx]+filt+"_1bpcorr.fits")
@@ -761,15 +753,21 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         pdb.set_trace()
                                         
                                 if not use_cen_only:
-                                    # APPLY THEM TO OBJ CUBES           
-                                    ## interpolate based on cen shifts
+                                    # APPLY THEM TO OBJ CUBES
                                     y_shifts = np.zeros(n_fr)
                                     x_shifts = np.zeros(n_fr)
-                                    mjd_ori = float(header['MJD-OBS'])
-                                    for zz in range(n_fr):                                                         
+                                    mjd_ori = float(header['MJD-OBS'])           
+                                    
+                                    for zz in range(n_fr):     
+                                        ## OLD: linear interpolation based on cen shifts                                                    
                                         y_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,y_shifts_cen)    
                                         x_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,x_shifts_cen)                                                       
-                                        cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz])
+                                        
+                                        ## NEW: "circular" interpolation based on cen shifts
+                                        # y_shifts[zz], x_shifts[zz] = circ_interp(cube.shape, y_shifts_cen, x_shifts_cen, 
+                                        #                                          pa_cen, pa_sci)
+                                        
+                                        cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz])                                    
                                     if plot and fn == 0:
                                         plt.show() # show whichever previous plot is in memory
                                         colors = ['k','r','b','y','c','m','g']
@@ -818,9 +816,13 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             if plot:
                                 f, (ax1) = plt.subplots(1,1, figsize=(15,10))
                                 t0 = np.amin(unique_mjd_cen)
-                                ax1.errorbar(np.arange(len(final_x_shifts)),final_y_shifts, yerr=final_y_shifts_std,
+                                ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
+                                             (mjd_all-t0)*60*24,
+                                             final_y_shifts, final_y_shifts_std,
                                              fmt='bo', label='y')
-                                ax1.errorbar(np.arange(len(final_x_shifts)),final_x_shifts, yerr=final_x_shifts_std,
+                                ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
+                                             (mjd_all-t0)*60*24,
+                                             final_x_shifts, final_x_shifts_std,
                                              fmt='ro',label='x')
                                 if "satspots" in rec_met_tmp:
                                     ax1.errorbar((unique_mjd_cen-t0)/60.,y_shifts_cen,y_shifts_cen_err,
@@ -841,11 +843,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         continue
                     elif fi == 2 and not "satspots" in rec_met:
                         msg = "Are you sure not to want to use the satellite spots for centering?"
-                        msg += "(press c to continue, q to abort)"
+                        msg += "(If so press 'c' to continue, else 'q' to abort then re-run step 2 after changing the value of 'rec_met' in parameter file)"
                         print(msg)
                         pdb.set_trace()
                         print("Will proceed with {}".format(rec_met))
-                        #break
+                        break
                     if not isfile(outpath+"1_master_cube{}_{}.fits".format(labels[fi],filters[ff])) or not isfile(outpath+"1_master_derot_angles.fits") or overwrite[2]:
                         if fi!=1 and ff==0: # only SCI and CEN
                             parang_st = []
@@ -1320,8 +1322,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 if "thr" in badfr_crit_tmp[idx_bkg].keys():
                                     sigma = badfr_crit_tmp[idx_bkg]["thr"]
                                 # infer rough bkg location in each frame
-                                cen_adi_img = open_fits(outpath+"median_ADI2_{}{}{}.fits".format(labels[-1],filters[ff],
-                                                        dist_lab_tmp))
+                                if isfile(outpath+"median_ADI2_{}{}{}.fits".format(labels[-1],filters[ff],dist_lab_tmp)):
+                                    cen_adi_img = open_fits(outpath+"median_ADI2_{}{}{}.fits".format(labels[-1],filters[ff],
+                                                                                                     dist_lab_tmp))
+                                else:
+                                    cen_adi_img = open_fits(outpath+"median_ADI2_{}{}{}.fits".format(labels[0],filters[ff],
+                                                                                                     dist_lab_tmp))
                                 med_x, med_y = fit2d_bkg_pos(np.array([cen_adi_img]), 
                                                              np.array([approx_xy_bkg[0]]), 
                                                              np.array([approx_xy_bkg[1]]), 
