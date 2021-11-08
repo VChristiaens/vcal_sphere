@@ -676,12 +676,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         cube_cen_sub = cube_cen.copy()
                                         if not use_cen_only:
                                             mjd_all = []
+                                            mjd_mean = []
                                             for fn_tmp, filename_tmp in enumerate(file_list):
                                                 cube_tmp, head_tmp = open_fits(inpath+OBJ_IRDIS_list[fn_tmp]+filters_lab[ff], header = True)
                                                 mjd_tmp = float(head_tmp['MJD-OBS'])
                                                 mjd_tmp_list = [mjd_tmp+i*dit_irdis for i in range(cube_tmp.shape[0])]
                                                 mjd_all.extend(mjd_tmp_list)
-                                            m_idx = find_nearest(mjd_all,mjd_cen[cc])
+                                                mjd_mean.append(np.mean(mjd_tmp_list))
+                                            m_idx = find_nearest(mjd_mean,mjd_cen[cc])
                                             mjd_all=np.array(mjd_all)
                                             cube_near = open_fits(outpath+file_list[m_idx]+filt+"_1bpcorr.fits")
                                             cube_cen_sub -= np.median(cube_near,axis=0)
