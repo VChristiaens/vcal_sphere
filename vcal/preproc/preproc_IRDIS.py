@@ -433,21 +433,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     tmp = frame_filter_lowpass(np.median(cube,axis=0))
                                     y_max, x_max = np.unravel_index(np.argmax(tmp),tmp.shape)
                                     cy, cx = frame_center(tmp)
-                                    _, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=(x_max, y_max), fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], model=rec_met_tmp[:-6],
+                                    cube, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=(int(x_max), int(y_max)), fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], model=rec_met_tmp[:-6],
                                                                                nproc=1, interpolation='lanczos4',
                                                                                offset=None, negative=negative, threshold=False,
                                                                                save_shifts=False, full_output=True, verbose=verbose,
                                                                                debug=False, plot=plot)
-                                    y_shifts += (cy-y_max)
-                                    x_shifts += (cx-x_max)   
-                                    cube = cube_shift(cube, y_shifts, x_shifts)  
-                                
-                                    cube, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=None, fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], 
-                                                                                   model=rec_met_tmp[ii][:-6],
-                                                                                   nproc=1, interpolation='lanczos4',
-                                                                                   offset=None, negative=negative, threshold=False,
-                                                                                   save_shifts=False, full_output=True, verbose=verbose,
-                                                                                   debug=False, plot=plot)
+ 
                                     std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))
                                     if debug:
                                         write_fits(outpath+"TMP_test_cube_cen{}{}_{}.fits".format(labels[fi],filt,rec_met_tmp[ii]), cube)                                         
@@ -630,14 +621,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 tmp = frame_filter_lowpass(np.median(cube,axis=0))
                                 y_max, x_max = np.unravel_index(np.argmax(tmp),tmp.shape)
                                 cy, cx = frame_center(tmp)
-                                _, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=(int(x_max), int(y_max)), fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], model=rec_met_tmp[:-6],
+                                cube, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=(int(x_max), int(y_max)), fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], model=rec_met_tmp[:-6],
                                                                            nproc=1, interpolation='lanczos4',
                                                                            offset=None, negative=negative, threshold=False,
                                                                            save_shifts=False, full_output=True, verbose=verbose,
                                                                            debug=False, plot=False)
-                                y_shifts += (cy-y_max)
-                                x_shifts += (cx-x_max)   
-                                cube = cube_shift(cube, y_shifts, x_shifts)                                                    
+                                                     
                             elif "dft" in rec_met_tmp:
                                 #1 rough centering with peak
                                 _, peak_y, peak_x = peak_coordinates(cube, fwhm=1.2*resel[ff], 
@@ -1540,8 +1529,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 crop_size = int(crop_sz*fwhm)
                                 if not crop_size%2:
                                     crop_size+=1
+                                if  crop_size > cube.shape[-1] or crop_size > good_frame.shape[-1] : 
+                                    crop_size = max([good_frame.shape[-1],cube.shape[-1]]) - 2
                                 if "dist" in badfr_crit_tmp[idx_corr].keys(): 
                                     dist = badfr_crit_tmp[idx_corr]["dist"]
+                                
                                 good_index_list, bad_index_list = cube_detect_badfr_correlation(cube, good_frame, 
                                                                                                 crop_size=crop_size, 
                                                                                                 threshold=thr,
@@ -1645,44 +1637,47 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         #************** 7. FINAL PSF + FLUX + FWHM (incl. CROP) ***************              
         if 7 in to_do:
             if len(obj_psf_list)>1:
-                if isinstance(final_crop_szs[1], (float,int)):
-                    crop_sz_list = [int(final_crop_szs[1])]
-                elif isinstance(final_crop_szs[1], list):
-                    crop_sz_list = final_crop_szs[1]
-                else:
-                    raise TypeError("final_crop_sz_psf should be either int or list of int")
-                for crop_sz in crop_sz_list:
-                    # PSF ONLY
-                    for ff, filt in enumerate(filters):
-                        if not isfile(outpath+final_psfname+".fits") or overwrite[6]:
-                            cube = open_fits(outpath+"3_master_psf_cube_clean_{}{}.fits".format(filt,"-".join(badfr_crit_names_psf)))
-                            # crop
-                            if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
-                                if crop_sz%2 != cube.shape[1]%2:
-                                    cube = cube_shift(cube,0.5,0.5)
-                                    cube = cube[:,1:,1:]
-                                cube = cube_crop_frames(cube, crop_sz, verbose=verbose)
-                            med_psf = np.median(cube,axis=0)
-                            norm_psf, med_flux, fwhm = normalize_psf(med_psf, fwhm='fit', size=None, threshold=None, mask_core=None,
-                                                                     model=psf_model, interpolation='lanczos4',
-                                                                     force_odd=False, full_output=True, verbose=debug, debug=False)
-                            if crop_sz%2: # only save final with VIP conventions, for use in postproc.  
-                                write_fits(outpath+final_psfname+"{}.fits".format(filt), med_psf)
-                                write_fits(outpath+final_psfname_norm+"{}.fits".format(filt), norm_psf)
-                                write_fits(outpath+final_fluxname+"{}.fits".format(filt), np.array([med_flux]))
-                                write_fits(outpath+final_fwhmname+"{}.fits".format(filt), np.array([fwhm]))
-                            write_fits(outpath+"4_final_psf_med{}_{}{:.0f}.fits".format(filt,psf_model,crop_sz), med_psf)
-                            write_fits(outpath+"4_final_psf_med{}_{}_norm{:.0f}.fits".format(filt,psf_model,crop_sz), norm_psf)
-                            write_fits(outpath+"4_final_psf_flux_med_{}_{}{:.0f}.fits".format(filt,psf_model,crop_sz), np.array([med_flux]))
-                            write_fits(outpath+"4_final_psf_fwhm_{}_{}.fits".format(filt,psf_model), np.array([fwhm]))
-                            
-                            ntot = cube.shape[0]
-                            fluxes = np.zeros(ntot)
-                            for nn in range(ntot):
-                                _, fluxes[nn], _ = normalize_psf(cube[nn], fwhm=fwhm, size=None, threshold=None, mask_core=None,
+                idx_psf=1
+            else:
+                idx_psf=0
+            if isinstance(final_crop_szs[idx_psf], (float,int)):
+                crop_sz_list = [int(final_crop_szs[idx_psf])]
+            elif isinstance(final_crop_szs[idx_psf], list):
+                crop_sz_list = final_crop_szs[idx_psf]
+            else:
+                raise TypeError("final_crop_sz_psf should be either int or list of int")
+            for crop_sz in crop_sz_list:
+                # PSF ONLY
+                for ff, filt in enumerate(filters):
+                    if not isfile(outpath+final_psfname+".fits") or overwrite[6]:
+                        cube = open_fits(outpath+"3_master{}_cube_clean_{}_DistCorr{}.fits".format(labels[idx_psf],filt,"-".join(badfr_crit_names_psf)))
+                        # crop
+                        if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
+                            if crop_sz%2 != cube.shape[1]%2:
+                                cube = cube_shift(cube,0.5,0.5)
+                                cube = cube[:,1:,1:]
+                            cube = cube_crop_frames(cube, crop_sz, verbose=verbose)
+                        med_psf = np.median(cube,axis=0)
+                        norm_psf, med_flux, fwhm = normalize_psf(med_psf, fwhm='fit', size=None, threshold=None, mask_core=None,
                                                                  model=psf_model, interpolation='lanczos4',
                                                                  force_odd=False, full_output=True, verbose=debug, debug=False)
-                            write_fits(outpath+"4_final_psf_fluxes_{}_{}.fits".format(filt,psf_model), fluxes)            
+                        if crop_sz%2: # only save final with VIP conventions, for use in postproc.  
+                            write_fits(outpath+final_psfname+"{}.fits".format(filt), med_psf)
+                            write_fits(outpath+final_psfname_norm+"{}.fits".format(filt), norm_psf)
+                            write_fits(outpath+final_fluxname+"{}.fits".format(filt), np.array([med_flux]))
+                            write_fits(outpath+final_fwhmname+"{}.fits".format(filt), np.array([fwhm]))
+                        write_fits(outpath+"4_final_psf_med{}_{}{:.0f}.fits".format(filt,psf_model,crop_sz), med_psf)
+                        write_fits(outpath+"4_final_psf_med{}_{}_norm{:.0f}.fits".format(filt,psf_model,crop_sz), norm_psf)
+                        write_fits(outpath+"4_final_psf_flux_med_{}_{}{:.0f}.fits".format(filt,psf_model,crop_sz), np.array([med_flux]))
+                        write_fits(outpath+"4_final_psf_fwhm_{}_{}.fits".format(filt,psf_model), np.array([fwhm]))
+                        
+                        ntot = cube.shape[0]
+                        fluxes = np.zeros(ntot)
+                        for nn in range(ntot):
+                            _, fluxes[nn], _ = normalize_psf(cube[nn], fwhm=fwhm, size=None, threshold=None, mask_core=None,
+                                                             model=psf_model, interpolation='lanczos4',
+                                                             force_odd=False, full_output=True, verbose=debug, debug=False)
+                        write_fits(outpath+"4_final_psf_fluxes_{}_{}.fits".format(filt,psf_model), fluxes)            
 
             if save_space:
                 os.system("rm {}*2cen.fits".format(outpath))
