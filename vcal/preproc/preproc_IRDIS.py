@@ -1813,23 +1813,27 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         med_psf = np.median(cube,axis=0)
                                         
                     if not coro and not isfile(outpath+"4_final_obj_fluxes_bin{:.0f}{}_{}.fits".format(bin_fac,dist_lab,filt)):
-                        norm_psf, med_flux, fwhm = normalize_psf(med_psf, fwhm='fit', size=final_crop_sz_psf, threshold=None, 
-                                                                 mask_core=None, model=psf_model, 
-                                                                 interpolation='lanczos4', force_odd=False, full_output=True, 
-                                                                 verbose=debug, debug=False)
+                        
+                        if isinstance(final_crop_sz_psf, int) : final_crop_sz_psf = [final_crop_sz_psf]
+                        for crop_siz_i in final_crop_sz_psf : 
+                            norm_psf, med_flux, fwhm = normalize_psf(med_psf, fwhm='fit', size=crop_siz_i, threshold=None, 
+                                                                     mask_core=None, model=psf_model, 
+                                                                     interpolation='lanczos4', force_odd=False, full_output=True, 
+                                                                     verbose=debug, debug=False)
                                                  
-                        write_fits(outpath+"4_final_obj_med{}_{}.fits".format(dist_lab,filt), med_psf)
-                        write_fits(outpath+"4_final_obj_norm_med{}_{}.fits".format(dist_lab,filt), norm_psf)
-                        write_fits(outpath+"4_final_obj_flux_med{}_{}.fits".format(dist_lab,filt), np.array([med_flux]))
-                        write_fits(outpath+"4_final_obj_fwhm{}_{}.fits".format(dist_lab,filt), np.array([fwhm]))
-                                
-                        ntot = cube.shape[0]
-                        fluxes = np.zeros(ntot)
-                        for nn in range(ntot):
-                            _, fluxes[nn], _ = normalize_psf(cube[nn], fwhm=fwhm, size=None, threshold=None, mask_core=None,
-                                                             model=psf_model, interpolation='lanczos4',
-                                                             force_odd=False, full_output=True, verbose=debug, debug=False)
-                        write_fits(outpath+"4_final_obj_fluxes_bin{:.0f}{}_{}.fits".format(bin_fac,dist_lab,filt), fluxes)
+                            write_fits(outpath+"4_final_obj_med{}_{}_{}.fits".format(dist_lab,filt,crop_siz_i), med_psf)
+                            write_fits(outpath+"4_final_obj_norm_med{}_{}_{}.fits".format(dist_lab,filt,crop_siz_i), norm_psf)
+                            write_fits(outpath+"4_final_obj_flux_med{}_{}_{}.fits".format(dist_lab,filt,crop_siz_i), np.array([med_flux]))
+                            write_fits(outpath+"4_final_obj_fwhm{}_{}_{}.fits".format(dist_lab,filt,crop_siz_i), np.array([fwhm]))
+                        
+                            if crop_siz_i == min(final_crop_sz_psf):
+                                ntot = cube.shape[0]
+                                fluxes = np.zeros(ntot)
+                                for nn in range(ntot):
+                                    _, fluxes[nn], _ = normalize_psf(cube[nn], fwhm=fwhm, size=None, threshold=None, mask_core=None,
+                                                                     model=psf_model, interpolation='lanczos4',
+                                                                     force_odd=False, full_output=True, verbose=debug, debug=False)
+                                write_fits(outpath+"4_final_obj_fluxes_bin{:.0f}{}_{}.fits".format(bin_fac,dist_lab,filt), fluxes)
 
             if save_space:
                 os.system("rm {}*3crop.fits".format(outpath))            
