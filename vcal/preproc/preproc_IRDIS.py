@@ -32,7 +32,7 @@ from vip_hci.specfit import find_nearest
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle)
-from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, set_backend, circ_interp
+from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, set_backend#, circ_interp
 
 from vcal import __path__ as vcal_path
 
@@ -666,12 +666,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         cube_cen_sub = cube_cen.copy()
                                         if not use_cen_only:
                                             mjd_all = []
+                                            mjd_mean = []
                                             for fn_tmp, filename_tmp in enumerate(file_list):
                                                 cube_tmp, head_tmp = open_fits(inpath+OBJ_IRDIS_list[fn_tmp]+filters_lab[ff], header = True)
                                                 mjd_tmp = float(head_tmp['MJD-OBS'])
                                                 mjd_tmp_list = [mjd_tmp+i*dit_irdis for i in range(cube_tmp.shape[0])]
+                                                mjd_mean.append(np.mean(mjd_tmp_list))
                                                 mjd_all.extend(mjd_tmp_list)
-                                            m_idx = find_nearest(mjd_all,mjd_cen[cc])
+                                            m_idx = find_nearest(mjd_mean,mjd_cen[cc])
                                             mjd_all=np.array(mjd_all)
                                             cube_near = open_fits(outpath+file_list[m_idx]+filt+"_1bpcorr.fits")
                                             cube_cen_sub -= np.median(cube_near,axis=0)
@@ -764,8 +766,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         x_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,x_shifts_cen)                                                       
                                         
                                         ## NEW: "circular" interpolation based on cen shifts
-                                        # y_shifts[zz], x_shifts[zz] = circ_interp(cube.shape, y_shifts_cen, x_shifts_cen, 
-                                        #                                          pa_cen, pa_sci)
+                                        #y_shifts[zz], x_shifts[zz] = circ_interp(cube.shape, y_shifts_cen, x_shifts_cen, 
+                                        #                                         pa_cen, pa_sci)
                                         
                                         cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz])                                    
                                     if plot and fn == 0:
@@ -813,7 +815,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         if fi>0 or not use_cen_only: 
                             write_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_y_shifts))
                             write_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_x_shifts))
-                            if plot:
+                            if plot and not use_cen_only:
                                 f, (ax1) = plt.subplots(1,1, figsize=(15,10))
                                 t0 = np.amin(unique_mjd_cen)
                                 ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
