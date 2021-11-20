@@ -63,6 +63,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     with open(params_calib_name, 'r') as read_file_params_calib:
         params_calib = json.load(read_file_params_calib)
         
+    with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
+        filt_spec = json.load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combinaison
+    with open(vcal_path[0] + "/instr_param/sphere.json", 'r') as instr_param_file:
+        instr_cst = json.load(instr_param_file)
+    
     #**************************** PARAMS TO BE ADAPTED ****************************  
     path = params_calib['path'] # "/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/"
     inpath = path+"IFS_reduction/1_calib_esorex/calib/"
@@ -113,7 +118,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     # preprocessing options
     rec_met = params_preproc['rec_met']    # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
     rec_met_psf = params_preproc['rec_met_psf']
-    xy_spots = params_preproc.get('xy_spots',[]) # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
+    
+    # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
+    xy_spots = params_preproc.get('xy_spots',[])    
+    if " xy_spots" in filt_spec.keys() : xy_spots = filt_spec["xy_spots"]
+    
     sigfactor = params_preproc['sigfactor']
     badfr_criteria = params_preproc['badfr_crit_names']
     badfr_criteria_psf = params_preproc['badfr_crit_names_psf']
@@ -129,16 +138,16 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     #filters_lab = ['_left','_right']
     #lbdas = np.array([2.11,2.251])
     #n_z = lbdas.shape[0]
-    diam = params_preproc.get('diam',8.1)
-    plsc = params_preproc.get('plsc',0.00746) #arcsec/pixel # Maire 2016
+    diam = instr_cst.get('diam',8.1)
+    plsc = instr_cst.get('plsc',[0.00746])[0] #arcsec/pixel # Maire 2016
     #print("Resel: {:.2f} / {:.2f} px (K1/K2)".format(resel[0],resel[1]))
     
     # Systematic errors (cfr. Maire et al. 2016)
-    pup_off = params_preproc.get('pup_off',135.99)
-    TN = params_preproc.get('TN',-1.75)  # pm0.08 deg
-    ifs_off = params_preproc.get('ifs_off',-100.48)              # for ifs data: -100.48 pm 0.13 deg # for IRDIS: 0
-    #scal_x_distort = params_preproc.get('scal_x_distort',1.0059)   
-    #scal_y_distort = params_preproc.get('scal_y_distort',1.0011)   
+    pup_off = instr_cst.get('pup_off',135.99)
+    TN = instr_cst.get('TN',-1.75)  # pm0.08 deg
+    ifs_off = instr_cst.get('ifs_off',-100.48)              # for ifs data: -100.48 pm 0.13 deg # for IRDIS: 0
+    #scal_x_distort = instr_cst.get('scal_x_distort',1.0059)   
+    #scal_y_distort = instr_cst.get('scal_y_distort',1.0011)   
     mask_scal = params_preproc.get('mask_scal',[0.15,0])
         
     # preprocessing options

@@ -21,6 +21,8 @@ import photutils
 import vip_hci
 from ..utils import make_lists, sph_ifs_correct_spectral_xtalk
 
+from vcal import __path__ as vcal_path
+
 
 def calib(params_calib_name='VCAL_params_calib.json'):
     """
@@ -41,6 +43,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     with open(params_calib_name, 'r') as read_file_params_calib:
         params_calib = json.load(read_file_params_calib)
         
+    with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
+        filt_spec = json.load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combinaison
+    
     path = params_calib['path'] #"/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/" # parent path
     inpath = path+"raw/"
     inpath_filt_table = params_calib.get('inpath_filt_table','~/') #"/Applications/ESO/spher-calib-0.38.0/cal/"
@@ -81,9 +86,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     dit_cen_ifs = params_calib.get('dit_cen_ifs',None) # or None if there is no CEN cube
     dit_cen_irdis = params_calib.get('dit_cen_irdis',None) # or None if there is no CEN cube
     
-    filt1 = params_calib.get('filt1',None) #'INS1.FILT.NAME'
-    filt2 = params_calib.get('filt2',None) #'INS1.OPTI2.NAME'
-    filters = params_calib.get('filters',None) #DBI filters (list of 2 elements) or CI filter (single string)
+    # !! When no filters, filt is written as 'CLEAR' instead of None
+    filt1 = filt_spec['IRFW1'] #'INS1.FILT.NAME' IRFW1
+    filt2 = filt_spec['IRFW2'] #'INS1.OPTI2.NAME' IRFW2
+    filters = filt_spec['filters'] #DBI filters (list of 2 elements) or CI filter (single string)
       
     # Reduction params
     ## Check the sky cubes by eye to select appropriate value for params below:
@@ -171,9 +177,13 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 dit_psf_irdis=dit_psf_irdis, dit_cen_ifs=dit_cen_ifs, 
                                 dit_cen_irdis=dit_cen_irdis,filt1=filt1, 
                                 filt2=filt2)
-        w = csv.writer(open(path+"dico_files.csv", "w"))
-        for key, val in dico_lists.items():
-            w.writerow([key, val])
+        with open(path+"dico_files.csv",'w') as dico_file:
+            w =  csv.writer(dico_file)
+            for key, val in dico_lists.items():
+                w.writerow([key, val])
+                dico_file.flush()
+            dico_file.close()
+
     else:
         dico_lists = {}
         reader = csv.reader(open(path+'dico_files.csv', 'r'))
@@ -333,13 +343,17 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 #master_sky = np.median(master_sky,axis=0)
                 vip_hci.fits.write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky[:counter]) 
 
+
         if not isfile("{}master_sky_cube.fits".format(outpath_irdis_fits)):
             pca_subtr = False
             manual_sky_irdis = True
         if not isfile("{}master_sky_psf_cube.fits".format(outpath_irdis_fits)):
             pca_subtr_psf = False
             manual_sky_irdis_psf = True
-
+            psf_list_irdis = dico_lists['psf_list_irdis']
+            
+            for ii in range(len(psf_list_irdis)):
+                os.system( "cp " + inpath + psf_list_irdis[ii] + " " + inpath + "skysub/" + psf_list_irdis[ii])
         # FLAT + final bp map
         if 4 in to_do:
             if not isfile(outpath_irdis_sof+"master_flat.sof") or overwrite_sof:
@@ -815,7 +829,6 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 print("WARNING: NO SKY NOR INS BG - PROXY SKY SUBTR AFTER REDUCTION WILL BE PERFORMED")
                                 #raise ValueError("There is no appropriate sky nor ins bg")
                             f.write("{}master_badpixelmap.fits".format(outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
-                    pdb.set_trace()
                     if len(sky_list_irdis)>0:
                         if not isfile(outpath_irdis_fits+"psf_sky_bg.fits") or overwrite_sof or overwrite_fits:
                             command = "esorex sph_ird_sky_bg"
