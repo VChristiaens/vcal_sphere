@@ -10,7 +10,9 @@ __all__ = ['cube_recenter_bkg',
            'fit2d_bkg_pos',
            'interpolate_bkg_pos',
            'leastsq_circle',
-           'plot_data_circle'
+           'plot_data_circle',
+           'find_center_rot',
+           'circ_interp'
            ]
 
 import pdb
@@ -379,6 +381,53 @@ def rough_centering(array, fwhm_odd=5):
     
     return cube, shifts_rc
 
+
+def find_rot_cen(cen_xy, y_shifts_cen, x_shifts_cen, unique_pa_cen):
+    """Infer center of rotation, based on inferred shifts for CEN images, and 
+    difference in PA"""
+    
+    # exact coords of the star in CEN images
+    xx_s = cen_xy[0]-x_shifts_cen
+    yy_s = cen_xy[1]-y_shifts_cen
+    
+    # infer d - distance between 2 center points
+    d = np.sqrt((xx_s[-1]-xx_s[0])**2 + (yy_s[-1]-yy_s[0])**2)
+    
+    # infer theta - difference in rotations
+    theta = unique_pa_cen[-1]-unique_pa_cen[0] # deg
+    
+    # infer r - radius of circle on which star is rotating wrt center of rotation
+    r = d/(2*np.sin(np.deg2rad(theta)/2))
+    
+    # infer theta_0 - the signed initial PA of the star position 0
+    # note: we use cos(a)-cos(b) = -2*sin(a+b/2)*sin(a-b/2)
+    a = -0.5*(xx_s[-1]-xx_s[0])/(r*np.sin(np.deg2rad(-theta/2)))
+    b = np.rad2deg(np.arcsin(a))
+    theta_0 = (2*b-theta)/2
+    
+    # find cx and cy
+    cx = xx_s[0]-r*np.cos(np.deg2rad(theta_0))
+    cy = yy_s[0]-r*np.sin(np.deg2rad(theta_0))
+    
+    return cx, cy, r, theta_0
+
+
+def circ_interp(n_fr, rot_xy, r, theta_0, unique_pa_cen, pa_sci_ini, pa_sci_fin):
+    """Infer all positions of the star based on shifts inferred from sat spots
+    and PAs, and considering 'circular' interpolation instead of linear 
+    interpolation. """
+    
+    # find xx and yy
+    dtheta_ini = pa_sci_ini-unique_pa_cen[0] #deg
+    dtheta_fin = pa_sci_fin-unique_pa_cen[0] #deg
+    
+    #interpolate dthetas
+    dthetas = np.linspace(dtheta_ini, dtheta_fin, n_fr, endpoint=False)
+    
+    s_x = rot_xy[0]+r*np.cos(np.deg2rad(theta_0+dthetas))
+    s_y = rot_xy[1]+r*np.sin(np.deg2rad(theta_0+dthetas))
+    
+    return s_x, s_y
 
 
 def interpolate_bkg_pos(approx_xy_bkg, center_bkg, derot_angles):
