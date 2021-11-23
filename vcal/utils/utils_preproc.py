@@ -11,7 +11,7 @@ __all__ = ['cube_recenter_bkg',
            'interpolate_bkg_pos',
            'leastsq_circle',
            'plot_data_circle',
-           'find_center_rot',
+           'find_rot_cen',
            'circ_interp'
            ]
 
@@ -382,7 +382,7 @@ def rough_centering(array, fwhm_odd=5):
     return cube, shifts_rc
 
 
-def find_rot_cen(cen_xy, y_shifts_cen, x_shifts_cen, unique_pa_cen):
+def find_rot_cen(cen_xy, y_shifts_cen, x_shifts_cen, unique_pa_cen,verbose=False):
     """Infer center of rotation, based on inferred shifts for CEN images, and 
     difference in PA"""
     
@@ -392,6 +392,9 @@ def find_rot_cen(cen_xy, y_shifts_cen, x_shifts_cen, unique_pa_cen):
     
     # infer d - distance between 2 center points
     d = np.sqrt((xx_s[-1]-xx_s[0])**2 + (yy_s[-1]-yy_s[0])**2)
+    
+    if verbose:
+        print(d, xx_s[0], yy_s[0])
     
     # infer theta - difference in rotations
     theta = unique_pa_cen[-1]-unique_pa_cen[0] # deg
@@ -408,6 +411,9 @@ def find_rot_cen(cen_xy, y_shifts_cen, x_shifts_cen, unique_pa_cen):
     # find cx and cy
     cx = xx_s[0]-r*np.cos(np.deg2rad(theta_0))
     cy = yy_s[0]-r*np.sin(np.deg2rad(theta_0))
+    
+    if verbose:
+        print(cx, cy, r, theta_0)
     
     return cx, cy, r, theta_0
 

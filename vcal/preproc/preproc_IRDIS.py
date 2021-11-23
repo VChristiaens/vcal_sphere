@@ -694,7 +694,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                 cube_tmp, head_tmp = open_fits(inpath+OBJ_IRDIS_list[fn_tmp]+filters_lab[ff], header = True)
                                                 mjd_tmp = float(head_tmp['MJD-OBS'])
                                                 mjd_tmp_list = [mjd_tmp+i*dit_irdis for i in range(cube_tmp.shape[0])]
-                                                mjd_mean.append(np.mean(mjd_tmp_list))
                                                 mjd_all.extend(mjd_tmp_list)
                                                 mjd_mean.append(np.mean(mjd_tmp_list))
                                                 pa_sci_ini.append(float(head_tmp["HIERARCH ESO TEL PARANG START"]))
@@ -769,7 +768,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                 cond = (mjd_cen < mjd_fin & mjd_cen > mjd_mid)
                                                 
                                             unique_mjd_cen[cc] = np.median(mjd_cen[np.where(cond)])
-                                            unique_pa_cen[cc]= np.median(pa_cen[np.where(cond)])
+                                            unique_pa_cen[cc]= np.median(np.array(pa_cen)[np.where(cond)])
                                             y_shifts_cen[cc] = np.median(y_shifts_cen_med[np.where(cond)])
                                             x_shifts_cen[cc] = np.median(x_shifts_cen_med[np.where(cond)])
                                             y_shifts_cen_err[cc] = np.std(y_shifts_cen_std[np.where(cond)])
@@ -800,12 +799,15 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     rot_x, rot_y, r, th0 = find_rot_cen(cen_xy, 
                                                                         y_shifts_cen, 
                                                                         x_shifts_cen, 
-                                                                        unique_pa_cen)
+                                                                        unique_pa_cen,
+                                                                        verbose=verbose)
                                     rot_xy = (rot_x, rot_y)
                                     pos_xy = circ_interp(n_fr, rot_xy, r, th0,
                                                          unique_pa_cen, 
                                                          pa_sci_ini[fn],
                                                          pa_sci_fin[fn])
+                                    if verbose:
+                                        print(pos_xy)
                                     x_shifts = cx - pos_xy[0]
                                     y_shifts = cy - pos_xy[1]
                                     
@@ -979,6 +981,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                  header=True)
                         if distort_corr:
                             cube = _cube_resc_wave(cube, scaling_list=None, ref_xy=None, 
+                                                   imlib="opencv",
                                                    interpolation='lanczos4', 
                                                    scaling_y=scal_y_distort, 
                                                    scaling_x=scal_x_distort)
