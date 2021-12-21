@@ -126,6 +126,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     badfr_crit_psf = params_preproc['badfr_crit_psf']
     bad_fr_idx = params_preproc.get('bad_fr_idx',[[],[],[]])   # list of bad indices of science cube images (to force discarding those frames)
     
+    if len(badfr_crit_names) != len(badfr_crit):
+        raise TypeError("Length of bad fr. criteria is different")
+    if len(badfr_crit_names_psf) != len(badfr_crit_psf):
+        raise TypeError("Length of psf bad fr. criteria is different")
+         
     #******************** PARAMS LIKELY GOOD AS DEFAULT ***************************  
     instr = params_calib['instr'] # instrument name in file name
     # First run  dfits *.fits |fitsort DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
