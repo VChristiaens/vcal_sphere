@@ -32,7 +32,8 @@ from vip_hci.specfit import find_nearest
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle, frame_filter_lowpass)
-from ..utils import cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, set_backend
+from ..utils import (cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, 
+                     set_backend, find_rot_cen, circ_interp)
 
 
 from vcal import __path__ as vcal_path
@@ -125,6 +126,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     badfr_crit_psf = params_preproc['badfr_crit_psf']
     bad_fr_idx = params_preproc.get('bad_fr_idx',[[],[],[]])   # list of bad indices of science cube images (to force discarding those frames)
     
+    if len(badfr_crit_names) != len(badfr_crit):
+        raise TypeError("Length of bad fr. criteria is different")
+    if len(badfr_crit_names_psf) != len(badfr_crit_psf):
+        raise TypeError("Length of psf bad fr. criteria is different")
+         
     #******************** PARAMS LIKELY GOOD AS DEFAULT ***************************  
     instr = params_calib['instr'] # instrument name in file name
     # First run  dfits *.fits |fitsort DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
@@ -666,9 +672,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     # INFER SHIFTS FROM CEN CUBES
                                     cen_cube_names = obj_psf_list[-1]
                                     mjd_cen = np.zeros(ncen)
+                                    pa_cen = []
                                     for cc in range(ncen):
                                         ### first get the MJD time of each cube     
                                         _, head_cc = open_fits(inpath+cen_cube_names[cc]+filters_lab[ff], header = True)
+                                        pa_cen.append(float(head_cc["HIERARCH ESO TEL PARANG START"]))
                                         cube_cen = open_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_1bpcorr.fits")
                                         nfr_tmp = cube_cen.shape[0]
                                         if cc==0:
@@ -685,13 +693,16 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         if not use_cen_only:
                                             mjd_all = []
                                             mjd_mean = []
+                                            pa_sci_ini = []
+                                            pa_sci_fin = []
                                             for fn_tmp, filename_tmp in enumerate(file_list):
                                                 cube_tmp, head_tmp = open_fits(inpath+OBJ_IRDIS_list[fn_tmp]+filters_lab[ff], header = True)
                                                 mjd_tmp = float(head_tmp['MJD-OBS'])
                                                 mjd_tmp_list = [mjd_tmp+i*dit_irdis for i in range(cube_tmp.shape[0])]
-                                                mjd_mean.append(np.mean(mjd_tmp_list))
                                                 mjd_all.extend(mjd_tmp_list)
                                                 mjd_mean.append(np.mean(mjd_tmp_list))
+                                                pa_sci_ini.append(float(head_tmp["HIERARCH ESO TEL PARANG START"]))
+                                                pa_sci_fin.append(float(head_tmp["HIERARCH ESO TEL PARANG END"]))
                                             m_idx = find_nearest(mjd_mean,mjd_cen[cc])
                                             mjd_all=np.array(mjd_all)
                                             cube_near = open_fits(outpath+file_list[m_idx]+filt+"_1bpcorr.fits")
@@ -699,10 +710,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[ff][i][0]-diff,xy_spots[ff][i][1]-diff) for i in range(len(xy_spots[ff]))])
                                         cube_cen_sub, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[2], 
-                                                                                         sigfactor=sigfactor, plot=plot,
-                                                                                         fit_type='moff', lbda=None, 
-                                                                                         debug=debug, verbose=verbose, 
-                                                                                         full_output=True)
+                                                                                                  sigfactor=sigfactor, plot=plot,
+                                                                                                  fit_type='moff', lbda=None, 
+                                                                                                  debug=debug, verbose=verbose, 
+                                                                                                  full_output=True)
                                         y_shifts_cen_tmp.append(y_tmp)
                                         x_shifts_cen_tmp.append(x_tmp)
                                         y_shifts_cen_med[cc] = np.median(y_tmp)
@@ -744,6 +755,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             mjd_mid = float(header_mid['MJD-OBS'])
                                                                 
                                         unique_mjd_cen = np.zeros(true_ncen)  
+                                        unique_pa_cen = np.zeros(true_ncen)  
                                         y_shifts_cen = np.zeros(true_ncen)
                                         x_shifts_cen = np.zeros(true_ncen)
                                         y_shifts_cen_err = np.zeros(true_ncen)
@@ -761,7 +773,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                 cond = (mjd_cen < mjd_fin & mjd_cen > mjd_mid)
                                                 
                                             unique_mjd_cen[cc] = np.median(mjd_cen[np.where(cond)])
-                                            y_shifts_cen[cc] =np.median(y_shifts_cen_med[np.where(cond)])
+                                            unique_pa_cen[cc]= np.median(np.array(pa_cen)[np.where(cond)])
+                                            y_shifts_cen[cc] = np.median(y_shifts_cen_med[np.where(cond)])
                                             x_shifts_cen[cc] = np.median(x_shifts_cen_med[np.where(cond)])
                                             y_shifts_cen_err[cc] = np.std(y_shifts_cen_std[np.where(cond)])
                                             x_shifts_cen_err[cc] = np.std(x_shifts_cen_std[np.where(cond)])                             # SAVE UNCERTAINTY ON CENTERING
@@ -775,19 +788,35 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         
                                 if not use_cen_only:
                                     # APPLY THEM TO OBJ CUBES
-                                    y_shifts = np.zeros(n_fr)
-                                    x_shifts = np.zeros(n_fr)
-                                    mjd_ori = float(header['MJD-OBS'])           
                                     
-                                    for zz in range(n_fr):     
-                                        ## OLD: linear interpolation based on cen shifts                                                    
-                                        y_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,y_shifts_cen)    
-                                        x_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,x_shifts_cen)                                                       
+                                    ## OLD: linear interpolation based on cen shifts  
+                                    #y_shifts = np.zeros(n_fr)
+                                    #x_shifts = np.zeros(n_fr)
+                                    #mjd_ori = float(header['MJD-OBS'])           
+                                    
+                                    #for zz in range(n_fr):     
+                                        #y_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,y_shifts_cen)    
+                                        #x_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,x_shifts_cen)                                                       
                                         
-                                        ## NEW: "circular" interpolation based on cen shifts
-                                        #y_shifts[zz], x_shifts[zz] = circ_interp(cube.shape, y_shifts_cen, x_shifts_cen, 
-                                        #                                         pa_cen, pa_sci)
-                                        
+                                    ## NEW: "circular" interpolation based on cen shifts
+                                    cy, cx = frame_center(cube)
+                                    cen_xy = (cx, cy)
+                                    rot_x, rot_y, r, th0 = find_rot_cen(cen_xy, 
+                                                                        y_shifts_cen, 
+                                                                        x_shifts_cen, 
+                                                                        unique_pa_cen,
+                                                                        verbose=verbose)
+                                    rot_xy = (rot_x, rot_y)
+                                    pos_xy = circ_interp(n_fr, rot_xy, r, th0,
+                                                         unique_pa_cen, 
+                                                         pa_sci_ini[fn],
+                                                         pa_sci_fin[fn])
+                                    if verbose:
+                                        print(pos_xy)
+                                    x_shifts = cx - pos_xy[0]
+                                    y_shifts = cy - pos_xy[1]
+                                    
+                                    for zz in range(n_fr):  
                                         cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz])                                    
                                     if plot and fn == 0:
                                         plt.show() # show whichever previous plot is in memory
@@ -795,8 +824,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         # y
                                         plt.plot(range(n_fr),y_shifts,colors[0]+'-', label = 'shifts y (first cube)')
                                         print("True number of CENTER cubes:", true_ncen)
-                                        plt.errorbar(range(true_ncen),y_shifts_cen, 
-                                                     yerr=y_shifts_cen_err, fmt=colors[cc+1]+'o',label='y cen shifts')
+                                        plt.errorbar(range(true_ncen), y_shifts_cen, 
+                                                     yerr=y_shifts_cen_err, fmt=colors[cc+1]+'o',
+                                                     label='y cen shifts')
                                         plt.legend()
                                         plt.show()
                                         # x
@@ -956,6 +986,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                  header=True)
                         if distort_corr:
                             cube = _cube_resc_wave(cube, scaling_list=None, ref_xy=None, 
+                                                   imlib="opencv",
                                                    interpolation='lanczos4', 
                                                    scaling_y=scal_y_distort, 
                                                    scaling_x=scal_x_distort)
