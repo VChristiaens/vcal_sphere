@@ -11,5 +11,6 @@ Requirements
 - VIP: https://github.com/vortex-exoplanet/VIP
 - esorex: https://www.eso.org/sci/software/cpl/esorex.html
 
-# Acknowledgements
+Acknowledgements
+----------------
 If you use `vcal_sphere`, please cite `Christiaens et al. (2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.502.6117C/abstract>`_. 
