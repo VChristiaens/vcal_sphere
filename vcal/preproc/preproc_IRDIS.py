@@ -705,10 +705,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[ff][i][0]-diff,xy_spots[ff][i][1]-diff) for i in range(len(xy_spots[ff]))])
                                         cube_cen_sub, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[2], 
-                                                                                         sigfactor=sigfactor, plot=plot,
-                                                                                         fit_type='moff', lbda=None, 
-                                                                                         debug=debug, verbose=verbose, 
-                                                                                         full_output=True)
+                                                                                                  sigfactor=sigfactor, plot=plot,
+                                                                                                  fit_type='moff', lbda=None, 
+                                                                                                  debug=debug, verbose=verbose, 
+                                                                                                  full_output=True)
                                         y_shifts_cen_tmp.append(y_tmp)
                                         x_shifts_cen_tmp.append(x_tmp)
                                         y_shifts_cen_med[cc] = np.median(y_tmp)
