@@ -39,7 +39,10 @@ from pandas import DataFrame as DF
 
 import vip_hci as vip
 from vip_hci.fits import open_fits, write_fits
-from vip_hci.pca import pca, pca_annular
+try:
+    from vip_hci.psfsub import pca, pca_annular
+except:
+    from vip_hci.pca import pca, pca_annular
 from vip_hci.preproc import cube_derotate
 from vip_hci.metrics import compute_stim_map, compute_inverse_stim_map
 from vip_hci.var import mask_circle
