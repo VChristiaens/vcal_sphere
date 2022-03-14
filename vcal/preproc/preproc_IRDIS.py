@@ -28,12 +28,11 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit, cube_re
                              frame_crop, cube_recenter_satspots, cube_recenter_radon, 
                              cube_recenter_via_speckles, cube_crop_frames, check_pa_vector,
                              cube_shift, find_scal_vector, cube_derotate)
-from vip_hci.specfit import find_nearest
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle, frame_filter_lowpass)
 from ..utils import (cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, 
-                     set_backend, find_rot_cen, circ_interp)
+                     set_backend, find_rot_cen, circ_interp, find_nearest)
 
 
 from vcal import __path__ as vcal_path
