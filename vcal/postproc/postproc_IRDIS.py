@@ -32,14 +32,14 @@ try:
 except:
     print("Note: iterative pca not available in your version of VIP")
 try:
-    from vip_hci.psfsub.utils_pca import pca_annulus
-    from vip_hci.psfsub import pca, pca_annular
-    from vip_hci.psfsub import nmf
+    from vip_hci.psfsub import pca, pca_annular, nmf
+    from vip_hci.fm import normalize_psf
+    from vip_hci.psfsub.utils_pca import _compute_stim_map, _compute_inverse_stim_map, pca_annulus
 except:
     from vip_hci.pca.utils_pca import pca_annulus
     from vip_hci.pca import pca, pca_annular
     from vip_hci.nmf import nmf
-from vip_hci.metrics import normalize_psf, compute_stim_map, compute_inverse_stim_map
+    from vip_hci.metrics import normalize_psf, compute_stim_map, compute_inverse_stim_map
 from vip_hci.preproc import (cube_shift, frame_shift, cube_crop_frames,
                              cube_recenter_via_speckles) #cube_subtract_sky_pca,
                              #cube_crop_frames, cube_derotate, cube_collapse)

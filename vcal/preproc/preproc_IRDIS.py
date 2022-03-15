@@ -19,9 +19,14 @@ import os
 import pdb
 from os.path import isfile, isdir#, join, dirname, abspath
 from vip_hci.fits import open_fits, write_fits
-from vip_hci.medsub import median_sub
-from vip_hci.metrics import (peak_coordinates, normalize_psf, compute_stim_map,
-                             compute_inverse_stim_map)
+from vip_hci.metrics import peak_coordinates
+try:
+    from vip_hci.psfsub import median_sub
+    from vip_hci.fm import normalize_psf
+    from vip_hci.psfsub.utils_pca import _compute_stim_map, _compute_inverse_stim_map
+except:
+    from vip_hci.medsub import median_sub
+    from vip_hci.metrics import normalize_psf, compute_stim_map, compute_inverse_stim_map
 from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit, cube_recenter_dft_upsampling, 
                              frame_shift, frame_rotate, cube_detect_badfr_pxstats, 
                              cube_detect_badfr_ellipticity, cube_detect_badfr_correlation, 
