@@ -39,7 +39,7 @@ from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
 #from C_2019_10_J19003645.IRDIS_reduction.VCAL_1_calib_SPHERE import dit_ifs, dit_irdis, dit_psf_ifs, dit_psf_irdis
 
-from ..utils import set_backend
+from ..utils import set_backend, find_nearest
 
 from vcal import __path__ as vcal_path
 
@@ -274,6 +274,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         lbda_0 = float(header['CRVAL3'])
         delta_lbda = float(header['CD3_3'])
         n_z = cube.shape[0]
+        ori_sz = cube.shape[-1]
         lbdas = np.linspace(lbda_0, lbda_0+(n_z-1)*delta_lbda, n_z)
         nd_filter_SCI = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
         
@@ -435,10 +436,15 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     _, head_cc = open_fits(inpath+cen_cube_names[cc], header = True)
                                     cube_cen = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits")
                                     mjd_cen[cc] = float(head_cc['MJD-OBS'])
+                                    
+                                    # SUBTRACT TEST OBJ CUBE (to easily find sat spots)
                                     if not use_cen_only:
                                         cube_cen -= cube
+                                    diff = int((ori_sz-bp_crop_sz)/2)
+                                    xy_spots_tmp = tuple([(xy_spots[i][0]-diff,xy_spots[i][1]-diff) for i in range(len(xy_spots))])
+
                                     ### get the MJD time of each cube
-                                    _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], _, _ = cube_recenter_satspots(cube_cen, xy_spots, 
+                                    _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], _, _ = cube_recenter_satspots(cube_cen, xy_spots_tmp, 
                                                                                                                  subi_size=cen_box_sz[fi], 
                                                                                                                  sigfactor=sigfactor, plot=plot,
                                                                                                                  fit_type='moff', lbda=lbdas, 
@@ -592,13 +598,30 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         _, head_cc = open_fits(inpath+cen_cube_names[cc], header = True)
                                         cube_cen = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits")
                                         mjd_cen[cc] = float(head_cc['MJD-OBS'])
+                                        # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots)
+                                        cube_cen_sub = cube_cen.copy()
+                                        if not use_cen_only:
+                                            mjd_mean = []
+                                            pa_sci_ini = []
+                                            pa_sci_fin = []
+                                            for fn_tmp, filename_tmp in enumerate(file_list):
+                                                cube_tmp, head_tmp = open_fits(inpath+OBJ_IFS_list[fn_tmp], header = True)
+                                                mjd_tmp = float(head_tmp['MJD-OBS'])
+                                                mjd_mean.append(mjd_tmp)
+                                                pa_sci_ini.append(float(head_tmp["HIERARCH ESO TEL PARANG START"]))
+                                                pa_sci_fin.append(float(head_tmp["HIERARCH ESO TEL PARANG END"]))
+                                            m_idx = find_nearest(mjd_mean,mjd_cen[cc])
+                                            cube_near = open_fits(outpath+file_list[m_idx]+"_1bpcorr.fits")
+                                            cube_cen_sub -= np.median(cube_near,axis=0)
+                                        diff = int((ori_sz-bp_crop_sz)/2)
+                                        xy_spots_tmp = tuple([(xy_spots[i][0]-diff,xy_spots[i][1]-diff) for i in range(len(xy_spots))])
                                         ### find center location
-                                        _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], _, _ = cube_recenter_satspots(cube_cen, xy_spots, 
-                                                                                                                     subi_size=cen_box_sz[fi], 
-                                                                                             sigfactor=sigfactor, plot=plot,
-                                                                                             fit_type='moff', lbda=lbdas, 
-                                                                                             debug=debug_tmp, verbose=True, 
-                                                                                             full_output=True)
+                                        res = cube_recenter_satspots(cube_cen, xy_spots_tmp, subi_size=cen_box_sz[fi], 
+                                                                     sigfactor=sigfactor, plot=plot,
+                                                                     fit_type='moff', lbda=lbdas, 
+                                                                     debug=debug_tmp, verbose=True, 
+                                                                     full_output=True)
+                                        _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], _, _ = res
                                     # median combine results for all MJD CEN bef and all after SCI obs
                                     _, header_ini = open_fits(inpath+OBJ_IFS_list[0]+'.fits', header=True)
                                     mjd = float(header_ini['MJD-OBS']) # mjd of first obs 
