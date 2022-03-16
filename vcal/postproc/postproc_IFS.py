@@ -41,10 +41,13 @@ import vip_hci as vip
 from vip_hci.fits import open_fits, write_fits
 try:
     from vip_hci.psfsub import pca, pca_annular
+    from vip_hci.metrics import stim_map as compute_stim_map
+    from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
 except:
     from vip_hci.pca import pca, pca_annular
+    from vip_hci.metrics import compute_stim_map, compute_inverse_stim_map
 from vip_hci.preproc import cube_derotate
-from vip_hci.metrics import compute_stim_map, compute_inverse_stim_map
+
 from vip_hci.var import mask_circle
 from ..utils import find_nearest
 

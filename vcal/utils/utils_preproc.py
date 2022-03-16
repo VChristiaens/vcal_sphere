@@ -16,25 +16,24 @@ __all__ = ['cube_recenter_bkg',
            ]
 
 import pdb
-#import vip_hci 
-from vip_hci.fits import open_fits, write_fits
-from vip_hci.medsub import median_sub
-from vip_hci.metrics import snr
-from vip_hci.preproc import (cube_derotate, frame_rotate, frame_shift, 
-                             approx_stellar_position, cube_subsample)
-from vip_hci.var import (get_square, fit_2dgaussian, fit_2dmoffat, dist, 
-                         fit_2dairydisk, frame_center, cube_filter_lowpass)
-
-
 #from hciplot import plot_frames
-#import pandas as pd 
+#import pandas as pd
 import numpy as np
-
 #from circle_fit import *
 from scipy import optimize
 from scipy.interpolate import interp1d
 from matplotlib import pyplot as plt#, cm, colors
-
+#import vip_hci
+from vip_hci.fits import write_fits
+try:
+    from vip_hci.psfsub import median_sub
+except:
+    from vip_hci.medsub import median_sub
+from vip_hci.metrics import snr
+from vip_hci.preproc import (cube_derotate, frame_shift,
+                             approx_stellar_position, cube_subsample)
+from vip_hci.var import (get_square, fit_2dgaussian, fit_2dmoffat, dist, 
+                         fit_2dairydisk, frame_center, cube_filter_lowpass)
 pi = np.pi
 
 
