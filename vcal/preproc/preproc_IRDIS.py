@@ -23,7 +23,8 @@ from vip_hci.metrics import peak_coordinates
 try:
     from vip_hci.psfsub import median_sub
     from vip_hci.fm import normalize_psf
-    from vip_hci.psfsub.utils_pca import _compute_stim_map, _compute_inverse_stim_map
+    from vip_hci.metrics import stim_map as compute_stim_map
+    from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
 except:
     from vip_hci.medsub import median_sub
     from vip_hci.metrics import normalize_psf, compute_stim_map, compute_inverse_stim_map

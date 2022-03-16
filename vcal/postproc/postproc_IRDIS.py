@@ -34,7 +34,9 @@ except:
 try:
     from vip_hci.psfsub import pca, pca_annular, nmf
     from vip_hci.fm import normalize_psf
-    from vip_hci.psfsub.utils_pca import _compute_stim_map, _compute_inverse_stim_map, pca_annulus
+    from vip_hci.psfsub.utils_pca import pca_annulus
+    from vip_hci.metrics import stim_map as compute_stim_map
+    from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
 except:
     from vip_hci.pca.utils_pca import pca_annulus
     from vip_hci.pca import pca, pca_annular
