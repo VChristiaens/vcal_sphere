@@ -94,7 +94,7 @@ setup(
     license='MIT',
     author='Valentin Christiaens',
     author_email='valentinchrists@hotmail.com',
-    url='https://github.com/vortex-exoplanet/VIP',
+    url='https://github.com/VChristiaens/vcal_sphere',
     cmdclass={'install': InstallReqs,
               'develop': InstallDevReqs},
     packages=PACKAGES,
