@@ -1048,7 +1048,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 for ii in range(len(dark_list_ifs)):
                     dark_cube, dark_head = vip_hci.fits.open_fits(inpath+dark_list_ifs[ii], header=True)
                     f.write(inpath+dark_list_ifs[ii]+'\t'+'IFS_DARK_RAW\n')
-                    master_dark_cube[counter:counter+dark_cube.shape[0]]
+                    master_dark_cube[counter:counter+dark_cube.shape[0]] = dark_cube
                     counter+=dark_cube.shape[0]
             vip_hci.fits.write_fits(outpath_ifs_fits+"master_dark_cube.fits", master_dark_cube[:counter])                    
             if not isfile(outpath_ifs_fits+"master_dark.fits") or overwrite_sof or overwrite_fits:
