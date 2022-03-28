@@ -32,7 +32,7 @@ STEPS:
     "inpath_filt_table": str, # path to SPHERE filter curves
    
 # OBSERVATION
-## First run  dfits *.fits |fitsort DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT in the 'raw' directory to fill the appropriate values.
+## First run  dfits *.fits |fitsort DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT INS.COMB.IFLT in the 'raw' directory to fill the appropriate values.
     "dit_ifs": float, integration time of science IFS observations to be considered
     "dit_irdis" : float, integration time of science IRDIS observations to be considered
     "dit_psf_ifs" : float, integration time of FLUX IFS observations to be considered
@@ -45,6 +45,7 @@ STEPS:
     "science_mode": str, choice between {'DBI','CI'}
     "mode": str, IFS mode (used for spectra positions). E.g. "YJH" or "YJ". Does not matter if only IRDIS data are reduced.
     "filters": list of 2 str for DBI, 1 str for CI, to be used to name products
+    "comb_iflt": filters of observation, given by ESO INS COMB IFLT header keyword
 
 # TO DO LIST:
     "do_irdis": bool, whether to reduce IRDIS data
