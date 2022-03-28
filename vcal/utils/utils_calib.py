@@ -208,7 +208,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                         ifs_mode = _check_mode(ifs_mode)
                     elif header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'FLAT,LAMP,RONGAIN':
                         gain_list_IFS.append(fname)
-                        ifs_mode = _check_mode(ifs_mode)
+                        # ifs_mode = _check_mode(ifs_mode)
                         
                 if dit_irdis is not None:     
                     if header['HIERARCH ESO DET SEQ1 DIT'] == dit_irdis and header['HIERARCH ESO DET NAME']== 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'OBJECT' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
