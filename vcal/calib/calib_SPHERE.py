@@ -1204,7 +1204,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 command+= " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                 command+= " --ifs.master_detector_flat.badpix_uptolerance=5."
                 command+= " --ifs.master_detector_flat.save_addprod=TRUE"
-                if flat_fit:# and len(flat_list_ifs_det_BB)>4: 
+                if flat_fit and len(flat_list_ifs_det_BB)>4:
                     command+= " --ifs.master_detector_flat.robust_fit=TRUE"
                 command+= " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(outpath_ifs_fits)
                 command+= " --ifs.master_detector_flat.lss_outfilename={}tmp2.fits".format(outpath_ifs_fits)
@@ -1236,7 +1236,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         command+= " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                         command+= " --ifs.master_detector_flat.badpix_uptolerance=5."
                         command+= " --ifs.master_detector_flat.save_addprod=TRUE"
-                        if flat_fit:# and counter>4: 
+                        if flat_fit and counter>4:
                             command+= " --ifs.master_detector_flat.robust_fit=TRUE"
                         command+= " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(outpath_ifs_fits)
                         command+= " --ifs.master_detector_flat.lss_outfilename={}large_scale_flat.fits".format(outpath_ifs_fits)
@@ -1264,7 +1264,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     command+= " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                     command+= " --ifs.master_detector_flat.badpix_uptolerance=5."
                     command+= " --ifs.master_detector_flat.save_addprod=TRUE"
-                    if flat_fit:# and len(flat_list_ifs_det_BB)>4: 
+                    if flat_fit and len(flat_list_ifs_det_BB)>4:
                         command+= " --ifs.master_detector_flat.robust_fit=TRUE"
                     command+= " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(outpath_ifs_fits)                 
                     command+= " --ifs.master_detector_flat.lss_outfilename={}large_scale_flat.fits".format(outpath_ifs_fits)
@@ -1300,7 +1300,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         #command+= " --ifs.master_detector_flat.save_addprod=TRUE"
                         #command+= " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(outpath_ifs_fits)
                         command+= " --ifs.master_detector_flat.outfilename={}master_flat_det.fits".format(outpath_ifs_fits)
-                        if flat_fit:# and counter>4: 
+                        if flat_fit and counter>4:
                             command+= " --ifs.master_detector_flat.robust_fit=TRUE"  
                         #command+= " --ifs.master_detector_flat.preamp_outfilename={}tmp2.fits".format(outpath_ifs_fits)            
                         #command+= " --ifs.master_detector_flat.badpixfilename={}tmp3.fits".format(outpath_ifs_fits)
@@ -1329,7 +1329,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     #command+= " --ifs.master_detector_flat.save_addprod=TRUE"
                     #command+= " --ifs.master_detector_flat.make_badpix=TRUE"
                     command+= " --ifs.master_detector_flat.outfilename={}master_flat_det.fits".format(outpath_ifs_fits)
-                    if flat_fit:# and len(flat_list_ifs_det_BB)>4: 
+                    if flat_fit and len(flat_list_ifs_det_BB)>4:
                         command+= " --ifs.master_detector_flat.robust_fit=TRUE"
                     #command+= " --ifs.master_detector_flat.lss_outfilename={}tmp1.fits".format(outpath_ifs_fits)
                     #command+= " --ifs.master_detector_flat.preamp_outfilename={}tmp2.fits".format(outpath_ifs_fits)            
@@ -1465,7 +1465,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         
 
                     cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, 
-                                                                 sig=6., protect_psf=False, verbose=False,
+                                                                 sig=6., protect_mask=0, verbose=False,
                                                                  half_res_y=False, max_nit=10, full_output=False)
                     lab_wc = bpcorr_lab_IFS
                     hdul[0].data = cube
@@ -1473,7 +1473,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         os.makedirs(inpath+lab_wc)
                     hdul.writeto(inpath+bpcorr_lab_IFS+'1_'+wave_calib_list_ifs[ii], output_verify='ignore', overwrite=True)
                     cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, 
-                                                                 sig=10., protect_psf=False, verbose=False,
+                                                                 sig=10., protect_mask=0, verbose=False,
                                                                  half_res_y=False, max_nit=1, full_output=False)
                     lab_wc = bpcorr_lab_IFS
                     hdul[0].data = cube
@@ -1664,10 +1664,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     hdul.writeto(inpath+skysub_lab_IFS+lab_bp+sci_list_ifs[ii], output_verify='ignore', overwrite=True)
 
                 cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, 
-                                                             sig=6., protect_psf=False, verbose=False,
+                                                             sig=6., protect_mask=0, verbose=False,
                                                              half_res_y=False, max_nit=10, full_output=False)
                 cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, 
-                                                             sig=10., protect_psf=False, verbose=False,
+                                                             sig=10., protect_mask=0, verbose=False,
                                                              half_res_y=False, max_nit=1, full_output=False)
                 hdul[0].data = cube
                 lab_sci = bpcorr_lab_IFS
@@ -1794,10 +1794,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
 
                 
                 cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, 
-                                                             sig=6., protect_psf=False, verbose=False,
+                                                             sig=6., protect_mask=0, verbose=False,
                                                              half_res_y=False, max_nit=10, full_output=False)
                 cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, 
-                                                             sig=10., protect_psf=False, verbose=False,
+                                                             sig=10., protect_mask=0, verbose=False,
                                                              half_res_y=False, max_nit=1, full_output=False)
                 hdul[0].data = cube
                 lab_sci = bpcorr_lab_IFS
@@ -1925,10 +1925,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 
                 
                 cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, 
-                                                             sig=6., protect_psf=False, verbose=False,
+                                                             sig=6., protect_mask=0, verbose=False,
                                                              half_res_y=False, max_nit=10, full_output=False)
                 cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, 
-                                                             sig=10., protect_psf=False, verbose=False,
+                                                             sig=10., protect_mask=0, verbose=False,
                                                              half_res_y=False, max_nit=1, full_output=False)
                 hdul[0].data = cube
                 lab_sci = bpcorr_lab_IFS
