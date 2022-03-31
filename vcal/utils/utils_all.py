@@ -14,7 +14,7 @@ __all__=['set_backend',
 import matplotlib
 import numpy as np
 import os
-import vip_hci as vip
+from vip_hci.var import frame_center
 
 def set_backend():
     gui_env = [i for i in matplotlib.rcsetup.interactive_bk]
@@ -178,7 +178,7 @@ def cube_crop_quadrant(array,quadrant):
     quadrant: integer (1, 2, 3 or 4) tracing the trigonometric quadrant to be cropped
     """
     if array.ndim == 3:
-        cy, cx = vip.var.frame_center(array[0])
+        cy, cx = frame_center(array[0])
         if quadrant == 1:
             subarray = array[:,int(np.floor(cy))+1:,int(np.floor(cx))+1:]
         elif quadrant == 2:
@@ -188,7 +188,7 @@ def cube_crop_quadrant(array,quadrant):
         else:
             subarray = array[:,:int(np.ceil(cy)),int(np.floor(cx))+1:,]            
     else:
-        cy, cx = vip.var.frame_center(array)
+        cy, cx = frame_center(array)
         if quadrant == 1:
             subarray = array[int(np.floor(cy))+1:,int(np.floor(cx))+1:]
         elif quadrant == 2:
