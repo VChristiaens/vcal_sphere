@@ -20,34 +20,36 @@ from multiprocessing import cpu_count
 import numpy as np
 from os.path import isfile, isdir
 import os
-import pandas
 from pandas import DataFrame as DF
 import pdb
 
-import vip_hci as vip
 from vip_hci.fits import open_fits, write_fits
+from vip_hci.metrics import snrmap, contrast_curve, snr
+from vip_hci.preproc import cube_shift, frame_shift, cube_crop_frames, cube_recenter_via_speckles #cube_subtract_sky_pca,
+                             #cube_crop_frames, cube_derotate, cube_collapse)
+from vip_hci.preproc.rescaling import _cube_resc_wave
+from vip_hci.var import mask_circle, cube_filter_highpass, frame_center, frame_filter_lowpass
+from ..utils import find_nearest
 
 try:
     from vip_hci.itpca import pca_it, pca_annular_it, pca_1rho_it, feves
 except:
     print("Note: iterative pca not available in your version of VIP")
 try:
-    from vip_hci.psfsub import pca, pca_annular, nmf
-    from vip_hci.fm import normalize_psf
+    from vip_hci.psfsub import median_sub, pca, pca_annular, nmf
+    from vip_hci.fm import normalize_psf, cube_inject_companions, cube_planet_free
     from vip_hci.psfsub.utils_pca import pca_annulus
     from vip_hci.metrics import stim_map as compute_stim_map
     from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
+    from vip_hci.config import time_ini, timing
 except:
+    from vip_hci.medsub import median_sub
     from vip_hci.pca.utils_pca import pca_annulus
     from vip_hci.pca import pca, pca_annular
     from vip_hci.nmf import nmf
-    from vip_hci.metrics import normalize_psf, compute_stim_map, compute_inverse_stim_map
-from vip_hci.preproc import (cube_shift, frame_shift, cube_crop_frames,
-                             cube_recenter_via_speckles) #cube_subtract_sky_pca,
-                             #cube_crop_frames, cube_derotate, cube_collapse)
-from vip_hci.preproc.rescaling import _cube_resc_wave
-from vip_hci.var import mask_circle
-from ..utils import find_nearest
+    from vip_hci.metrics import normalize_psf, compute_stim_map, compute_inverse_stim_map, cube_inject_companions
+    from vip_hci.negfc import cube_planet_free
+    from vip_hci.conf import time_ini, timing
 
 from vcal import __path__ as vcal_path
 
@@ -103,9 +105,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
     with open(params_calib_name, 'r') as read_file_params_calib:
         params_calib = json.load(read_file_params_calib)
     with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
-        filt_spec = json.load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combinaison
-    with open(vcal_path[0] + "/instr_param/sphere.json", 'r') as instr_param_file:
-        instr_cst = json.load(instr_param_file)
+        filt_spec = json.load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combination
+
     # from calib
     path = params_calib['path']
     filters = filt_spec['filters'] 
@@ -113,7 +114,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
     
     # from preproc
     coro = params_preproc['coro']
-    plsc_ori = np.array(instr_cst['plsc'])
+    plsc_ori = params_preproc['plsc']
     bin_fac = params_preproc.get('bin_fac',1)
     distort_corr = params_preproc['distort_corr']
     if distort_corr:
@@ -349,7 +350,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                     if not isfile(outpath_2+"final_DBI_cube.fits") or not isfile(outpath_2+"final_max_fwhm.fits"):
                         fwhm = []
                         for ff, filt in enumerate(filters):
-                            ADI_cube= vip.fits.open_fits(outpath_2+final_cubename+"{}.fits".format(filt))
+                            ADI_cube= open_fits(outpath_2+final_cubename+"{}.fits".format(filt))
                             fwhm.append(open_fits(outpath_2+final_fwhmname+"{}.fits".format(filt)))
                             if ff == 0:
                                 ASDI_cube = np.zeros([len(filters),ADI_cube.shape[0],ADI_cube.shape[1],ADI_cube.shape[2]])
@@ -363,7 +364,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                     else:
                         ASDI_cube = open_fits(outpath_2+"final_DBI_cube.fits")
                         fwhm = open_fits(outpath_2+"final_max_fwhm.fits")[0]
-                    derot_angles = vip.fits.open_fits(outpath_2+final_anglename+"{}.fits".format(filters[-1]))
+                    derot_angles = open_fits(outpath_2+final_anglename+"{}.fits".format(filters[-1]))
                     
                     if do_pca_full:
                         #PCA_ADI_cube, derot_angles = vip.fits.open_adicube(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'.fits')
@@ -670,13 +671,13 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                         plsc = plsc_ori[ff]
     
                         if cc == 0 or not isfile(outpath_2+final_cubename+"_full{}.fits".format(filt)):
-                            ADI_cube= vip.fits.open_fits(outpath_2+final_cubename+"{}.fits".format(filt))
+                            ADI_cube = open_fits(outpath_2+final_cubename+"{}.fits".format(filt))
                         else:
-                            ADI_cube= vip.fits.open_fits(outpath_2+final_cubename+"_full{}.fits".format(filt))
+                            ADI_cube = open_fits(outpath_2+final_cubename+"_full{}.fits".format(filt))
                         if ref_cube_name is not None:
                             ref_cube = open_fits(ref_cube_name.format(filt))
                                 
-                        derot_angles = vip.fits.open_fits(outpath_2+final_anglename+"{}.fits".format(filt))
+                        derot_angles = open_fits(outpath_2+final_anglename+"{}.fits".format(filt))
     #                    if derot_name == "rotnth":
     #                        derot_angles*=-1
                         psf = open_fits(outpath_2+final_psfname+"{}.fits".format(filt)) # this has all the unsat psf frames
@@ -704,9 +705,9 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             label_filt = '_hpf'
                             # MODIFY THE IF BELOW
                             if isfile(outpath_4.format(bin_fac)+final_cubename+"{}{}.fits".format(filt,label_filt)):
-                                ADI_cube= vip.fits.open_fits(outpath_4.format(bin_fac)+final_cubename+"{}{}.fits".format(filt,label_filt))
+                                ADI_cube = open_fits(outpath_4.format(bin_fac)+final_cubename+"{}{}.fits".format(filt,label_filt))
                             else:
-                                ADI_cube = vip.var.cube_filter_highpass(ADI_cube, 'median-subt', median_size=int(4*fwhm))
+                                ADI_cube = cube_filter_highpass(ADI_cube, 'median-subt', median_size=int(4*fwhm))
                                 write_fits(outpath_4.format(bin_fac)+final_cubename+"{}{}.fits".format(filt,label_filt), ADI_cube)
                                 #vip.fits.append_extension(outpath_4.format(bin_fac)+"final_cube_{}{}.fits".format(filt,label_filt), derot_angles)
                             
@@ -715,14 +716,14 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                            
                         ## SUBTRACT COMPANION, IF ANY
                         if subtract_planet:
-                            ADI_cube = vip.negfc.cube_planet_free(planet_parameter, ADI_cube, derot_angles, psfn, plsc)
+                            ADI_cube = cube_planet_free(planet_parameter, ADI_cube, derot_angles, psfn, plsc)
             
                         
                         ######################## 2. Crop the cube #########################
                         
                         # DEPENDING ON THE SITUATION, CROP
                         PCA_ADI_cube_ori = ADI_cube.copy()
-                        cy, cx = vip.var.frame_center(PCA_ADI_cube_ori[0])
+                        cy, cx = frame_center(PCA_ADI_cube_ori[0])
                         if planet:
                             if cc==0: # use crop cube
                                 xx_comp = planet_pos_crop[0]
@@ -754,9 +755,9 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 elif ref_cube.shape[-1] < PCA_ADI_cube_ori.shape[-1]:
                                     PCA_ADI_cube_ori = cube_crop_frames(PCA_ADI_cube_ori, ref_cube.shape[-1])
                             for nn, npc in enumerate(firstguess_pcs):
-                                pn_contr_curve_full_rr = vip.metrics.contrast_curve(PCA_ADI_cube_ori, derot_angles, psfn,
+                                pn_contr_curve_full_rr = contrast_curve(PCA_ADI_cube_ori, derot_angles, psfn,
                                                                                     fwhm, plsc, starphot=starphot, 
-                                                                                    algo=vip.pca.pca, sigma=5., nbranch=n_br, 
+                                                                                    algo=pca, sigma=5., nbranch=n_br,
                                                                                     theta=0, inner_rad=1, wedge=(0,360),
                                                                                     fc_snr=fc_snr, cube_ref=ref_cube,
                                                                                     scaling=scaling,
@@ -804,10 +805,10 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                         flevel = np.median(starphot)*sensitivity_5sig_full_rsvd_df[-1]*injection_fac/np.sqrt(((rad_arr[ff]*plsc)/0.5))
                                     else:
                                         flevel = np.median(starphot)*sensitivity_5sig_full_rsvd_df[ff]*injection_fac # injected at ~3 sigma level instead of 5 sigma (rule is normalized at 0.5'', empirically it seems one has to be more conservative below 1'', hence division by radius)
-                                    PCA_ADI_cube = vip.metrics.cube_inject_companions(PCA_ADI_cube, psfn, 
-                                                                                      derot_angles, flevel, 
-                                                                                      plsc, rad_dists=rad_arr[ff:ff+1], 
-                                                                                      n_branches=1, theta=(theta0+ff*th_step)%360, imlib='opencv', verbose=verbose)                                                                 
+                                    PCA_ADI_cube = cube_inject_companions(PCA_ADI_cube, psfn,
+                                                                          derot_angles, flevel,
+                                                                          plsc, rad_dists=rad_arr[ff:ff+1],
+                                                                          n_branches=1, theta=(theta0+ff*th_step)%360, imlib='opencv', verbose=verbose)
                                 write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'_fcp_spi{:.0f}.fits'.format(ns), PCA_ADI_cube)
                                 #vip.fits.append_extension(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'_fcp_spi{:.0f}.fits'.format(ns), derot_angles)
             
@@ -829,7 +830,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 if not '_fw' in label_filt:
                                     label_filt+='_fw'
                             if not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'.fits') or overwrite_ADI:
-                                _, tmp, tmp_tmp = vip.medsub.median_sub(ADI_cube, derot_angles, fwhm=fwhm,
+                                _, tmp, tmp_tmp = median_sub(ADI_cube, derot_angles, fwhm=fwhm,
                                                                         radius_int=0, asize=2, delta_rot=delta_rot, 
                                                                         full_output=True, verbose=True)    
                                 if flux_weights:
@@ -846,13 +847,13 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             ## Convolution
                             if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'_conv.fits') or overwrite_ADI) and do_conv:
                                 tmp = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'.fits')
-                                tmp = vip.var.frame_filter_lowpass(tmp, mode='gauss', fwhm_size=fwhm/2, gauss_mode='conv')
+                                tmp = frame_filter_lowpass(tmp, mode='gauss', fwhm_size=fwhm/2, gauss_mode='conv')
                                 write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'_conv.fits', tmp, verbose=False)
                             ## SNR map  
                             if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'_snrmap.fits') or overwrite_ADI) and do_snr_map[0]:
                                 tmp = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'.fits')
                                 #rad_in = mask_IWA 
-                                tmp_tmp = vip.metrics.snrmap(tmp, fwhm, plot=False)
+                                tmp_tmp = snrmap(tmp, fwhm, plot=False)
                                 tmp_tmp = mask_circle(tmp_tmp,mask_IWA_px)#rad_in*fwhm)
                                 write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'_snrmap.fits', tmp_tmp, verbose=False)
                             if flux_weights:
@@ -861,9 +862,9 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             if fake_planet:
                                 #psfn = open_fits(outpath_2+'master_unsat_psf_norm'+'.fits')
                                 #starphot = open_fits(outpath_4.format(bin_fac)+'7_norm_fact'+'.fits')
-                                pn_contr_curve_adi = vip.metrics.contrast_curve(ADI_cube, derot_angles, psfn,
+                                pn_contr_curve_adi = contrast_curve(ADI_cube, derot_angles, psfn,
                                                                                 fwhm, plsc, starphot=starphot, 
-                                                                                algo=vip.medsub.median_sub, sigma=5., nbranch=n_br, 
+                                                                                algo=median_sub, sigma=5., nbranch=n_br,
                                                                                 theta=0, inner_rad=1, wedge=(0,360),fc_snr=fc_snr,
                                                                                 student=True, transmission=None, smooth=True,
                                                                                 plot=False, dpi=100, debug=False, 
@@ -948,17 +949,17 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             crop_sz = int(2*(r_pl+asize*fwhm))+3
                             if crop_sz < PCA_ADI_cube.shape[1] and crop_sz != 0:
                                 if not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop2_PCA_cube'+label_filt+'.fits') or overwrite_pp:
-                                    PCA_ADI_cube_sann = vip.preproc.cube_crop_frames(PCA_ADI_cube,crop_sz)
+                                    PCA_ADI_cube_sann = cube_crop_frames(PCA_ADI_cube,crop_sz)
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop2_PCA_cube'+label_filt+'.fits', PCA_ADI_cube_sann)
                                     #vip.fits.append_extension(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop2_PCA_cube'+label_filt+'.fits', derot_angles)
                                 else:
-                                    PCA_ADI_cube_sann = vip.fits.open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop2_PCA_cube'+label_filt+'.fits')
+                                    PCA_ADI_cube_sann = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop2_PCA_cube'+label_filt+'.fits')
                                 if ref_cube is not None:
                                     ref_cube_tmp = cube_crop_frames(ref_cube, crop_sz)
                                 xx_comp = xx_comp+int((crop_sz-PCA_ADI_cube.shape[1])/2.)
                                 yy_comp = yy_comp+int((crop_sz-PCA_ADI_cube.shape[1])/2.)
                             else:
-                                PCA_ADI_cube_sann = vip.fits.open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'.fits')
+                                PCA_ADI_cube_sann = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'.fits')
                             if verbose:
                                 print("(new) planet position: ({:.1f},{:.1f})".format(xx_comp,yy_comp))
                             #PCA_ADI_cube = None
@@ -967,15 +968,15 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             snr_tmp = np.zeros(ntest_pcs)
                             for pp, npc in enumerate(test_pcs_sann):
                                 if verbose:
-                                    t0 = vip.conf.time_ini()
+                                    t0 = time_ini()
                                 tmp_tmp[pp] = pca_annulus(PCA_ADI_cube_sann, derot_angles, int(npc), asize*fwhm, r_pl, cube_ref=ref_cube_tmp,
                                                           scaling=scaling, svd_mode=svd_mode_all[1], collapse='median',
                                                           imlib='opencv', interpolation='lanczos4')
-                                snr_tmp[pp] = vip.metrics.snr(tmp_tmp[pp], (xx_comp,yy_comp), fwhm, plot=False, exclude_negative_lobes=True,
+                                snr_tmp[pp] = snr(tmp_tmp[pp], (xx_comp,yy_comp), fwhm, plot=False, exclude_negative_lobes=True,
                                                                  verbose=False)
                                 if verbose:                                     
                                     print("SNR of the candidate at ({},{}) for npc = {:.0f} : {:.1f}".format(xx_comp,yy_comp,npc,snr_tmp[pp]))
-                                    vip.conf.timing(t0)         
+                                    timing(t0)
                             write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_sann_'.format(label_stg)+test_pcs_str+label_filt+'.fits', tmp_tmp)
                             write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_sann_SNR_'.format(label_stg)+test_pcs_str+label_filt+'.fits', snr_tmp)
             
@@ -1050,7 +1051,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                         else:
                                             mask_tmp = np.ones_like(PCA_ADI_cube[0])
                                             mask_rdi = mask_circle(mask_tmp, mask_PCA, fillwith=0, mode='in')
-                                        tmp_tmp[pp], pcs, recon, tmp_res, tmp  = pca(PCA_ADI_cube, angle_list=derot_angles, 
+                                        tmp_tmp[pp], pcs, recon, tmp_res, tmp = pca(PCA_ADI_cube, angle_list=derot_angles,
                                                        cube_ref=ref_cube, scale_list=None, ncomp=int(npc), 
                                                       svd_mode=svd_mode_all[cc], scaling=scaling,  mask_center_px=mask_IWA_px,
                                                       delta_rot=delta_rot, fwhm=fwhm, collapse='median', check_memory=True, 
@@ -1071,7 +1072,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                 tmp[zz] = tmp[zz]*w[zz]
                                             tmp_tmp[pp] = np.nansum(tmp,axis=0)
                                     if planet:
-                                        snr_tmp[pp] = vip.metrics.snr(tmp_tmp[pp], (xx_comp,yy_comp), fwhm, plot=False, exclude_negative_lobes=True,
+                                        snr_tmp[pp] = snr(tmp_tmp[pp], (xx_comp,yy_comp), fwhm, plot=False, exclude_negative_lobes=True,
                                                                               verbose=False)                  
                                 if planet:
                                     plt.close() 
@@ -1104,7 +1105,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_'.format(label_stg)+test_pcs_str+label_filt+'_conv.fits') or overwrite_pp) and do_conv:
                                     tmp = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_'.format(label_stg)+test_pcs_str+label_filt+'.fits')
                                     for nn in range(tmp.shape[0]):
-                                        tmp[nn] = vip.var.frame_filter_lowpass(tmp[nn], mode='gauss',  fwhm_size=fwhm, gauss_mode='conv')
+                                        tmp[nn] = frame_filter_lowpass(tmp[nn], mode='gauss',  fwhm_size=fwhm, gauss_mode='conv')
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_'.format(label_stg)+test_pcs_str+label_filt+'_conv.fits', tmp, verbose=False)
                                 ### SNR map  
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_'.format(label_stg)+test_pcs_str+label_filt+'_snrmap.fits') or overwrite_pp) and do_snr_map[1] and cc==0:
@@ -1113,8 +1114,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                     #rad_in = 1.5
                                     tmp_tmp = np.ones_like(tmp)
                                     for pp in range(tmp.shape[0]):
-                                        tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm, plot=False)
-                                    tmp = vip.var.mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
+                                        tmp[pp] = snrmap(tmp[pp], fwhm, plot=False)
+                                    tmp = mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_'.format(label_stg)+test_pcs_str+label_filt+'_snrmap.fits', tmp, verbose=False)  
                                 if flux_weights:
                                     label_filt = label_filt[:-3]
@@ -1123,7 +1124,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 tmp_tmp = np.zeros([ntest_pcs,PCA_ADI_cube.shape[1],PCA_ADI_cube.shape[2]])
                                 for ns in range(nspi):
                                     theta0 = th0+ns*th_step
-                                    PCA_ADI_cube = vip.fits.open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'_fcp_spi{:.0f}.fits'.format(ns))
+                                    PCA_ADI_cube = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'_fcp_spi{:.0f}.fits'.format(ns))
                                     for pp, npc in enumerate(test_pcs_full):
                                         if svd_mode_all[cc] == 'randsvd':
                                             tmp_tmp_tmp = np.zeros([n_randsvd,PCA_ADI_cube.shape[1],PCA_ADI_cube.shape[2]])
@@ -1141,7 +1142,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                         for ff in range(nfcp):
                                             xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
                                             yy_fcp = cy + rad_arr[ff]*np.sin(np.deg2rad(theta0+ff*th_step))
-                                            snr_tmp_tmp[ns,pp,ff] = vip.metrics.snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm, plot=False, exclude_negative_lobes=True,
+                                            snr_tmp_tmp[ns,pp,ff] = snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm, plot=False, exclude_negative_lobes=True,
                                                                                   verbose=True)   
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+test_pcs_str+label_filt+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)                                             
                                 snr_fcp = np.median(snr_tmp_tmp, axis=0)
@@ -1194,7 +1195,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_conv.fits') or overwrite_pp) and do_conv:
                                     tmp = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'.fits')
                                     for nn in range(tmp.shape[0]):
-                                        tmp[nn] = vip.var.frame_filter_lowpass(tmp[nn], mode='gauss',  fwhm_size=fwhm, gauss_mode='conv')
+                                        tmp[nn] = frame_filter_lowpass(tmp[nn], mode='gauss',  fwhm_size=fwhm, gauss_mode='conv')
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_conv.fits', tmp, verbose=False)
                                 ### SNR map  
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_snrmap.fits') or overwrite_pp) and do_snr_map[1] and cc==0:
@@ -1203,8 +1204,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                     #rad_in = 1.5
                                     tmp_tmp = np.ones_like(tmp)
                                     for pp in range(tmp.shape[0]):
-                                        tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm, plot=False)
-                                    tmp = vip.var.mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
+                                        tmp[pp] = snrmap(tmp[pp], fwhm, plot=False)
+                                    tmp = mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_snrmap.fits', tmp, verbose=False)            
                         
                         ######################## 8. PCA-ADI annular #######################
@@ -1252,7 +1253,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                 tmp[zz] = tmp[zz]*w[zz]
                                             tmp_tmp[pp] = np.nansum(tmp,axis=0)
                                 if planet:  
-                                    snr_tmp[pp] = vip.metrics.snr(tmp_tmp[pp], (xx_comp,yy_comp), fwhm, plot=False, exclude_negative_lobes=True,
+                                    snr_tmp[pp] = snr(tmp_tmp[pp], (xx_comp,yy_comp), fwhm, plot=False, exclude_negative_lobes=True,
                                                                           verbose=False)                  
                                 if planet:
                                     plt.close() 
@@ -1278,7 +1279,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_'.format(label_stg)+test_pcs_str+label_filt+'_conv.fits') or overwrite_pp) and do_conv:
                                     tmp = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_'.format(label_stg)+test_pcs_str+label_filt+'.fits')
                                     for nn in range(tmp.shape[0]):
-                                        tmp[nn] = vip.var.frame_filter_lowpass(tmp[nn], mode='gauss',  fwhm_size=fwhm, gauss_mode='conv')
+                                        tmp[nn] = frame_filter_lowpass(tmp[nn], mode='gauss',  fwhm_size=fwhm, gauss_mode='conv')
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_'.format(label_stg)+test_pcs_str+label_filt+'_conv.fits', tmp, verbose=False)
                                 ### SNR map  
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_'.format(label_stg)+test_pcs_str+label_filt+'_snrmap.fits') or overwrite_pp) and do_snr_map[2]:
@@ -1287,8 +1288,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                     #rad_in = 1.5
                                     tmp_tmp = np.ones_like(tmp)
                                     for pp in range(tmp.shape[0]):
-                                        tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm, plot=False)
-                                    tmp = vip.var.mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
+                                        tmp[pp] = snrmap(tmp[pp], fwhm, plot=False)
+                                    tmp = mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_'.format(label_stg)+test_pcs_str+label_filt+'_snrmap.fits', tmp, verbose=False)  
                                 if flux_weights:
                                     label_filt = label_filt[:-3]
@@ -1297,7 +1298,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 tmp_tmp = np.zeros([ntest_pcs,PCA_ADI_cube.shape[1],PCA_ADI_cube.shape[2]])
                                 for ns in range(nspi):
                                     theta0 = th0+ns*th_step
-                                    PCA_ADI_cube = vip.fits.open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'_fcp_spi{:.0f}.fits'.format(ns))
+                                    PCA_ADI_cube = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'_fcp_spi{:.0f}.fits'.format(ns))
                                     for pp, npc in enumerate(test_pcs_ann):
                                         if svd_mode_all[1] == 'randsvd':
                                             tmp_tmp_tmp = np.zeros([n_randsvd,PCA_ADI_cube.shape[1],PCA_ADI_cube.shape[2]])
@@ -1319,7 +1320,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                         for ff in range(nfcp):
                                             xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
                                             yy_fcp = cy + rad_arr[ff]*np.sin(np.deg2rad(theta0+ff*th_step))
-                                            snr_tmp_tmp[ns,pp,ff] = vip.metrics.snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm, plot=False, exclude_negative_lobes=True,
+                                            snr_tmp_tmp[ns,pp,ff] = snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm, plot=False, exclude_negative_lobes=True,
                                                                                   verbose=True)   
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_ann_'.format(label_stg)+test_pcs_str+label_filt+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)                                             
                                 snr_fcp = np.median(snr_tmp_tmp, axis=0)
@@ -1374,7 +1375,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_conv.fits') or overwrite_pp) and do_conv:
                                     tmp = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'.fits')
                                     for nn in range(tmp.shape[0]):
-                                        tmp[nn] = vip.var.frame_filter_lowpass(tmp[nn], mode='gauss', fwhm_size=fwhm, gauss_mode='conv')
+                                        tmp[nn] = frame_filter_lowpass(tmp[nn], mode='gauss', fwhm_size=fwhm, gauss_mode='conv')
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_conv.fits', tmp, verbose=False)
                                 ### SNR map  
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_snrmap.fits') or overwrite_pp) and do_snr_map[2]:
@@ -1383,8 +1384,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                     #rad_in = 1.5
                                     tmp_tmp = np.ones_like(tmp)
                                     for pp in range(tmp.shape[0]):
-                                        tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm, plot=False)
-                                    tmp = vip.var.mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
+                                        tmp[pp] = snrmap(tmp[pp], fwhm, plot=False)
+                                    tmp = mask_circle(tmp,mask_IWA_px)#rad_in*fwhm)
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_snrmap.fits', tmp, verbose=False)                     
                             if flux_weights:
                                 label_filt = label_filt[:-3]
@@ -1393,7 +1394,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                         if fake_planet:
                             if planet:
                                 # SUBTRACT THE PLANET FROM THE CUBE
-                                cube_emp = vip.negfc.cube_planet_free(planet_parameter, PCA_ADI_cube_ori, derot_angles, psfn, plsc)
+                                cube_emp = cube_planet_free(planet_parameter, PCA_ADI_cube_ori, derot_angles, psfn, plsc)
                                 PCA_ADI_cube_ori = cube_emp
                                 label_emp = '_empty'+label_filt
                             else:
@@ -1404,13 +1405,13 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             for rr, rad in enumerate(rad_arr):
                                 if svd_mode_all[cc] == 'randsvd':
                                     for nr in range(n_randsvd):
-                                        pn_contr_curve_full_rr_tmp = vip.metrics.contrast_curve(PCA_ADI_cube_ori, derot_angles, psfn,
-                                                                          fwhm, plsc, starphot=starphot, 
-                                                                          algo=vip.pca.pca, sigma=5., nbranch=n_br, 
-                                                                          theta=0, inner_rad=1, wedge=wedge, fc_snr=fc_snr,
-                                                                          student=True, transmission=transmission, 
-                                                                          plot=True, dpi=100,cube_ref=ref_cube,scaling=scaling,
-                                                                          verbose=verbose, ncomp=int(id_npc_full_df[rr]), svd_mode=svd_mode_all[cc])
+                                        pn_contr_curve_full_rr_tmp = contrast_curve(PCA_ADI_cube_ori, derot_angles, psfn,
+                                                                                    fwhm, plsc, starphot=starphot,
+                                                                                    algo=pca, sigma=5., nbranch=n_br,
+                                                                                    theta=0, inner_rad=1, wedge=wedge, fc_snr=fc_snr,
+                                                                                    student=True, transmission=transmission,
+                                                                                    plot=True, dpi=100,cube_ref=ref_cube,scaling=scaling,
+                                                                                    verbose=verbose, ncomp=int(id_npc_full_df[rr]), svd_mode=svd_mode_all[cc])
                                         rsvd_list.append(pn_contr_curve_full_rr_tmp)
                                     pn_contr_curve_full_rr = pn_contr_curve_full_rr_tmp.copy()
                                     for jj in range(pn_contr_curve_full_rr.shape[0]): 
@@ -1425,13 +1426,13 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                         pn_contr_curve_full_rr['noise'][jj] = rsvd_list[idx_min]['noise'][jj]
                                         pn_contr_curve_full_rr['sigma corr'][jj] = rsvd_list[idx_min]['sigma corr'][jj]
                                 else:
-                                    pn_contr_curve_full_rr = vip.metrics.contrast_curve(PCA_ADI_cube_ori, derot_angles, psfn,
-                                                                                        fwhm, plsc, starphot=starphot, 
-                                                                                        algo=vip.pca.pca, sigma=5., nbranch=n_br, 
-                                                                                        theta=0, inner_rad=1, wedge=wedge,fc_snr=fc_snr,
-                                                                                        student=True, transmission=transmission, 
-                                                                                        plot=True, dpi=100, cube_ref=ref_cube,scaling=scaling,
-                                                                                        verbose=verbose, ncomp=int(id_npc_full_df[rr]), svd_mode=svd_mode_all[cc])
+                                    pn_contr_curve_full_rr = contrast_curve(PCA_ADI_cube_ori, derot_angles, psfn,
+                                                                            fwhm, plsc, starphot=starphot,
+                                                                            algo=pca, sigma=5., nbranch=n_br,
+                                                                            theta=0, inner_rad=1, wedge=wedge,fc_snr=fc_snr,
+                                                                            student=True, transmission=transmission,
+                                                                            plot=True, dpi=100, cube_ref=ref_cube,scaling=scaling,
+                                                                            verbose=verbose, ncomp=int(id_npc_full_df[rr]), svd_mode=svd_mode_all[cc])
                                 DF.to_csv(pn_contr_curve_full_rr, path_or_buf=outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'contrast_curve_PCA-{}-full_optimal_at_{:.1f}as{}.csv'.format(label_stg,rad*plsc,label_emp), sep=',', na_rep='', float_format=None)
                                 df_list.append(pn_contr_curve_full_rr)
                             pn_contr_curve_full_opt = pn_contr_curve_full_rr.copy()
@@ -1460,17 +1461,17 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             for rr, rad in enumerate(rad_arr):
                                 if svd_mode_all[1] == 'randsvd':
                                     for nr in range(n_randsvd):
-                                        pn_contr_curve_ann_rr_tmp = vip.metrics.contrast_curve(PCA_ADI_cube_ori, derot_angles, psfn,
-                                                                  fwhm, plsc, starphot=starphot, 
-                                                                  algo=vip.pca.pca_annular, sigma=5., nbranch=nspi, 
-                                                                  theta=0, inner_rad=1, wedge=wedge, fc_snr=fc_snr,
-                                                                  student=True, transmission=transmission, 
-                                                                  plot=True, dpi=100, 
-                                                                  verbose=verbose, ncomp=int(id_npc_ann_df[rr]), svd_mode=svd_mode_all[1], 
-                                                                  radius_int=mask_IWA_px, asize=asize*fwhm, 
-                                                                  delta_rot=delta_rot, cube_ref=ref_cube,scaling=scaling,
-                                                                  min_frames_lib=max(id_npc_ann_df[rr],min_fr), 
-                                                                  max_frames_lib=max(max_fr,id_npc_ann_df[rr]+1))
+                                        pn_contr_curve_ann_rr_tmp = contrast_curve(PCA_ADI_cube_ori, derot_angles, psfn,
+                                                                                   fwhm, plsc, starphot=starphot,
+                                                                                   algo=pca_annular, sigma=5., nbranch=nspi,
+                                                                                   theta=0, inner_rad=1, wedge=wedge, fc_snr=fc_snr,
+                                                                                   student=True, transmission=transmission,
+                                                                                   plot=True, dpi=100,
+                                                                                   verbose=verbose, ncomp=int(id_npc_ann_df[rr]), svd_mode=svd_mode_all[1],
+                                                                                   radius_int=mask_IWA_px, asize=asize*fwhm,
+                                                                                   delta_rot=delta_rot, cube_ref=ref_cube,scaling=scaling,
+                                                                                   min_frames_lib=max(id_npc_ann_df[rr],min_fr),
+                                                                                   max_frames_lib=max(max_fr,id_npc_ann_df[rr]+1))
                                         rsvd_list.append(pn_contr_curve_ann_rr_tmp)
                                     pn_contr_curve_ann_rr = pn_contr_curve_ann_rr_tmp.copy()
                                     for jj in range(pn_contr_curve_ann_rr.shape[0]):
@@ -1485,16 +1486,16 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                         pn_contr_curve_ann_rr['noise'][jj] = rsvd_list[idx_min]['noise'][jj]
                                         pn_contr_curve_ann_rr['sigma corr'][jj] = rsvd_list[idx_min]['sigma corr'][jj]
                                 else:
-                                    pn_contr_curve_ann_rr = vip.metrics.contrast_curve(PCA_ADI_cube_ori, derot_angles, psfn,
-                                                                  fwhm, plsc, starphot=starphot, 
-                                                                  algo=vip.pca.pca_annular, sigma=5., nbranch=n_br, 
-                                                                  theta=0, inner_rad=1, wedge=wedge,fc_snr=fc_snr,
-                                                                  student=True, transmission=transmission, 
-                                                                  plot=True, dpi=100, 
-                                                                  verbose=verbose, ncomp=int(id_npc_ann_df[rr]), svd_mode=svd_mode_all[1], 
-                                                                  radius_int=mask_IWA_px, asize=asize*fwhm, 
-                                                                  delta_rot=delta_rot, cube_ref=ref_cube, scaling=scaling,
-                                                                  min_frames_lib=max(id_npc_ann_df[rr],min_fr), max_frames_lib=max(max_fr,id_npc_ann_df[rr]+1))                                
+                                    pn_contr_curve_ann_rr = contrast_curve(PCA_ADI_cube_ori, derot_angles, psfn,
+                                                                           fwhm, plsc, starphot=starphot,
+                                                                           algo=pca_annular, sigma=5., nbranch=n_br,
+                                                                           theta=0, inner_rad=1, wedge=wedge,fc_snr=fc_snr,
+                                                                           student=True, transmission=transmission,
+                                                                           plot=True, dpi=100,
+                                                                           verbose=verbose, ncomp=int(id_npc_ann_df[rr]), svd_mode=svd_mode_all[1],
+                                                                           radius_int=mask_IWA_px, asize=asize*fwhm,
+                                                                           delta_rot=delta_rot, cube_ref=ref_cube, scaling=scaling,
+                                                                           min_frames_lib=max(id_npc_ann_df[rr],min_fr), max_frames_lib=max(max_fr,id_npc_ann_df[rr]+1))
                                 DF.to_csv(pn_contr_curve_ann_rr, path_or_buf=outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'contrast_curve_PCA-{}-ann_optimal_at_{:.1f}as{}.csv'.format(label_stg,rad*plsc,label_emp), sep=',', na_rep='', float_format=None)
                                 df_list.append(pn_contr_curve_ann_rr)
                             pn_contr_curve_ann_opt = pn_contr_curve_ann_rr.copy()
