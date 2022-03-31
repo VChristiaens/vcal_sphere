@@ -429,8 +429,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 elif fi == 1:
                     negative=False
                     rec_met_tmp = rec_met_psf
-                else : break # CEN
-                if not file_list : break # If file_list is empty, which append when there is no psf/cen then we break.
+                else:
+                    break  # CEN
+                if not file_list:
+                    break  # if file_list is empty, which append when there is no psf/cen then we break.
                 
                 for ff, filt in enumerate(filters_lab):
                     if not isfile(outpath+"{}_2cen.fits".format(file_list[-1])) or overwrite[1]:
@@ -623,6 +625,20 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         final_x_shifts = []
                         final_y_shifts_std = []
                         final_x_shifts_std = []
+                        mjd_all = []
+                        mjd_mean = []
+                        pa_sci_ini = []
+                        pa_sci_fin = []
+                        for fn_tmp, filename_tmp in enumerate(file_list):
+                            cube_tmp, head_tmp = open_fits(inpath + OBJ_IRDIS_list[fn_tmp] + filters_lab[ff],
+                                                           header=True)
+                            mjd_tmp = float(head_tmp['MJD-OBS'])
+                            mjd_tmp_list = [mjd_tmp + i * dit_irdis for i in range(cube_tmp.shape[0])]
+                            mjd_all.extend(mjd_tmp_list)
+                            mjd_mean.append(np.mean(mjd_tmp_list))
+                            pa_sci_ini.append(float(head_tmp["HIERARCH ESO TEL PARANG START"]))
+                            pa_sci_fin.append(float(head_tmp["HIERARCH ESO TEL PARANG END"]))
+                        mjd_all = np.array(mjd_all)
                         for fn, filename in enumerate(file_list):
                             if ((fn>0 and fi==0) or fn>npsf-1) and use_cen_only:
                                 continue
@@ -696,20 +712,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots)
                                         cube_cen_sub = cube_cen.copy()
                                         if not use_cen_only:
-                                            mjd_all = []
-                                            mjd_mean = []
-                                            pa_sci_ini = []
-                                            pa_sci_fin = []
-                                            for fn_tmp, filename_tmp in enumerate(file_list):
-                                                cube_tmp, head_tmp = open_fits(inpath+OBJ_IRDIS_list[fn_tmp]+filters_lab[ff], header = True)
-                                                mjd_tmp = float(head_tmp['MJD-OBS'])
-                                                mjd_tmp_list = [mjd_tmp+i*dit_irdis for i in range(cube_tmp.shape[0])]
-                                                mjd_all.extend(mjd_tmp_list)
-                                                mjd_mean.append(np.mean(mjd_tmp_list))
-                                                pa_sci_ini.append(float(head_tmp["HIERARCH ESO TEL PARANG START"]))
-                                                pa_sci_fin.append(float(head_tmp["HIERARCH ESO TEL PARANG END"]))
                                             m_idx = find_nearest(mjd_mean,mjd_cen[cc])
-                                            mjd_all=np.array(mjd_all)
                                             cube_near = open_fits(outpath+file_list[m_idx]+filt+"_1bpcorr.fits")
                                             cube_cen_sub -= np.median(cube_near,axis=0)
                                         diff = int((ori_sz-bp_crop_sz)/2)
@@ -869,26 +872,26 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         if fi>0 or not use_cen_only: 
                             write_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_y_shifts))
                             write_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_x_shifts))
-                            if plot and not use_cen_only:
-                                f, (ax1) = plt.subplots(1,1, figsize=(15,10))
-                                t0 = np.amin(unique_mjd_cen)
-                                ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                             (mjd_all-t0)*60*24,
-                                             final_y_shifts, final_y_shifts_std,
-                                             fmt='bo', label='y')
-                                ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                             (mjd_all-t0)*60*24,
-                                             final_x_shifts, final_x_shifts_std,
-                                             fmt='ro',label='x')
-                                if "satspots" in rec_met_tmp:
-                                    ax1.errorbar((unique_mjd_cen-t0)/60.,y_shifts_cen,y_shifts_cen_err,
-                                                 fmt='co',label='y cen')
-                                    ax1.errorbar((unique_mjd_cen-t0)/60.,x_shifts_cen,x_shifts_cen_err,
-                                                 fmt='mo',label='x cen')
-                                ax1.set_xlabel("Time from start of obs. (min)")
-                                plt.legend(loc='best')
-                                plt.savefig(outpath+"Shifts_xy{}_{}.pdf".format(labels[fi],rec_met_tmp),bbox_inches='tight', format='pdf')
-                                plt.clf()  
+                        if fi != 1 and plot and not use_cen_only:
+                            f, (ax1) = plt.subplots(1,1, figsize=(15,10))
+                            t0 = np.amin(unique_mjd_cen)
+                            ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
+                                         (mjd_all-t0)*60*24,
+                                         final_y_shifts, final_y_shifts_std,
+                                         fmt='bo', label='y')
+                            ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
+                                         (mjd_all-t0)*60*24,
+                                         final_x_shifts, final_x_shifts_std,
+                                         fmt='ro',label='x')
+                            if "satspots" in rec_met_tmp:
+                                ax1.errorbar((unique_mjd_cen-t0)/60.,y_shifts_cen,y_shifts_cen_err,
+                                             fmt='co',label='y cen')
+                                ax1.errorbar((unique_mjd_cen-t0)/60.,x_shifts_cen,x_shifts_cen_err,
+                                             fmt='mo',label='x cen')
+                            ax1.set_xlabel("Time from start of obs. (min)")
+                            plt.legend(loc='best')
+                            plt.savefig(outpath+"Shifts_xy{}_{}.pdf".format(labels[fi],rec_met_tmp),bbox_inches='tight', format='pdf')
+                            plt.clf()
                 
     
         #******************************* MASTER CUBES ******************************
@@ -898,7 +901,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     if fi == 0 and use_cen_only:
                         continue
                     elif fi == 2 and not "satspots" in rec_met:
-                        msg = "Are you sure not to want to use the satellite spots for centering?"
+                        msg = "Are you sure you do not want to use the satellite spots for centering?"
                         msg += "(If so press 'c' to continue, else 'q' to abort then re-run step 2 after changing the value of 'rec_met' in parameter file)"
                         print(msg)
                         pdb.set_trace()
@@ -1687,7 +1690,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 # PSF ONLY
                 for ff, filt in enumerate(filters):
                     if not isfile(outpath+final_psfname+".fits") or overwrite[6]:
-                        cube = open_fits(outpath+"3_master{}_cube_clean_{}_DistCorr{}.fits".format(labels[idx_psf],filt,"-".join(badfr_crit_names_psf)))
+                        cube = open_fits(outpath+"3_master{}_cube_clean_{}{}.fits".format(labels[idx_psf],filt,"-".join(badfr_crit_names_psf)))
                         # crop
                         if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
                             if crop_sz%2 != cube.shape[1]%2:

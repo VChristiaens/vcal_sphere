@@ -14,7 +14,7 @@ import os
 from astropy.convolution import convolve
 #import pdb
 from os.path import isfile, join
-import vip_hci
+from vip_hci.fits import open_fits
 
 instr = 'SPHER' # instrument name in file name
 
@@ -157,7 +157,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
         for fname in file_list: # all fits files
             if fname.startswith(instr) and fname.endswith('.fits'):
                 # Note: conditions can be refined if deemed appropriate.
-                cube, header = vip_hci.fits.open_fits(inpath+fname, header=True, verbose=False)
+                cube, header = open_fits(inpath+fname, header=True, verbose=False)
                 if not "ESO DPR TYPE" in header.keys() and not "HIERARCH ESO DPR TYPE" in header.keys():
                     continue
                 fits_list.append(fname)
@@ -208,7 +208,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                         ifs_mode = _check_mode(ifs_mode)
                     elif header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'FLAT,LAMP,RONGAIN':
                         gain_list_IFS.append(fname)
-                        ifs_mode = _check_mode(ifs_mode)
+                        # ifs_mode = _check_mode(ifs_mode)
                         
                 if dit_irdis is not None:     
                     if header['HIERARCH ESO DET SEQ1 DIT'] == dit_irdis and header['HIERARCH ESO DET NAME']== 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'OBJECT' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
@@ -276,14 +276,14 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                         
             elif fname.startswith('M.'+instr) and fname.endswith('.fits'):
                 calib_list.append(fname)  
-                cube, header = vip_hci.fits.open_fits(inpath+fname, header=True, verbose=False)
+                cube, header = open_fits(inpath+fname, header=True, verbose=False)
                 if header['HIERARCH ESO PRO CATG'] == 'IFS_POINT_PATTERN':
                     calib_IFS.append(fname)
                 elif header['HIERARCH ESO PRO CATG'] == 'IRD_POINT_PATTERN':
                     calib_IRDIS.append(fname)
                     
         for fname in fits_list: # all fits files
-            cube, header = vip_hci.fits.open_fits(inpath+fname, header=True, verbose=False)
+            cube, header = open_fits(inpath+fname, header=True, verbose=False)
             if header['HIERARCH ESO DPR TYPE'] == 'OBJECT,AO':
                 continue
             if header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'DARK' and float(header['HIERARCH ESO DET SEQ1 DIT']) in dit_ifs_flat: #and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2: # by elimination must be a flat lamp dark

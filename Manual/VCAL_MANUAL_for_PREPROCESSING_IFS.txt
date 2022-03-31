@@ -9,16 +9,17 @@ to_do = [1,2,3,4,5,6,7,8] # parts of pre-processing to be run.
     #   a. with provided mask (static) => iterative because clumps
     #   b. sigma filtering (cosmic rays) => non-iterative
     #2. Recentering
-    #3. final crop
-    #4. combine all cropped cubes + compute derot_angles [bin if requested]
-    #5. bad frame rejection
+    #3. final crop and master cube
+    #4. plots + trim bad frames
     #   a. Plots before rejection
     #   b. Rejection
     #   c. Plots after rejection
-    #6. FWHM + unsat flux (PSF)
+    #5. FWHM + unsat flux (PSF)
     #   a. Gaussian
     #   b. Airy
-    #7. final ADI cubes writing - pick one from step 5
+    #6. final OBJ cube and binning (if requested)
+    #7. final ADI cubes and PSF frames
+    #8. final scale list
 overwrite = [1,1,1,1,1,1,1,1]  # list of bools corresponding to parts of pre-processing to be run again even if files already exist. Same order as to_do
 debug = True # whether to print more info - useful for debugging
 save_space = False # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
@@ -70,12 +71,12 @@ instr = 'SPHER' # instrument name in file name
 # then adapt below
 n_z = lbdas.shape[0]
 diam = 8.1
-plsc = np.array([0.012267,0.012263]) #0.01227 #arcsec/pixel
+plsc = 0.00746 #arcsec/pixel
 
 # Systematic errors (cfr. Maire et al. 2016)
-pup_off = 135.99 #=-0.11de d dg  ## !!! MANUAL IS WRONG ACCORDING TO ALICE: should be +135.99 (in particular if TN = -1.75)
+pup_off = 135.99 #=-0.11deg  ## !!! MANUAL IS WRONG ACCORDING TO ALICE: should be +135.99 (in particular if TN = -1.75)
 TN = -1.75 # pm0.08 deg
-ifs_off = 0              # for ifs data: -100.48 pm 0.13 deg # for IRDIS: 0
+ifs_off = -100.48              # for ifs data: -100.48 pm 0.13 deg # for IRDIS: 0
 scal_x_distort = 1.      # for IFS: 1.0059
 scal_y_distort = 1.0062  # for IFS: 1.0011
 

@@ -7,7 +7,7 @@ Module with the preprocessing routine for SPHERE/IFS data.
 __author__ = 'V. Christiaens'
 __all__ = ['preproc_IFS']
 
-#PURPOSE: do the calibration steps not done in the EOS pipeline using VIP
+#PURPOSE: do the calibration steps not done in the ESO pipeline using VIP
 import ast
 import csv
 import json
@@ -70,7 +70,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         params_calib = json.load(read_file_params_calib)
         
     with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
-        filt_spec = json.load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combinaison
+        filt_spec = json.load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filter combination
     with open(vcal_path[0] + "/instr_param/sphere.json", 'r') as instr_param_file:
         instr_cst = json.load(instr_param_file)
     
@@ -91,7 +91,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     ## note: for CrA9, no need for PSF because the OBJ ones are not saturated 
     
     # parts of pipeline
-    to_do = params_preproc.get('to_do',{1,2,3,4,5,6,7,8,9}) # parts of pre-processing to be run. 
+    to_do = params_preproc.get('to_do',{1,2,3,4,5,6,7,8})  # parts of pre-processing to be run.
     #1. crop odd + bad pix corr
     #   a. with provided mask (static) => iterative because clumps
     #   b. sigma filtering (cosmic rays) => non-iterative
@@ -106,7 +106,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     #   a. Gaussian
     #   b. Airy
     #7. final ADI cubes writing - pick one from step 5
-    overwrite = params_preproc.get('overwrite',[1]*7) # list of bools corresponding to parts of pre-processing to be run again even if files already exist. Same order as to_do
+    overwrite = params_preproc.get('overwrite',[1]*8) # list of bools corresponding to parts of pre-processing to be run again even if files already exist. Same order as to_do
     debug = params_preproc.get('debug',0) # whether to print more info - useful for debugging
     save_space = params_preproc['save_space'] # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
     plot = params_preproc['plot']
@@ -145,13 +145,13 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     #lbdas = np.array([2.11,2.251])
     #n_z = lbdas.shape[0]
     diam = instr_cst.get('diam',8.1)
-    plsc = instr_cst.get('plsc',[0.00746])[0] #arcsec/pixel # Maire 2016
+    plsc = params_preproc.get('plsc',0.00746)  # arcsec/pixel # Maire 2016
     #print("Resel: {:.2f} / {:.2f} px (K1/K2)".format(resel[0],resel[1]))
     
     # Systematic errors (cfr. Maire et al. 2016)
     pup_off = instr_cst.get('pup_off',135.99)
     TN = instr_cst.get('TN',-1.75)  # pm0.08 deg
-    ifs_off = instr_cst.get('ifs_off',-100.48)              # for ifs data: -100.48 pm 0.13 deg # for IRDIS: 0
+    ifs_off = params_preproc.get('ifs_off',-100.48)              # for ifs data: -100.48 pm 0.13 deg # for IRDIS: 0
     #scal_x_distort = instr_cst.get('scal_x_distort',1.0059)   
     #scal_y_distort = instr_cst.get('scal_y_distort',1.0011)   
     mask_scal = params_preproc.get('mask_scal',[0.15,0])
@@ -165,7 +165,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         cen_box_sz = [cen_box_sz]*3
     true_ncen = params_preproc['true_ncen']# number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
     #distort_corr = params_preproc.get('distort_corr',True) 
-    bp_crop_sz = params_preproc.get('bp_crop_sz',261)         # crop size before bad pix correction for OBJ, PSF and CEN 
+    bp_crop_sz = params_preproc.get('bp_crop_sz',261)         # crop size before bad pix correction for OBJ, PSF and CEN
     final_crop_sz = params_preproc.get('final_crop_sz',[257,256]) #361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
     final_crop_sz_psf  = params_preproc.get('final_crop_sz_psf',[41,64]) # 51 => 0.25'' radius (~3.5 FWHM)
     psf_model = params_preproc.get('psf_model',"gauss") #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
@@ -344,7 +344,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         if bp_crop_sz>0 and bp_crop_sz<cube.shape[1]:
                             cube = cube_crop_frames(cube,bp_crop_sz)
                         cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resels, 
-                                                     sig=6., protect_psf=False, verbose=full_output,
+                                                     sig=6., protect_mask=0, verbose=full_output,
                                                      half_res_y=False, max_nit=10, full_output=full_output)
                         if full_output:
                             write_fits(outpath+filename+"_1bpcorr_bpmap.fits", cube[1], header=header)
