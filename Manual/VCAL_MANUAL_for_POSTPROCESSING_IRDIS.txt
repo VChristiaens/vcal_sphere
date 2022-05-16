@@ -38,7 +38,7 @@ This file describes the structure of the postprocessing pipeline for IRDIS, and 
 
 # PCA options
 "delta_rot": [1,3] 		# threshold in field rotation to keep good frames in PCA library. Can be: float or list of 2 values (for threshold for the innermost and outermost annuli, resp.). In the latter case, the threshold is linearly interpolated for intermediate annuli.
-"asize":3, 			# width of the annnuli for either pca in concentric annuli or on a single annulus, provided in FWHM.
+"asize":3, 			# width of the annuli for either pca in concentric annuli or on a single annulus, provided in FWHM.
 "svd_mode":"lapack"             # package to use for SVD, can be a string or a list of 2 strings. In the latter case, the first one is for processing of cropped cube, and the second one for the full cube.
 "firstguess_pcs":[1,21,1] 	# number of pcs to explore for first contrast curve (used to estimate noise level). Should be a list of 3 elements: first and last npc to be tested, and step.
 "pcs_sann":[1,21,1] 		# number of pcs to be explored for PCA in single annulus.
