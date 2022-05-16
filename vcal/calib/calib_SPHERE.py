@@ -11,6 +11,7 @@ from astropy.io import fits
 from astropy.stats import sigma_clipped_stats
 import ast
 import csv
+import glob
 import json
 import numpy as np
 import os
@@ -22,7 +23,7 @@ from vip_hci.fits import open_fits, write_fits
 from vip_hci.var import frame_center, create_ringed_spider_mask, mask_circle
 from vip_hci.metrics import peak_coordinates
 from vip_hci.preproc import frame_shift, cube_subtract_sky_pca, cube_fix_badpix_clump
-from ..utils import make_lists, sph_ifs_correct_spectral_xtalk
+from ..utils import make_lists, sph_ifs_correct_spectral_xtalk, most_common
 
 from vcal import __path__ as vcal_path
 
@@ -45,13 +46,36 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     """
     with open(params_calib_name, 'r') as read_file_params_calib:
         params_calib = json.load(read_file_params_calib)
-        
-    with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
-        filt_spec = json.load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combinaison
-    
+
     path = params_calib['path'] #"/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/" # parent path
+    if path[-1] != '/':
+        path += '/'
     inpath = path+"raw/"
     inpath_filt_table = params_calib.get('inpath_filt_table','~/') #"/Applications/ESO/spher-calib-0.38.0/cal/"
+        
+    
+    # if not provided, automatically infer observing mode from fits files in data path (most common is chosen)
+    if 'comb_iflt' in params_calib:
+        comb_iflt = params_calib['comb_iflt']
+    else:
+        #list all header
+        msg = "comb_iflt not provided => will automatically search most common"
+        msg += " observing mode in fits headers..."
+        print(msg)
+        fitsfiles = glob.glob(inpath+'*.fits')
+        iflt_list = []
+        for ff, ffile in enumerate(fitsfiles):
+            _, head = open_fits(ffile, header=True, verbose=False)
+            if 'HIERARCH ESO INS COMB IFLT' in head:
+                iflt_list.append(head['HIERARCH ESO INS COMB IFLT'])
+        msg = "Most common observed mode ({}/{}): {}"
+        comb_iflt = most_common(iflt_list)
+        nmod = np.sum([1 for filt in iflt_list if filt == comb_iflt])
+        print(msg.format(nmod, len(iflt_list), comb_iflt))
+        
+    with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
+        filt_spec = json.load(filt_spec_file)[comb_iflt]  # Get infos of current filters combinaison
+    
     
     # subdirectories
     path_ifs = path+"IFS_reduction/"
@@ -139,7 +163,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     ## 10-19 IFS
     
     instr = params_calib['instr']# instrument name in file name
-    science_mode = params_calib['science_mode'] # current choice between {'DBI','CI'}
+    science_mode = filt_spec['mode'] # current choice between {'DBI','CI','DPI'}
     mode = params_calib.get('mode','YJH') # only matters for IFS data calibration
     
     overwrite_sof = params_calib['overwrite_sof']
@@ -854,9 +878,13 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             elif science_mode == 'CI':
                 lab_SCI = 'IRD_SCIENCE_IMAGING_RAW\n'
                 lab_rec = 'science_imaging'
-                lab_lr = ["_CI_l_"+filters,"_CI_r_"+filters]
+                lab_lr = ["_CI_l_"+filters[0],"_CI_r_"+filters[0]]
+            elif science_mode == 'DPI':
+                lab_SCI = 'IRD_SCIENCE_IMAGING_RAW\n'
+                lab_rec = 'science_imaging'
+                lab_lr = ["_DPI_l_"+filters[0],"_DPI_r_"+filters[0]]
             else:
-                raise ValueError("science_mode not recognized: should be DBI or CI.")
+                raise ValueError("science_mode not recognized: should be DBI, CI or DPI.")
                 
             # OBJECT  
             sci_list_irdis = dico_lists['sci_list_irdis']

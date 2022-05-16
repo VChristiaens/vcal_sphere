@@ -142,7 +142,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     # then adapt below
     filters = filt_spec['filters'] #DBI filters
     filters_lab = ['_left','_right'] # should be hard-coded because not an option in calib
-    lbdas = np.array( filt_spec['lbda'] ) # get lamba(s) assosiated with filter(s)
+    if len(filters) == 1:
+        filters = [filters[0]+'_l', filters[0]+'_r'] # should have length of 2
+    lbdas = np.array(filt_spec['lbda']) # get lamba(s) assosiated with filter(s)
+    if len(lbdas) == 1:
+        lbdas = np.array([lbdas[0], lbdas[0]]) # should have length of 2
     #n_z = lbdas.shape[0]
     diam = instr_cst['diam']
     plsc = np.array(instr_cst['plsc']) #0.01227 #arcsec/pixel
@@ -165,20 +169,20 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     idx_test_cube = params_preproc.get('idx_test_cube', [0,0,0])                                            # if rec_met is list: provide index of test cube (should be the most tricky one) where all methods will be tested => best method should correspond min(stddev of shifts)
     #idx_test_cube_psf = params_preproc['']                                    # id as above for psf
     cen_box_sz = params_preproc.get('cen_box_sz',[31,71,31])                   # size of the subimage for 2d fit, for OBJ, PSF and CEN
-    true_ncen = params_preproc['true_ncen']                                               # number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
-    #norm_per_s = params_preproc['']                                            # if True, divide all frames by respective dit => have all fluxes in adu/s
+    true_ncen = params_preproc['true_ncen']                                    # number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
+    #norm_per_s = params_preproc['']                                           # if True, divide all frames by respective dit => have all fluxes in adu/s
     template_strehl = params_preproc['template_strehl']
-    distort_corr = params_preproc.get('distort_corr',1)                                # whether to correct manually for distortion (anamorphism) or not
-    bp_crop_sz = params_preproc.get('bp_crop_sz',801)                                          #823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
+    distort_corr = params_preproc.get('distort_corr',1)                        # whether to correct manually for distortion (anamorphism) or not
+    bp_crop_sz = params_preproc.get('bp_crop_sz',801)                          #823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
     bp_crop_sz_psf = params_preproc.get('bp_crop_sz_psf',801)   
-    final_crop_sz = params_preproc['final_crop_sz']                                          #823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
-    final_crop_sz_psf = params_preproc['final_crop_sz_psf']                                       # 51 => 0.25'' radius (~3.5 FWHM)
-    psf_model = params_preproc.get('psf_model','moff')                                       #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
-    separate_trim = params_preproc.get('separate_trim', True)                                        # whether to separately trim K1 and K2. If False, will only trim based on the K1 frames
-    bin_fac = params_preproc.get('bin_fac',1)                                      # binning factors for final cube. If the cube is not too large, do not bin.
-    approx_xy_bkg = params_preproc.get('approx_xy_bkg',0)                          # approx bkg star position in full ADI frame obtained after rough centering 
-    snr_thr_bkg = params_preproc.get('snr_thr_bkg',5)                              # SNR threshold for the bkg star: only frames where the SNR is above that threshold are used to find bkg star position 
-    good_cen_idx = params_preproc.get('good_cen_idx', None) # good indices of center cubes (to be used for fine centering)
+    final_crop_sz = params_preproc['final_crop_sz']                            #823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
+    final_crop_sz_psf = params_preproc['final_crop_sz_psf']                    # 51 => 0.25'' radius (~3.5 FWHM)
+    psf_model = params_preproc.get('psf_model','moff')                         #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
+    separate_trim = params_preproc.get('separate_trim', True)                  # whether to separately trim K1 and K2. If False, will only trim based on the K1 frames
+    bin_fac = params_preproc.get('bin_fac',1)                                  # binning factors for final cube. If the cube is not too large, do not bin.
+    approx_xy_bkg = params_preproc.get('approx_xy_bkg',0)                      # approx bkg star position in full ADI frame obtained after rough centering 
+    snr_thr_bkg = params_preproc.get('snr_thr_bkg',5)                          # SNR threshold for the bkg star: only frames where the SNR is above that threshold are used to find bkg star position 
+    good_cen_idx = params_preproc.get('good_cen_idx', None)                    # good indices of center cubes (to be used for fine centering)
     bin_fit = params_preproc.get('bin_fit',1)
     convolve_bkg = params_preproc.get('convolve_bkg',1)
     

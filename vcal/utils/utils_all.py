@@ -8,12 +8,14 @@ __author__='V. Christiaens'
 __all__=['set_backend',
          'find_nearest',
          'nonzero_median',
-         'cube_crop_quadrant']
+         'cube_crop_quadrant',
+         'most_common']
 
 # coding: utf-8
 import matplotlib
 import numpy as np
 import os
+from statistics import mode
 from vip_hci.var import frame_center
 
 def set_backend():
@@ -198,3 +200,7 @@ def cube_crop_quadrant(array,quadrant):
         else:
             subarray = array[:int(np.ceil(cy)),int(np.floor(cx))+1:,]             
     return subarray
+
+
+def most_common(List):
+	return(mode(List))

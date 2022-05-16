@@ -5,8 +5,12 @@
 "DB_H32":{"mode":"DBI","filters":["H3","H2"],"lbda":[1.667,1.593],"dlbda":[54,52], "IRFW1":"B_H", "IRFW2":"D_H32","modes":"DBI,CI"},
 "DB_H34":{"mode":"DBI","filters":["H3","H4"],"lbda":[1.667,1.733],"dlbda":[54,57], "IRFW1":"B_Hcmp2", "IRFW2":"D_H34","modes":"DBI,CI"},
 "DB_K12":{"mode":"DBI","filters":["K1","K2"],"lbda":[2.110,2.251],"dlbda":[102,109], "IRFW1":"B_Ks", "IRFW2":"D_K12","modes":"DBI,CI","xy_spots": [[[435,568], [524,569], [434,480], [524,479]],[[435,558], [530,558], [434,464], [530,464]]]},
-"BB_Y":{"mode":"Full Y band","filters":"CI","lbda":[1.043],"dlbda":[140], "IRFW1":"B_Y", "IRFW2":"CLEAR","modes":"DPI,CI"},
-"BB_J":{"mode":"Full J band","filters":"CI","lbda":[1.245],"dlbda":[240], "IRFW1":"B_J", "IRFW2":"CLEAR","modes":"DPI,CI"},
-"BB_H":{"mode":"Full H band","filters":"CI","lbda":[1.625],"dlbda":[290], "IRFW1":"B_H", "IRFW2":"CLEAR","modes":"DPI,CI"},
-"BB_Ks":{"mode":"Full Ks band","filters":"CI","lbda":[2.182],"dlbda":[300], "IRFW1":"B_Ks", "IRFW2":"CLEAR","modes":"DPI,CI"}
+"BB_Y":{"mode":"CI","filters":["Y"],"lbda":[1.043],"dlbda":[140], "IRFW1":"B_Y", "IRFW2":"CLEAR","modes":"DPI,CI"},
+"BB_J":{"mode":"CI","filters":["J"],"lbda":[1.245],"dlbda":[240], "IRFW1":"B_J", "IRFW2":"CLEAR","modes":"DPI,CI"},
+"BB_H":{"mode":"CI","filters":["H"],"lbda":[1.625],"dlbda":[290], "IRFW1":"B_H", "IRFW2":"CLEAR","modes":"DPI,CI"},
+"BB_Ks":{"mode":"CI","filters":["Ks"],"lbda":[2.182],"dlbda":[300], "IRFW1":"B_Ks", "IRFW2":"CLEAR","modes":"DPI,CI"},
+"DP_0_BB_Y":{"mode":"DPI","filters":["Y"],"lbda":[1.043],"dlbda":[140], "IRFW1":"B_Y", "IRFW2":"CLEAR","modes":"DPI,CI"},
+"DP_0_BB_J":{"mode":"DPI","filters":["J"],"lbda":[1.245],"dlbda":[240], "IRFW1":"B_J", "IRFW2":"CLEAR","modes":"DPI,CI"},
+"DP_0_BB_H":{"mode":"DPI","filters":["H"],"lbda":[1.625],"dlbda":[290], "IRFW1":"B_H", "IRFW2":"CLEAR","modes":"DPI,CI"},
+"DP_0_BB_Ks":{"mode":"DPI","filters":["Ks"],"lbda":[2.182],"dlbda":[300], "IRFW1":"B_Ks", "IRFW2":"CLEAR","modes":"DPI,CI"}
 }
