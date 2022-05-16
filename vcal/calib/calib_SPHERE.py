@@ -18,7 +18,10 @@ import pdb
 from os.path import isfile, isdir#, join, dirname, abspath
 import pathlib
 import photutils
-import vip_hci
+from vip_hci.fits import open_fits, write_fits
+from vip_hci.var import frame_center, create_ringed_spider_mask, mask_circle
+from vip_hci.metrics import peak_coordinates
+from vip_hci.preproc import frame_shift, cube_subtract_sky_pca, cube_fix_badpix_clump
 from ..utils import make_lists, sph_ifs_correct_spectral_xtalk
 
 from vcal import __path__ as vcal_path
@@ -248,35 +251,35 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             ins_bg_list_irdis = dico_lists['ins_bg_list_irdis']
             if len(sky_list_irdis) > 0 and good_sky_irdis is not None:
                 if -1 in good_sky_irdis:
-                    tmp = vip_hci.fits.open_fits(inpath+sky_list_irdis[0])
+                    tmp = open_fits(inpath+sky_list_irdis[0])
                     master_sky = np.zeros([1,tmp.shape[1],tmp.shape[2]])
                     master_sky[0] = tmp[0]
-                    vip_hci.fits.write_fits("{}master_sky_cube.fits".format(outpath_irdis_fits), master_sky) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    write_fits("{}master_sky_cube.fits".format(outpath_irdis_fits), master_sky) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
                     sky_list_irdis = [sky_list_irdis[0]]
                 elif 'all' in good_sky_irdis:
                     counter=0
                     nsky = len(sky_list_irdis)
                     for gg in range(nsky):
-                        tmp = vip_hci.fits.open_fits(inpath+sky_list_irdis[gg])
+                        tmp = open_fits(inpath+sky_list_irdis[gg])
                         if counter == 0:
                             master_sky = np.zeros([nsky*tmp.shape[0],tmp.shape[1],tmp.shape[2]])
                         master_sky[counter:counter+tmp.shape[0]] = tmp
                         counter+=tmp.shape[0]
                     #master_sky = np.median(master_sky,axis=0)
-                    vip_hci.fits.write_fits("{}master_sky_cube.fits".format(outpath_irdis_fits), master_sky[:counter]) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    write_fits("{}master_sky_cube.fits".format(outpath_irdis_fits), master_sky[:counter]) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
                 elif len(good_sky_irdis)>0:
                     counter=0
                     nsky = len(good_sky_irdis)
                     sky_list_irdis_tmp = []
                     for gg in good_sky_irdis:
-                        tmp = vip_hci.fits.open_fits(inpath+sky_list_irdis[gg])
+                        tmp = open_fits(inpath+sky_list_irdis[gg])
                         if counter == 0:
                             master_sky = np.zeros([nsky*tmp.shape[0],tmp.shape[1],tmp.shape[2]])
                         master_sky[counter:counter+tmp.shape[0]] = tmp
                         counter+=tmp.shape[0]
                         sky_list_irdis_tmp.append(sky_list_irdis[ii])
                     #master_sky = np.median(master_sky,axis=0)
-                    vip_hci.fits.write_fits("{}master_sky_cube.fits".format(outpath_irdis_fits), master_sky[:counter]) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    write_fits("{}master_sky_cube.fits".format(outpath_irdis_fits), master_sky[:counter]) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
                     sky_list_irdis = sky_list_irdis_tmp
                 else:
                     raise TypeError("good_sky_irdis format not recognised")
@@ -284,13 +287,13 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 nsky = len(ins_bg_list_irdis)
                 counter = 0
                 for ii in range(len(ins_bg_list_irdis)):
-                    tmp = vip_hci.fits.open_fits(inpath+ins_bg_list_irdis[ii])
+                    tmp = open_fits(inpath+ins_bg_list_irdis[ii])
                     if counter == 0:
                         master_sky = np.zeros([nsky*tmp.shape[0],tmp.shape[1],tmp.shape[2]])
                     master_sky[counter:counter+tmp.shape[0]] = tmp
                     counter+=tmp.shape[0]
                 #master_sky = np.median(master_sky,axis=0)
-                vip_hci.fits.write_fits("{}master_sky_cube.fits".format(outpath_irdis_fits), master_sky[:counter]) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                write_fits("{}master_sky_cube.fits".format(outpath_irdis_fits), master_sky[:counter]) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
             else:
                 print("WARNING: no SKY cube available.")
                 print("Sky subtraction proxy based on median background value")
@@ -301,32 +304,32 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             psf_ins_bg_list_irdis = dico_lists['psf_ins_bg_list_irdis']
             if len(psf_sky_list_irdis) > 0:
                 if -1 in good_psf_sky_irdis:
-                    tmp = vip_hci.fits.open_fits(inpath+psf_sky_list_irdis[0])
+                    tmp = open_fits(inpath+psf_sky_list_irdis[0])
                     master_psf_sky = np.zeros([1,tmp.shape[1],tmp.shape[2]])
                     master_psf_sky[0] = tmp[0]
-                    vip_hci.fits.write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
                 elif 'all' in good_psf_sky_irdis:
                     counter=0
                     nsky = len(psf_sky_list_irdis)
                     for gg in range(nsky):
-                        tmp = vip_hci.fits.open_fits(inpath+psf_sky_list_irdis[gg])
+                        tmp = open_fits(inpath+psf_sky_list_irdis[gg])
                         if counter == 0:
                             master_psf_sky = np.zeros([nsky*tmp.shape[0],tmp.shape[1],tmp.shape[2]])
                         master_psf_sky[counter:counter+tmp.shape[0]] = tmp
                         counter+=tmp.shape[0]
                     #master_sky = np.median(master_sky,axis=0)
-                    vip_hci.fits.write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky[:counter]) 
+                    write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky[:counter])
                 elif len(good_psf_sky_irdis)>0:
                     counter=0
                     nsky = len(good_psf_sky_irdis)
                     for gg in good_psf_sky_irdis:
-                        tmp = vip_hci.fits.open_fits(inpath+psf_sky_list_irdis[gg])
+                        tmp = open_fits(inpath+psf_sky_list_irdis[gg])
                         if counter == 0:
                             master_psf_sky = np.zeros([nsky*tmp.shape[0],tmp.shape[1],tmp.shape[2]])
                         master_psf_sky[counter:counter+tmp.shape[0]] = tmp
                         counter+=tmp.shape[0]
                     #master_sky = np.median(master_sky,axis=0)
-                    vip_hci.fits.write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky[:counter]) 
+                    write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky[:counter])
                 elif good_psf_sky_irdis is None:
                     pass
                 else:
@@ -335,13 +338,13 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 nsky = len(psf_ins_bg_list_irdis)
                 counter = 0
                 for ii in range(len(psf_ins_bg_list_irdis)):
-                    tmp = vip_hci.fits.open_fits(inpath+psf_ins_bg_list_irdis[ii])
+                    tmp = open_fits(inpath+psf_ins_bg_list_irdis[ii])
                     if counter == 0:
                         master_psf_sky = np.zeros([nsky*tmp.shape[0],tmp.shape[1],tmp.shape[2]])
                     master_psf_sky[counter:counter+tmp.shape[0]] = tmp
                     counter+=tmp.shape[0]
                 #master_sky = np.median(master_sky,axis=0)
-                vip_hci.fits.write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky[:counter]) 
+                write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky[:counter])
 
 
         if not isfile("{}master_sky_cube.fits".format(outpath_irdis_fits)):
@@ -383,10 +386,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 os.system(command)
                 
             ## manually merge DARK bp map and FLAT bp map. => DON'T! THE REDUCE RECIPE CONSIDERS BOTH
-            dark_bpmap, header = vip_hci.fits.open_fits("{}master_badpixelmap.fits".format(outpath_irdis_fits), header=True)
-            flat_bpmap = vip_hci.fits.open_fits("{}master_flat_bpmap.fits".format(outpath_irdis_fits))
+            dark_bpmap, header = open_fits("{}master_badpixelmap.fits".format(outpath_irdis_fits), header=True)
+            flat_bpmap = open_fits("{}master_flat_bpmap.fits".format(outpath_irdis_fits))
             dark_bpmap[np.where(flat_bpmap)] = 1
-            vip_hci.fits.write_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits), dark_bpmap, header=header)
+            write_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits), dark_bpmap, header=header)
 
 
         # SKY CUBE (optionally PCA SUBTRACTION)
@@ -396,11 +399,11 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             n_sci =  len(sci_list_irdis)
             if n_sci>0:
                 # bad pixel maps
-                bp_map = vip_hci.fits.open_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
+                bp_map = open_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
                 # SKY PCA-SUBTR
                 if isfile("{}master_sky_cube.fits".format(outpath_irdis_fits)) and pca_subtr:
                     
-                    master_sky = vip_hci.fits.open_fits("{}master_sky_cube.fits".format(outpath_irdis_fits))
+                    master_sky = open_fits("{}master_sky_cube.fits".format(outpath_irdis_fits))
                     if npc > master_sky.shape[0]:
                         msg = "WARNING: input npc ({:.0f}) larger than number of sky frames, automatically changed to {:.0f}."
                         print(msg.format(npc,master_sky.shape[0]))
@@ -428,22 +431,22 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             tmp = np.median(sci_cube_tmp,axis=0)
                             if ii == 0 and s == 0:
                                 n_y_tmp, n_x_tmp = tmp.shape
-                                cy_tmp, cx_tmp = vip_hci.var.frame_center(tmp)
+                                cy_tmp, cx_tmp = frame_center(tmp)
                                 mask_arr = np.zeros([n_sci,2,n_y_tmp, n_x_tmp])
                             tmp = tmp - np.median(master_sci_sky_tmp,axis=0) - np.median(tmp-np.median(master_sci_sky_tmp,axis=0))
                             
                             if mask_pca_sky_sub[2] > 0:
-                                mask_tmp = vip_hci.var.create_ringed_spider_mask(tmp.shape, 
+                                mask_tmp = create_ringed_spider_mask(tmp.shape,
                                                      mask_pca_sky_sub[1], 
                                                      ann_in=mask_pca_sky_sub[0], 
                                                      sp_width=mask_pca_sky_sub[3],
                                                      sp_angle=mask_pca_sky_sub[4], 
                                                      nlegs=mask_pca_sky_sub[2])
-                                coords_tmp = vip_hci.metrics.peak_coordinates(tmp, fwhm=4)
+                                coords_tmp = peak_coordinates(tmp, fwhm=4)
                                 #print("peak coords: ", coords_tmp)
                                 star_coords_xy[ii,1,s] = coords_tmp[0]
                                 star_coords_xy[ii,0,s] = coords_tmp[1]
-                                mask_arr[ii][s] = vip_hci.preproc.frame_shift(mask_tmp,
+                                mask_arr[ii][s] = frame_shift(mask_tmp,
                                                                              int(star_coords_xy[ii,1,s]-cy_tmp),
                                                                              int(star_coords_xy[ii,0,s]-cx_tmp),
                                                                              border_mode='constant'
@@ -451,19 +454,19 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             else:
                                 ## create template annular mask
                                 mask_tmp = np.ones_like(tmp)
-                                mask_circ1 = vip_hci.var.mask_circle(mask_tmp, mask_pca_sky_sub[0], fillwith=0, mode='in')
-                                mask_circ2 = vip_hci.var.mask_circle(mask_tmp, mask_pca_sky_sub[1], fillwith=0, mode='out')
+                                mask_circ1 = mask_circle(mask_tmp, mask_pca_sky_sub[0], fillwith=0, mode='in')
+                                mask_circ2 = mask_circle(mask_tmp, mask_pca_sky_sub[1], fillwith=0, mode='out')
                             
-                                coords_tmp = vip_hci.metrics.peak_coordinates(tmp, fwhm=4)
+                                coords_tmp = peak_coordinates(tmp, fwhm=4)
                                 #print("peak coords: ", coords_tmp)
                                 star_coords_xy[ii,1,s] = coords_tmp[0]
                                 star_coords_xy[ii,0,s] = coords_tmp[1]
-                                mask_tmp_shift1 = vip_hci.preproc.frame_shift(mask_circ1,
+                                mask_tmp_shift1 = frame_shift(mask_circ1,
                                                                              int(star_coords_xy[ii,1,s]-cy_tmp),
                                                                              int(star_coords_xy[ii,0,s]-cx_tmp),
                                                                              border_mode='constant'
                                                                              )
-                                mask_tmp_shift2 = vip_hci.preproc.frame_shift(mask_circ2,
+                                mask_tmp_shift2 = frame_shift(mask_circ2,
                                                                              int(star_coords_xy[ii,1,s]-cy_tmp),
                                                                              int(star_coords_xy[ii,0,s]-cx_tmp),
                                                                              border_mode='constant'
@@ -486,7 +489,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     #                            med_psf_lvl = np.median(med_psf_lvl)
     #                            # PCA-sky subtraction
     #                            master_psf_sky_tmp = master_psf_sky_tmp-med_sky_lvl+med_psf_lvl
-                            sci_cube_tmp = vip_hci.preproc.cube_subtract_sky_pca(sci_cube_tmp, 
+                            sci_cube_tmp = cube_subtract_sky_pca(sci_cube_tmp,
                                                                                  sky_cube=master_sci_sky_tmp, 
                                                                                  mask=mask_arr[ii][s], 
                                                                                  ref_cube=None, 
@@ -543,7 +546,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     #                                                                     ncomp=npc)
     #                    hdulist_sc[0].data = sci_cube
     #                    hdulist_sc.writeto(inpath+label_ss+sci_list_irdis[ii], output_verify='ignore', overwrite=True)#, output_verify)
-                    vip_hci.fits.write_fits("{}master_masks_for_PCA_sky.fits".format(outpath_irdis_fits), mask_arr)
+                    write_fits("{}master_masks_for_PCA_sky.fits".format(outpath_irdis_fits), mask_arr)
                     # write fake dark
                     hdulist = fits.open("{}master_dark.fits".format(outpath_irdis_fits), 
                                         ignore_missing_end=False,
@@ -589,8 +592,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             if n_cen>0:
                 # SKY PCA-SUBTR
                 if isfile("{}master_sky_cube.fits".format(outpath_irdis_fits)) and pca_subtr_cen:
-                    bp_map = vip_hci.fits.open_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
-                    master_sky = vip_hci.fits.open_fits("{}master_sky_cube.fits".format(outpath_irdis_fits))
+                    bp_map = open_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
+                    master_sky = open_fits("{}master_sky_cube.fits".format(outpath_irdis_fits))
                     
                     
                     if science_mode == 'CI':
@@ -615,42 +618,41 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             tmp = np.median(cen_cube_tmp,axis=0)
                             if ii == 0 and s == 0:
                                 n_y_tmp, n_x_tmp = tmp.shape
-                                cy_tmp, cx_tmp = vip_hci.var.frame_center(tmp)
+                                cy_tmp, cx_tmp = frame_center(tmp)
                                 mask_arr = np.zeros([n_cen,2,n_y_tmp, n_x_tmp])
                             tmp = tmp - np.median(master_cen_sky_tmp,axis=0) - np.median(tmp-np.median(master_cen_sky_tmp,axis=0))
     
                             if mask_pca_sky_sub[2] > 0:
-                                mask_tmp = vip_hci.var.create_ringed_spider_mask(tmp.shape, 
+                                mask_tmp = create_ringed_spider_mask(tmp.shape,
                                                      mask_pca_sky_sub[1], 
                                                      ann_in=mask_pca_sky_sub[0], 
                                                      sp_width=mask_pca_sky_sub[3],
                                                      sp_angle=mask_pca_sky_sub[4], 
                                                      nlegs=mask_pca_sky_sub[2])
-                                coords_tmp = vip_hci.metrics.peak_coordinates(tmp, fwhm=4)
+                                coords_tmp = peak_coordinates(tmp, fwhm=4)
                                 #print("peak coords: ", coords_tmp)
                                 star_coords_xy[ii,1,s] = coords_tmp[0]
                                 star_coords_xy[ii,0,s] = coords_tmp[1]
-                                mask_arr[ii][s] = vip_hci.preproc.frame_shift(mask_tmp,
-                                                                             int(star_coords_xy[ii,1,s]-cy_tmp),
-                                                                             int(star_coords_xy[ii,0,s]-cx_tmp),
-                                                                             border_mode='constant'
-                                                                             )
+                                mask_arr[ii][s] = frame_shift(mask_tmp,
+                                                              int(star_coords_xy[ii,1,s]-cy_tmp),
+                                                              int(star_coords_xy[ii,0,s]-cx_tmp),
+                                                              border_mode='constant')
                             else:                        
                                 ## create template annular mask
                                 mask_tmp = np.ones_like(tmp)
-                                mask_circ1 = vip_hci.var.mask_circle(mask_tmp, mask_pca_sky_sub[0], fillwith=0, mode='in')
-                                mask_circ2 = vip_hci.var.mask_circle(mask_tmp, mask_pca_sky_sub[1], fillwith=0, mode='out')
+                                mask_circ1 = mask_circle(mask_tmp, mask_pca_sky_sub[0], fillwith=0, mode='in')
+                                mask_circ2 = mask_circle(mask_tmp, mask_pca_sky_sub[1], fillwith=0, mode='out')
                             
-                                coords_tmp = vip_hci.metrics.peak_coordinates(tmp, fwhm=4)
+                                coords_tmp = peak_coordinates(tmp, fwhm=4)
                                 #print("peak coords: ", coords_tmp)
                                 star_coords_xy[ii,1,s] = coords_tmp[0]
                                 star_coords_xy[ii,0,s] = coords_tmp[1]
-                                mask_tmp_shift1 = vip_hci.preproc.frame_shift(mask_circ1,
+                                mask_tmp_shift1 = frame_shift(mask_circ1,
                                                                              int(star_coords_xy[ii,1,s]-cy_tmp),
                                                                              int(star_coords_xy[ii,0,s]-cx_tmp),
                                                                              border_mode='constant'
                                                                              )
-                                mask_tmp_shift2 = vip_hci.preproc.frame_shift(mask_circ2,
+                                mask_tmp_shift2 = frame_shift(mask_circ2,
                                                                              int(star_coords_xy[ii,1,s]-cy_tmp),
                                                                              int(star_coords_xy[ii,0,s]-cx_tmp),
                                                                              border_mode='constant'
@@ -673,15 +675,15 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     #                            med_psf_lvl = np.median(med_psf_lvl)
     #                            # PCA-sky subtraction
     #                            master_psf_sky_tmp = master_psf_sky_tmp-med_sky_lvl+med_psf_lvl
-                            cen_cube_tmp = vip_hci.preproc.cube_subtract_sky_pca(cen_cube_tmp, 
-                                                                                 sky_cube=master_cen_sky_tmp, 
-                                                                                 mask=mask_arr[ii][s], 
-                                                                                 ref_cube=None, 
-                                                                                 ncomp=npc)
+                            cen_cube_tmp = cube_subtract_sky_pca(cen_cube_tmp,
+                                                                 sky_cube=master_cen_sky_tmp,
+                                                                 mask=mask_arr[ii][s],
+                                                                 ref_cube=None,
+                                                                 ncomp=npc)
                             cen_cube[:,:,xcuts[s]:xcuts[s+1]] = cen_cube_tmp
                         hdulist_cen[0].data = cen_cube
                         hdulist_cen.writeto(inpath+label_ss+cen_list_irdis[ii], output_verify='ignore', overwrite=True)
-                    vip_hci.fits.write_fits("{}master_masks_for_PCA_sky.fits".format(outpath_irdis_fits), mask_arr)
+                    write_fits("{}master_masks_for_PCA_sky.fits".format(outpath_irdis_fits), mask_arr)
                     # write fake dark
                     hdulist = fits.open("{}master_dark.fits".format(outpath_irdis_fits), 
                                         ignore_missing_end=False,
@@ -695,11 +697,11 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             psf_list_irdis = dico_lists['psf_list_irdis']
             n_psf = len(psf_list_irdis)
             if n_psf>0:
-                bp_map = vip_hci.fits.open_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
+                bp_map = open_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
                 # SKY PCA-SUBTR
                 if isfile("{}master_sky_psf_cube.fits".format(outpath_irdis_fits)) and pca_subtr_psf:
                     
-                    master_psf_sky = vip_hci.fits.open_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits))
+                    master_psf_sky = open_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits))
                     
                     
                     if science_mode == 'CI':
@@ -759,29 +761,29 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             tmp = np.median(psf_cube_tmp,axis=0)
                             if ii == 0 and s == 0:
                                 n_y_tmp, n_x_tmp = tmp.shape
-                                cy_tmp, cx_tmp = vip_hci.var.frame_center(tmp)
+                                cy_tmp, cx_tmp = frame_center(tmp)
                                 mask_arr = np.zeros([n_psf,2,n_y_tmp, n_x_tmp])
                             tmp = tmp - np.median(master_psf_sky_tmp,axis=0) - np.median(tmp-np.median(master_psf_sky_tmp,axis=0))
                             
                             ## create template annular mask
                             mask_tmp = np.ones_like(tmp)
-                            mask_circ1 = vip_hci.var.mask_circle(mask_tmp, mask_pca_sky_sub[0], fillwith=0, mode='in')
-                            mask_circ2 = vip_hci.var.mask_circle(mask_tmp, mask_pca_sky_sub[1], fillwith=0, mode='out')
+                            mask_circ1 = mask_circle(mask_tmp, mask_pca_sky_sub[0], fillwith=0, mode='in')
+                            mask_circ2 = mask_circle(mask_tmp, mask_pca_sky_sub[1], fillwith=0, mode='out')
                         
-                            coords_tmp = vip_hci.metrics.peak_coordinates(tmp, fwhm=4)
+                            coords_tmp = peak_coordinates(tmp, fwhm=4)
                             #print("peak coords: ", coords_tmp)
                             star_coords_xy[ii,1,s] = coords_tmp[0]
                             star_coords_xy[ii,0,s] = coords_tmp[1]
-                            mask_tmp_shift1 = vip_hci.preproc.frame_shift(mask_circ1,
-                                                                         int(star_coords_xy[ii,1,s]-cy_tmp),
-                                                                         int(star_coords_xy[ii,0,s]-cx_tmp),
-                                                                         border_mode='constant'
-                                                                         )
-                            mask_tmp_shift2 = vip_hci.preproc.frame_shift(mask_circ2,
-                                                                         int(star_coords_xy[ii,1,s]-cy_tmp),
-                                                                         int(star_coords_xy[ii,0,s]-cx_tmp),
-                                                                         border_mode='constant'
-                                                                         )
+                            mask_tmp_shift1 = frame_shift(mask_circ1,
+                                                          int(star_coords_xy[ii,1,s]-cy_tmp),
+                                                          int(star_coords_xy[ii,0,s]-cx_tmp),
+                                                          border_mode='constant')
+
+                            mask_tmp_shift2 = frame_shift(mask_circ2,
+                                                          int(star_coords_xy[ii,1,s]-cy_tmp),
+                                                          int(star_coords_xy[ii,0,s]-cx_tmp),
+                                                          border_mode='constant')
+
                             mask_arr[ii][s]= mask_tmp_shift1*mask_tmp_shift2
                             # remove bad pixels from mask
                             mask_arr[ii][s][np.where(bp_map_tmp)]=0
@@ -800,15 +802,15 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             med_psf_lvl = np.median(med_psf_lvl)
                             # PCA-sky subtraction
                             master_psf_sky_tmp = master_psf_sky_tmp-med_sky_lvl+med_psf_lvl
-                            psf_cube_tmp = vip_hci.preproc.cube_subtract_sky_pca(psf_cube_tmp, 
-                                                                                 sky_cube=master_psf_sky_tmp, 
-                                                                                 mask=mask_arr[ii][s], 
-                                                                                 ref_cube=None, 
-                                                                                 ncomp=npc_psf)
+                            psf_cube_tmp = cube_subtract_sky_pca(psf_cube_tmp,
+                                                                 sky_cube=master_psf_sky_tmp,
+                                                                 mask=mask_arr[ii][s],
+                                                                 ref_cube=None,
+                                                                 ncomp=npc_psf)
                             psf_cube[:,:,xcuts[s]:xcuts[s+1]] = psf_cube_tmp
                         hdulist_psf[0].data = psf_cube
                         hdulist_psf.writeto(inpath+label_ss+psf_list_irdis[ii], output_verify='ignore', overwrite=True)#, output_verify)
-                    vip_hci.fits.write_fits("{}master_masks_for_PCA_sky_psf.fits".format(outpath_irdis_fits), mask_arr)
+                    write_fits("{}master_masks_for_PCA_sky_psf.fits".format(outpath_irdis_fits), mask_arr)
                     #pdb.set_trace()
     
                         
@@ -970,14 +972,14 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             continue
                         tmp_med = np.median(tmp,axis=0)
                         # estimate star coords in median frame
-                        peak_y, peak_x = vip_hci.metrics.peak_coordinates(tmp_med, fwhm=4, 
-                                                                          approx_peak=None, 
-                                                                          search_box=None,
-                                                                          channels_peak=False)                       
+                        peak_y, peak_x = peak_coordinates(tmp_med, fwhm=4,
+                                                          approx_peak=None,
+                                                          search_box=None,
+                                                          channels_peak=False)
                         ny, nx = tmp_med.shape
                         rad = int(min(ny/2, nx/2))
                         edge = min(peak_y, peak_x, ny-peak_y, nx-peak_x)
-                        cy, cx = vip_hci.var.frame_center(tmp_med)                        
+                        cy, cx = frame_center(tmp_med)
                         for zz in range(tmp.shape[0]):
                             # if star too close from edge, estimate bkg in opp. quadrant
                             if edge < rad/4:
@@ -1035,7 +1037,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 raise ValueError("There should be at least one dark! Double-check archive?")
             else:
                 ### always read DIT in header
-                dark_cube, dark_head = vip_hci.fits.open_fits(inpath+dark_list_ifs[0], header=True)
+                dark_cube, dark_head = open_fits(inpath+dark_list_ifs[0], header=True)
             ## OBJECT
             #if not isfile(outpath_ifs_sof+"master_dark.sof") or overwrite_sof:
             dark_list_ifs = dico_lists['dark_list_ifs']
@@ -1046,11 +1048,11 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             master_dark_cube = np.zeros([nmd_fr,dark_cube.shape[1],dark_cube.shape[2]])
             with open(outpath_ifs_sof+"master_dark.sof", 'w+') as f:
                 for ii in range(len(dark_list_ifs)):
-                    dark_cube, dark_head = vip_hci.fits.open_fits(inpath+dark_list_ifs[ii], header=True)
+                    dark_cube, dark_head = open_fits(inpath+dark_list_ifs[ii], header=True)
                     f.write(inpath+dark_list_ifs[ii]+'\t'+'IFS_DARK_RAW\n')
                     master_dark_cube[counter:counter+dark_cube.shape[0]] = dark_cube
                     counter+=dark_cube.shape[0]
-            vip_hci.fits.write_fits(outpath_ifs_fits+"master_dark_cube.fits", master_dark_cube[:counter])                    
+            write_fits(outpath_ifs_fits+"master_dark_cube.fits", master_dark_cube[:counter])
             if not isfile(outpath_ifs_fits+"master_dark.fits") or overwrite_sof or overwrite_fits:
                 command = "esorex sph_ifs_master_dark"
                 command+= " --ifs.master_dark.sigma_clip=10.0"
@@ -1081,7 +1083,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 bpmap = hdulist_bp[0].data #vip_hci.fits.open_fits("{}master_badpixelmap.fits".format(outpath_ifs_fits))
                 for nn, fdit in enumerate(dit_ifs_flat_list):
                     ## first open an example dark
-                    dark_cube = vip_hci.fits.open_fits(inpath+fdark_list_ifs[0], header=False)
+                    dark_cube = open_fits(inpath+fdark_list_ifs[0], header=False)
                     nd_fr = dark_cube.shape[0]
                     counter = 0
                     nmd_fr = int(nd_fr*nfd)
@@ -1091,13 +1093,13 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     #if not isfile(outpath_ifs_sof+"master_fdark{:.0f}.sof".format(nn)) or overwrite_sof:
                     with open(outpath_ifs_sof+"master_fdark{:.0f}.sof".format(nn), 'w+') as f:
                         for dd in range(nfd):
-                            dark_cube, fdark_head = vip_hci.fits.open_fits(inpath+fdark_list_ifs[dd], header=True)
+                            dark_cube, fdark_head = open_fits(inpath+fdark_list_ifs[dd], header=True)
                             dit_fdark = fdark_head['HIERARCH ESO DET SEQ1 DIT']
                             if dit_fdark == fdit:
                                 f.write(inpath+fdark_list_ifs[dd]+'\t'+'IFS_DARK_RAW\n')
                                 master_dark_cube[counter:counter+dark_cube.shape[0]]=dark_cube
                                 counter+=dark_cube.shape[0]
-                    vip_hci.fits.write_fits(outpath_ifs_fits+"master_dark_cube{:.0f}.fits".format(nn),master_dark_cube[:counter])
+                    write_fits(outpath_ifs_fits+"master_dark_cube{:.0f}.fits".format(nn),master_dark_cube[:counter])
                     if not isfile(outpath_ifs_fits+"master_dark{:.0f}.fits".format(nn)) or overwrite_sof or overwrite_fits:
                         command = "esorex sph_ifs_master_dark"
                         command+= " --ifs.master_dark.sigma_clip=10.0"
@@ -1110,7 +1112,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     
                     # SUBTRACT DARK
                     ## just subtract median
-                    master_dark_tmp = vip_hci.fits.open_fits("{}master_dark{:.0f}.fits".format(outpath_ifs_fits,nn))
+                    master_dark_tmp = open_fits("{}master_dark{:.0f}.fits".format(outpath_ifs_fits,nn))
                     for nf in range(len(all_flat_lists_ifs)):
                         for ff, ff_name in enumerate(all_flat_lists_ifs[nf]):
                             hdulist = fits.open(inpath+ff_name, 
@@ -1190,11 +1192,11 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             with open(outpath_ifs_sof+"preamp.sof", 'w+') as f:
                 #max_dit_flat = 0
                 for ii in range(len(flat_list_ifs_det_BB)):
-                    tmp, header = vip_hci.fits.open_fits(inpath+flat_list_ifs_det_BB[ii], header=True)
+                    tmp, header = open_fits(inpath+flat_list_ifs_det_BB[ii], header=True)
                     f.write(inpath+lab_flat+label_ds+flat_list_ifs_det_BB[ii]+'\t'+'IFS_DETECTOR_FLAT_FIELD_RAW\n')
 #                        if float(header['EXPTIME'])>max_dit_flat:
 #                            max_dit_flat = float(header['EXPTIME'])
-#                    tmp, header = vip_hci.fits.open_fits("{}master_dark.fits".format(outpath_ifs_fits), header=True)
+#                    tmp, header = open_fits("{}master_dark.fits".format(outpath_ifs_fits), header=True)
                 if ('FLAT' in dark_ifs and not indiv_fdark) or indiv_fdark:
                     f.write("{}master_dark.fits".format(outpath_ifs_fits+label_fd)+'\t'+'IFS_MASTER_DARK\n')
                 f.write("{}master_badpixelmap.fits".format(outpath_ifs_fits)+'\t'+'IFS_STATIC_BADPIXELMAP')
@@ -1204,7 +1206,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 command+= " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                 command+= " --ifs.master_detector_flat.badpix_uptolerance=5."
                 command+= " --ifs.master_detector_flat.save_addprod=TRUE"
-                if flat_fit:# and len(flat_list_ifs_det_BB)>4: 
+                if flat_fit and len(flat_list_ifs_det_BB)>4:
                     command+= " --ifs.master_detector_flat.robust_fit=TRUE"
                 command+= " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(outpath_ifs_fits)
                 command+= " --ifs.master_detector_flat.lss_outfilename={}tmp2.fits".format(outpath_ifs_fits)
@@ -1221,7 +1223,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         run_rec = False
                         counter = 0
                         for ii in range(len(flat_list_ifs_det)):
-                            tmp, header = vip_hci.fits.open_fits(inpath+flat_list_ifs_det[ii], header=True)
+                            tmp, header = open_fits(inpath+flat_list_ifs_det[ii], header=True)
                             if 'HL{:.0f}'.format(kk) in header['HIERARCH ESO INS2 CAL']:
                                 f.write(inpath+lab_flat+label_ds+flat_list_ifs_det[ii]+'\t'+'IFS_DETECTOR_FLAT_FIELD_RAW\n')
                                 counter+=1
@@ -1236,7 +1238,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         command+= " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                         command+= " --ifs.master_detector_flat.badpix_uptolerance=5."
                         command+= " --ifs.master_detector_flat.save_addprod=TRUE"
-                        if flat_fit:# and counter>4: 
+                        if flat_fit and counter>4:
                             command+= " --ifs.master_detector_flat.robust_fit=TRUE"
                         command+= " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(outpath_ifs_fits)
                         command+= " --ifs.master_detector_flat.lss_outfilename={}large_scale_flat.fits".format(outpath_ifs_fits)
@@ -1264,7 +1266,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     command+= " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                     command+= " --ifs.master_detector_flat.badpix_uptolerance=5."
                     command+= " --ifs.master_detector_flat.save_addprod=TRUE"
-                    if flat_fit:# and len(flat_list_ifs_det_BB)>4: 
+                    if flat_fit and len(flat_list_ifs_det_BB)>4:
                         command+= " --ifs.master_detector_flat.robust_fit=TRUE"
                     command+= " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(outpath_ifs_fits)                 
                     command+= " --ifs.master_detector_flat.lss_outfilename={}large_scale_flat.fits".format(outpath_ifs_fits)
@@ -1281,7 +1283,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         run_rec = False
                         counter = 0
                         for ii in range(len(flat_list_ifs_det)):
-                            tmp, header = vip_hci.fits.open_fits(inpath+flat_list_ifs_det[ii], header=True)
+                            tmp, header = open_fits(inpath+flat_list_ifs_det[ii], header=True)
                             if 'HL{:.0f}'.format(kk) in header['HIERARCH ESO INS2 CAL']:
                                 f.write(inpath+lab_flat+label_ds+flat_list_ifs_det[ii]+'\t'+'IFS_DETECTOR_FLAT_FIELD_RAW\n')
                                 counter+=1
@@ -1300,7 +1302,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         #command+= " --ifs.master_detector_flat.save_addprod=TRUE"
                         #command+= " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(outpath_ifs_fits)
                         command+= " --ifs.master_detector_flat.outfilename={}master_flat_det.fits".format(outpath_ifs_fits)
-                        if flat_fit:# and counter>4: 
+                        if flat_fit and counter>4:
                             command+= " --ifs.master_detector_flat.robust_fit=TRUE"  
                         #command+= " --ifs.master_detector_flat.preamp_outfilename={}tmp2.fits".format(outpath_ifs_fits)            
                         #command+= " --ifs.master_detector_flat.badpixfilename={}tmp3.fits".format(outpath_ifs_fits)
@@ -1329,7 +1331,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     #command+= " --ifs.master_detector_flat.save_addprod=TRUE"
                     #command+= " --ifs.master_detector_flat.make_badpix=TRUE"
                     command+= " --ifs.master_detector_flat.outfilename={}master_flat_det.fits".format(outpath_ifs_fits)
-                    if flat_fit:# and len(flat_list_ifs_det_BB)>4: 
+                    if flat_fit and len(flat_list_ifs_det_BB)>4:
                         command+= " --ifs.master_detector_flat.robust_fit=TRUE"
                     #command+= " --ifs.master_detector_flat.lss_outfilename={}tmp1.fits".format(outpath_ifs_fits)
                     #command+= " --ifs.master_detector_flat.preamp_outfilename={}tmp2.fits".format(outpath_ifs_fits)            
@@ -1353,7 +1355,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     else:
                         f.write("{}master_flat_det_l5.fits".format(outpath_ifs_fits)+'\t'+'IFS_INSTRUMENT_FLAT_FIELD\n')
                     if indiv_fdark:
-                        tmp, header = vip_hci.fits.open_fits(inpath+specpos_IFS[ii], header=True)
+                        tmp, header = open_fits(inpath+specpos_IFS[ii], header=True)
                         for ff in range(nfdits):
                             if fdit_list_nn[ff][1] == header['EXPTIME']:
                                 nn = fdit_list_nn[ff][0]
@@ -1449,7 +1451,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     dit_wc = wc_head['HIERARCH ESO DET SEQ1 DIT']
                     for nn, fdit in enumerate(dit_ifs_flat_list):
                         ## subtract with PCA
-                        master_dark_cube = vip_hci.fits.open_fits(outpath_ifs_fits+"master_dark_cube{:.0f}.fits".format(nn))                                
+                        master_dark_cube = open_fits(outpath_ifs_fits+"master_dark_cube{:.0f}.fits".format(nn))
                         if fdit == dit_wc:
                             dark_tmp = np.median(master_dark_cube,axis=0)
                             for j in range(cube.shape[0]):
@@ -1464,17 +1466,17 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     
                         
 
-                    cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, 
-                                                                 sig=6., protect_psf=False, verbose=False,
-                                                                 half_res_y=False, max_nit=10, full_output=False)
+                    cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3,
+                                                 sig=6., protect_mask=0, verbose=False,
+                                                 half_res_y=False, max_nit=10, full_output=False)
                     lab_wc = bpcorr_lab_IFS
                     hdul[0].data = cube
                     if not isdir(inpath+lab_wc):
                         os.makedirs(inpath+lab_wc)
                     hdul.writeto(inpath+bpcorr_lab_IFS+'1_'+wave_calib_list_ifs[ii], output_verify='ignore', overwrite=True)
-                    cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, 
-                                                                 sig=10., protect_psf=False, verbose=False,
-                                                                 half_res_y=False, max_nit=1, full_output=False)
+                    cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3,
+                                                 sig=10., protect_mask=0, verbose=False,
+                                                 half_res_y=False, max_nit=1, full_output=False)
                     lab_wc = bpcorr_lab_IFS
                     hdul[0].data = cube
                     if not isdir(inpath+lab_wc):
@@ -1576,30 +1578,30 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             ## OBJ
             sky_list_ifs = dico_lists['sky_list_ifs']
             if -1 in good_sky_list:
-                tmp = vip_hci.fits.open_fits(inpath+sky_list_ifs[0])
-                vip_hci.fits.write_fits("{}master_sky.fits".format(outpath_ifs_fits), tmp[0]) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                tmp = open_fits(inpath+sky_list_ifs[0])
+                write_fits("{}master_sky.fits".format(outpath_ifs_fits), tmp[0]) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
             elif 'all' in good_sky_list:
                 counter=0
                 nsky = len(sky_list_ifs)
                 for gg in range(nsky):
-                    tmp = vip_hci.fits.open_fits(inpath+sky_list_ifs[gg])
+                    tmp = open_fits(inpath+sky_list_ifs[gg])
                     if counter == 0:
                         master_sky = np.zeros([nsky*tmp.shape[0],tmp.shape[1],tmp.shape[2]])
                     master_sky[counter:counter+tmp.shape[0]] = tmp
                     counter+=tmp.shape[0]
                 master_sky = np.median(master_sky,axis=0)
-                vip_hci.fits.write_fits("{}master_sky.fits".format(outpath_ifs_fits), master_sky) 
+                write_fits("{}master_sky.fits".format(outpath_ifs_fits), master_sky)
             else:
                 counter=0
                 nsky = len(good_sky_list)
                 for gg in good_sky_list:
-                    tmp = vip_hci.fits.open_fits(inpath+sky_list_ifs[gg])
+                    tmp = open_fits(inpath+sky_list_ifs[gg])
                     if counter == 0:
                         master_sky = np.zeros([nsky*tmp.shape[0],tmp.shape[1],tmp.shape[2]])
                     master_sky[counter:counter+tmp.shape[0]] = tmp
                     counter+=tmp.shape[0]
                 master_sky = np.median(master_sky,axis=0)
-                vip_hci.fits.write_fits("{}master_sky.fits".format(outpath_ifs_fits), master_sky) 
+                write_fits("{}master_sky.fits".format(outpath_ifs_fits), master_sky)
     
             ## PSF
             psf_sky_list_ifs = dico_lists['psf_sky_list_ifs']
@@ -1607,34 +1609,34 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 psf_sky_list_ifs = dico_lists['psf_ins_bg_list_ifs']
             if len(psf_sky_list_ifs) < 1:
                 master_psf_sky = master_sky.copy() #assume that bkg and DARK current are negligible compared to bias
-                vip_hci.fits.write_fits("{}dit_psf_sky.fits".format(outpath_ifs_fits), np.array([dit_ifs]))
+                write_fits("{}dit_psf_sky.fits".format(outpath_ifs_fits), np.array([dit_ifs]))
             else:
-                vip_hci.fits.write_fits("{}dit_psf_sky.fits".format(outpath_ifs_fits), np.array([dit_psf_ifs]))
+                write_fits("{}dit_psf_sky.fits".format(outpath_ifs_fits), np.array([dit_psf_ifs]))
                 if -1 in good_psf_sky_list:
-                    tmp = vip_hci.fits.open_fits(inpath+sky_list_ifs[0])
-                    vip_hci.fits.write_fits("{}master_psf_sky.fits".format(outpath_ifs_fits), tmp[0]) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    tmp = open_fits(inpath+sky_list_ifs[0])
+                    write_fits("{}master_psf_sky.fits".format(outpath_ifs_fits), tmp[0]) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
                 elif 'all' in good_psf_sky_list:
                     counter=0
                     nsky = len(psf_sky_list_ifs)
                     for gg in range(nsky):
-                        tmp = vip_hci.fits.open_fits(inpath+psf_sky_list_ifs[gg])
+                        tmp = open_fits(inpath+psf_sky_list_ifs[gg])
                         if counter == 0:
                             master_psf_sky = np.zeros([nsky*tmp.shape[0],tmp.shape[1],tmp.shape[2]])
                         master_psf_sky[counter:counter+tmp.shape[0]] = tmp
                         counter+=tmp.shape[0]
                     master_psf_sky = np.median(master_psf_sky,axis=0)
-                    vip_hci.fits.write_fits("{}master_psf_sky.fits".format(outpath_ifs_fits), master_psf_sky) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    write_fits("{}master_psf_sky.fits".format(outpath_ifs_fits), master_psf_sky) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
                 else:
                     counter=0
                     nsky = len(good_psf_sky_list)
                     for gg in good_psf_sky_list:
-                        tmp = vip_hci.fits.open_fits(inpath+psf_sky_list_ifs[gg])
+                        tmp = open_fits(inpath+psf_sky_list_ifs[gg])
                         if counter == 0:
                             master_psf_sky = np.zeros([nsky*tmp.shape[0],tmp.shape[1],tmp.shape[2]])
                         master_psf_sky[counter:counter+tmp.shape[0]] = tmp
                         counter+=tmp.shape[0]
                     master_psf_sky = np.median(master_psf_sky,axis=0)
-            vip_hci.fits.write_fits("{}master_psf_sky.fits".format(outpath_ifs_fits), master_psf_sky) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+            write_fits("{}master_psf_sky.fits".format(outpath_ifs_fits), master_psf_sky) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
     
         
         # REDUCE OBJECT
@@ -1655,7 +1657,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 
                 if sky:
                     #tmp, head = vip_hci.fits.open_fits(inpath+sci_list_ifs[ii], header=True)
-                    tmp_tmp = vip_hci.fits.open_fits("{}master_sky.fits".format(outpath_ifs_fits))
+                    tmp_tmp = open_fits("{}master_sky.fits".format(outpath_ifs_fits))
                     for zz in range(cube.shape[0]):
                         cube[zz] = cube[zz]-tmp_tmp
                     lab_bp = 'skycorr_'
@@ -1663,11 +1665,11 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     hdul[0].data = cube
                     hdul.writeto(inpath+skysub_lab_IFS+lab_bp+sci_list_ifs[ii], output_verify='ignore', overwrite=True)
 
-                cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, 
-                                                             sig=6., protect_psf=False, verbose=False,
+                cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3,
+                                                             sig=6., protect_mask=0, verbose=False,
                                                              half_res_y=False, max_nit=10, full_output=False)
-                cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, 
-                                                             sig=10., protect_psf=False, verbose=False,
+                cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3,
+                                                             sig=10., protect_mask=0, verbose=False,
                                                              half_res_y=False, max_nit=1, full_output=False)
                 hdul[0].data = cube
                 lab_sci = bpcorr_lab_IFS
@@ -1776,7 +1778,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 
                 if sky:
                     #tmp, head = vip_hci.fits.open_fits(inpath+sci_list_ifs[ii], header=True)
-                    tmp_tmp = vip_hci.fits.open_fits("{}master_sky.fits".format(outpath_ifs_fits))
+                    tmp_tmp = open_fits("{}master_sky.fits".format(outpath_ifs_fits))
                     for zz in range(cube.shape[0]):
                         cube[zz] = cube[zz]-tmp_tmp
                     lab_bp = 'skycorr_cen_'
@@ -1793,11 +1795,11 @@ def calib(params_calib_name='VCAL_params_calib.json'):
 #                    fits.writeto(inpath+'skysub_lab_IFS'+lab_bp+sci_list_ifs[ii], tmp, head, output_verify='ignore', overwrite=True)
 
                 
-                cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, 
-                                                             sig=6., protect_psf=False, verbose=False,
+                cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3,
+                                                             sig=6., protect_mask=0, verbose=False,
                                                              half_res_y=False, max_nit=10, full_output=False)
-                cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, 
-                                                             sig=10., protect_psf=False, verbose=False,
+                cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3,
+                                                             sig=10., protect_mask=0, verbose=False,
                                                              half_res_y=False, max_nit=1, full_output=False)
                 hdul[0].data = cube
                 lab_sci = bpcorr_lab_IFS
@@ -1907,7 +1909,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 
                 if sky:
                     #tmp, head = vip_hci.fits.open_fits(inpath+sci_list_ifs[ii], header=True)
-                    tmp_tmp = vip_hci.fits.open_fits("{}master_psf_sky.fits".format(outpath_ifs_fits))
+                    tmp_tmp = open_fits("{}master_psf_sky.fits".format(outpath_ifs_fits))
                     for zz in range(cube.shape[0]):
                         cube[zz] = cube[zz]-tmp_tmp
                     lab_bp = 'skycorr_psf_'
@@ -1924,11 +1926,11 @@ def calib(params_calib_name='VCAL_params_calib.json'):
 #                    fits.writeto(inpath+'skysub_lab_IFS'+lab_bp+sci_list_ifs[ii], tmp, head, output_verify='ignore', overwrite=True)
                 
                 
-                cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, 
-                                                             sig=6., protect_psf=False, verbose=False,
+                cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3,
+                                                             sig=6., protect_mask=0, verbose=False,
                                                              half_res_y=False, max_nit=10, full_output=False)
-                cube = vip_hci.preproc.cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, 
-                                                             sig=10., protect_psf=False, verbose=False,
+                cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3,
+                                                             sig=10., protect_mask=0, verbose=False,
                                                              half_res_y=False, max_nit=1, full_output=False)
                 hdul[0].data = cube
                 lab_sci = bpcorr_lab_IFS
