@@ -39,7 +39,7 @@ pi = np.pi
 
 def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
                       sub_med=True, fit_type='moff', snr_thr=5, bin_fit=1, 
-                      convolve=True, rough_cen=False, nmin=10, crop_sz=None, 
+                      convolve=True, nmin=10, crop_sz=None, 
                       sigfactor=3, full_output=False, verbose=False, 
                       debug=False, path_debug='./', rel_dist_unc=2e-4):
     """ Recenters a cube with a background star seen in the individual 
@@ -80,9 +80,6 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     bin_fit: int, opt
         Binning factor to median-combine consecutive images, in order to 
         increase SNR of BKG star.
-    rough_cen : {True, False}, bool optional
-        Whether to attempt a rough centering of the cube before centering based
-        on circular arc fit.
     nmin: int, optional
         Minimum number of frames where the SNR condition must be met. Otherwise 
         an Error is raised.
@@ -113,25 +110,12 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         [full_output] Uncertainties on shifts in x and y (dimensions: 2 x n_fr).
     """
 
+    #step 1 - crop if needed
     cube=array.copy()
     if crop_sz is None:
         crop_sz = int(6*fwhm)
     if not crop_sz%2:
         crop_sz+=1
-        
-    #step 1 - ROUGH CENTERING based on max in convolved images
-    if rough_cen:
-        if verbose:
-            print('First rough centering...')    
-        fwhm_odd = int(fwhm)
-        if not fwhm%2:
-            fwhm_odd+=1
-        cube, shifts = rough_centering(cube, fwhm_odd=fwhm_odd)
-        mean_shift = np.mean(shifts, axis=0)
-        approx_xy_bkg = (approx_xy_bkg[0]+mean_shift[1], 
-                         approx_xy_bkg[1]+mean_shift[0])
-        if debug:
-            write_fits(path_debug+"roughly_centered_cube.fits", cube)
 
     #step 2 - GET MEDIAN CUBES AND EXACT MED POS 
     ## adapt: just calculate first and last expected positions based on input guess
@@ -283,14 +267,14 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         final_shifts_y = shifts_y
         final_unc = uncs
         
-    #step 9 - final recentering with all shifts
+    #step 9 - recentering with all shifts
     if verbose:
         print('Final recentering of all frames.')
     for i in range(cube.shape[0]):
         cube[i] = frame_shift(array[i], final_shifts_y[i], final_shifts_x[i])
     final_shifts = np.array([final_shifts_x,final_shifts_y])
 
-    #step 10 - double check it worked by 
+    #step 10 - double check it worked by showing derotated cube
     if debug:
         # plotting new BKG pos and best-fit circular arc
         fin_bkg_x, fin_bkg_y = fit2d_bkg_pos(cube, x_pos_arr, y_pos_arr, fwhm, 
@@ -312,10 +296,10 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         plt.show()
         # plotting derotated positions
         n_fr = cube.shape[0]
-        derot_cube=cube_derotate(cube, derot_angles, imlib='opencv', 
+        derot_cube=cube_derotate(cube, derot_angles, imlib='vip-fft', 
                                  interpolation='lanczos4',
                                  cxy=None, border_mode='constant')
-        write_fits(path_debug+"TMP_doublecheck_derot_cube.fits", derot_cube)
+        write_fits(path_debug+"TMP_double_check_derot_cube.fits", derot_cube)
         med_x_all = [med_x]*n_fr
         med_y_all = [med_y]*n_fr
         fin_der_x, fin_der_y = fit2d_bkg_pos(derot_cube, np.array(med_x_all), 
@@ -372,7 +356,7 @@ def rough_centering(array, fwhm_odd=5):
 
     for i in range(0,len(array)):
         cen_frame=frame_shift(array[i], shifts_rc[i,0], shifts_rc[i,1], 
-                              imlib='opencv', interpolation='lanczos4', 
+                              imlib='vip-fft', interpolation='lanczos4', 
                               border_mode='reflect')
         cube.append(cen_frame)
 
@@ -552,8 +536,8 @@ def snr_thresholding(snr_thr, array, fwhm, fin_cen_x, fin_cen_y, verbose=False,
     std_y = np.std(fin_cen_y)
 
 
-        #tmp_crop =get_square(tmp,crop_sz,int(y_j[sc]),int(x_j[sc]),position=True)
-        #tmp_crop_master=tmp_crop_master.append(tmp_crop)
+    #tmp_crop = get_square(tmp,crop_sz,int(y_j[sc]),int(x_j[sc]),position=True)
+    #tmp_crop_master = tmp_crop_master.append(tmp_crop)
     for nn in range(array.shape[0]):
         cond1 = source_xy[nn][0]>med_x+3*std_x
         cond2 = source_xy[nn][0]<med_x-3*std_x
@@ -866,7 +850,7 @@ def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
     cen_y, cen_x = frame_center(array[0])
     derot_arr=np.zeros_like(array)
     
-    derot_arr=cube_derotate(array, derot_angles, imlib='opencv', 
+    derot_arr=cube_derotate(array, derot_angles, imlib='vip-fft', 
                             interpolation='lanczos4',
                             cxy=None, border_mode='constant')
     if debug:
@@ -1012,7 +996,7 @@ def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
 #    final_master=[]
 #
 #    for i in range(array.shape[0]):
-#        tmp = frame_shift(array[i], shifts_y[i], shifts_x[i], imlib='opencv', 
+#        tmp = frame_shift(array[i], shifts_y[i], shifts_x[i], imlib='vip-fft', 
 #                          interpolation='lanczos4', border_mode='reflect')
 #        final_master.append(tmp)
 #
