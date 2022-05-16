@@ -1,11 +1,11 @@
-astropy~=3.2
-matplotlib
-numpy
-pandas
-photutils
 
 [dev]
-matplotlib
-numpy
-pandas
-photutils
+sphinx
+pandoc
+pytest
+pytest-cov~=2.6.0
+codecov~=2.0.15
+flake8~=3.5.0
+flake8-bandit~=1.0.2
+flake8-docstrings~=1.3.0
+autopep8

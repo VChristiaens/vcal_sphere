@@ -40,12 +40,8 @@ STEPS:
     "dit_cen_ifs": float, integration time of CENTER IFS observations to be considered
     "dit_cen_irdis": float, integration time of CENTER IRDIS observations to be considered
     "instr": str, instrument name in file name
-    "filt1": str, first filter (value of 'INS1.FILT.NAME' of obs to be considered)
-    "filt2": str, second filter (value of 'INS1.OPTI2.NAME' of obs to be considered) 
-    "science_mode": str, choice between {'DBI','CI'}
+    "comb_iflt": str, optional, value for 'INS.COMB.IFLT' header keyword to be considered for the science cubes of interest. If not provided, will automatically search for the value with the largest occurrence in fits file headers in inpath.
     "mode": str, IFS mode (used for spectra positions). E.g. "YJH" or "YJ". Does not matter if only IRDIS data are reduced.
-    "filters": list of 2 str for DBI, 1 str for CI, to be used to name products
-    "comb_iflt": filters of observation, given by ESO INS COMB IFLT header keyword
 
 # TO DO LIST:
     "do_irdis": bool, whether to reduce IRDIS data

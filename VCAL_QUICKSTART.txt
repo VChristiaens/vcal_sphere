@@ -10,7 +10,7 @@
 3) cd in downloaded directory and use following command to infer the strategy used during the observation (optionally check some raw images):
 dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
 Pro tip: make an alias in your ~/.bash_profile e.g. by adding:
-alias dfits_irdifs = 'dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT'
+alias dfits_irdifs = 'dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS.COMB.IFLT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT'
 then simply call dfits_irdifs whenever needed in a given directory.
 
 4) Adapt JSON param files for:
@@ -19,7 +19,8 @@ then simply call dfits_irdifs whenever needed in a given directory.
 	c) post-processing (median-ADI; PCA-ADI full/ann; PCA-SADI/PCA-ASDI for IFS)
 Description on each param is provided in the relevant MANUAL txt files.
 
-5) Run the reduce_data.sh script and enjoy a nice coffee (or maybe 2) while waiting to get the results.
+5) import
+Pro tip: consider making a bash script for automated reductions.
 
 
 Warning: Different observations may have different specific issues that may have not been predicted for handling by the pipeline. Inspect intermediate files for diagnostic, and iterate on the requested reduction parameters in the JSON files.

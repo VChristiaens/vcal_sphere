@@ -1,6 +1,1 @@
-git+git://github.com/vortex-exoplanet/VIP.git
-astropy~=3.2
-matplotlib
-numpy
-pandas
-photutils
+vip_hci
