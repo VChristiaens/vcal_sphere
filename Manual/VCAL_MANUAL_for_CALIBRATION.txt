@@ -92,7 +92,7 @@ STEPS:
     ## flats:
     "illum_pattern_corr": True, # whether illum flat pattern to be corrected (recommended)
     "flat_fit": True # whether to fit flat with polynomial
-    "large_scale_flat": "some", # choice between 'all' (as recommende in v1.38 manual), 'some' (as recommended in v1.40 manual - cf. dr recipe description), False (not used, as recommended in v1.40 manual - cf. flat recipe description)
+    "large_scale_flat": "some", # choice between 'all' (as recommended in v1.38 manual), 'some' (as recommended in v1.40 manual - cf. dr recipe description), False (not used, as recommended in v1.40 manual - cf. flat recipe description)
     "flat_smooth_method_idx": 1, # default 1 in esorex recipe (0: CPL filter, 1: FFT filter). See sph_ifs_master_detector_flat description.
     "flat_smooth_length": 5, # See sph_ifs_master_detector_flat description.
     ## spectra position

@@ -22,4 +22,4 @@ Description on each param is provided in the relevant MANUAL txt files.
 5) Run the reduce_data.sh script and enjoy a nice coffee (or maybe 2) while waiting to get the results.
 
 
-Warning: Different observations may have different specific issues that may have not been predicted for handling by the pipeline. Inspect intermediate files for diagnostic.
+Warning: Different observations may have different specific issues that may have not been predicted for handling by the pipeline. Inspect intermediate files for diagnostic, and iterate on the requested reduction parameters in the JSON files.
