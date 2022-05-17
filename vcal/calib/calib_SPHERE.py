@@ -476,10 +476,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 star_coords_xy[ii,1,s] = coords_tmp[0]
                                 star_coords_xy[ii,0,s] = coords_tmp[1]
                                 mask_arr[ii][s] = frame_shift(mask_tmp,
-                                                                             int(star_coords_xy[ii,1,s]-cy_tmp),
-                                                                             int(star_coords_xy[ii,0,s]-cx_tmp),
-                                                                             border_mode='constant'
-                                                                             )
+                                                              int(star_coords_xy[ii,1,s]-cy_tmp),
+                                                              int(star_coords_xy[ii,0,s]-cx_tmp),
+                                                              border_mode='constant')
                             else:
                                 ## create template annular mask
                                 mask_tmp = np.ones_like(tmp)
@@ -491,15 +490,15 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 star_coords_xy[ii,1,s] = coords_tmp[0]
                                 star_coords_xy[ii,0,s] = coords_tmp[1]
                                 mask_tmp_shift1 = frame_shift(mask_circ1,
-                                                                             int(star_coords_xy[ii,1,s]-cy_tmp),
-                                                                             int(star_coords_xy[ii,0,s]-cx_tmp),
-                                                                             border_mode='constant'
-                                                                             )
+                                                              int(star_coords_xy[ii,1,s]-cy_tmp),
+                                                              int(star_coords_xy[ii,0,s]-cx_tmp),
+                                                              border_mode='constant'
+                                                              )
                                 mask_tmp_shift2 = frame_shift(mask_circ2,
-                                                                             int(star_coords_xy[ii,1,s]-cy_tmp),
-                                                                             int(star_coords_xy[ii,0,s]-cx_tmp),
-                                                                             border_mode='constant'
-                                                                             )
+                                                              int(star_coords_xy[ii,1,s]-cy_tmp),
+                                                              int(star_coords_xy[ii,0,s]-cx_tmp),
+                                                              border_mode='constant'
+                                                              )
                                 mask_arr[ii][s]= mask_tmp_shift1*mask_tmp_shift2
                             # remove bad pixels from mask
                             mask_arr[ii][s][np.where(bp_map_tmp)]=0
@@ -519,10 +518,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     #                            # PCA-sky subtraction
     #                            master_psf_sky_tmp = master_psf_sky_tmp-med_sky_lvl+med_psf_lvl
                             sci_cube_tmp = cube_subtract_sky_pca(sci_cube_tmp,
-                                                                                 sky_cube=master_sci_sky_tmp, 
-                                                                                 mask=mask_arr[ii][s], 
-                                                                                 ref_cube=None, 
-                                                                                 ncomp=npc)
+                                                                 sky_cube=master_sci_sky_tmp, 
+                                                                 mask=mask_arr[ii][s], 
+                                                                 ref_cube=None, 
+                                                                 ncomp=npc)
                             sci_cube[:,:,xcuts[s]:xcuts[s+1]] = sci_cube_tmp
                         hdulist_sci[0].data = sci_cube
                         hdulist_sci.writeto(inpath+label_ss+sci_list_irdis[ii], output_verify='ignore', overwrite=True)                    
