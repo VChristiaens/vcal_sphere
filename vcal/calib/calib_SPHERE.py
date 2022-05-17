@@ -201,8 +201,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     if 0 in to_do or not isfile(path+"dico_files.csv"):
         dico_lists = make_lists(inpath, outpath_filenames, dit_ifs=dit_ifs, 
                                 dit_irdis=dit_irdis, dit_psf_ifs=dit_psf_ifs, 
-                                dit_psf_irdis=dit_psf_irdis, dit_cen_ifs=dit_cen_ifs, 
-                                dit_cen_irdis=dit_cen_irdis,filt1=filt1, 
+                                dit_psf_irdis=dit_psf_irdis, 
+                                dit_cen_ifs=dit_cen_ifs, 
+                                dit_cen_irdis=dit_cen_irdis, filt1=filt1, 
                                 filt2=filt2)
         with open(path+"dico_files.csv",'w') as dico_file:
             w =  csv.writer(dico_file)
@@ -421,6 +422,14 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             # OBJECT  
             sci_list_irdis = dico_lists['sci_list_irdis']
             n_sci =  len(sci_list_irdis)
+            
+            n_s = 2
+            # below is old version - likely wrong as even for CI, we want both detectors (?)
+            # if science_mode == 'CI':
+            #     n_s = 1
+            # elif science_mode == 'DBI':
+            #     n_s = 2
+            
             if n_sci>0:
                 # bad pixel maps
                 bp_map = open_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
@@ -433,10 +442,6 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         print(msg.format(npc,master_sky.shape[0]))
                         npc = master_sky.shape[0]
                     
-                    if science_mode == 'CI':
-                        n_s = 1
-                    elif science_mode == 'DBI':
-                        n_s = 2
                     star_coords_xy = np.zeros([n_sci,2,n_s])
                     for ii in range(n_sci):
                         hdulist_sci = fits.open(inpath+sci_list_irdis[ii], 
@@ -619,11 +624,6 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     bp_map = open_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
                     master_sky = open_fits("{}master_sky_cube.fits".format(outpath_irdis_fits))
                     
-                    
-                    if science_mode == 'CI':
-                        n_s = 1
-                    elif science_mode == 'DBI':
-                        n_s = 2
                     star_coords_xy = np.zeros([n_cen,2,n_s])
                     for ii in range(n_cen):
                         hdulist_cen = fits.open(inpath+cen_list_irdis[ii], 
@@ -727,11 +727,6 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     
                     master_psf_sky = open_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits))
                     
-                    
-                    if science_mode == 'CI':
-                        n_s = 1
-                    elif science_mode == 'DBI':
-                        n_s = 2
                     star_coords_xy = np.zeros([n_psf,2,n_s])
     #                for ii in range(n_psf):
     #                    hdulist_psf = fits.open(inpath+psf_list_irdis[ii], 
@@ -880,8 +875,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 lab_rec = 'science_imaging'
                 lab_lr = ["_CI_l_"+filters[0],"_CI_r_"+filters[0]]
             elif science_mode == 'DPI':
-                lab_SCI = 'IRD_SCIENCE_IMAGING_RAW\n'
-                lab_rec = 'science_imaging'
+                lab_SCI = 'IRD_SCIENCE_DPI_RAW\n'
+                lab_rec = 'science_dpi'
                 lab_lr = ["_DPI_l_"+filters[0],"_DPI_r_"+filters[0]]
             else:
                 raise ValueError("science_mode not recognized: should be DBI, CI or DPI.")
