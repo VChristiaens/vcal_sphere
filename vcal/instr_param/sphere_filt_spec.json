@@ -9,8 +9,8 @@
 "BB_J":{"mode":"CI","filters":["J"],"lbda":[1.245],"dlbda":[240], "IRFW1":"B_J", "IRFW2":"CLEAR","modes":"DPI,CI"},
 "BB_H":{"mode":"CI","filters":["H"],"lbda":[1.625],"dlbda":[290], "IRFW1":"B_H", "IRFW2":"CLEAR","modes":"DPI,CI"},
 "BB_Ks":{"mode":"CI","filters":["Ks"],"lbda":[2.182],"dlbda":[300], "IRFW1":"B_Ks", "IRFW2":"CLEAR","modes":"DPI,CI"},
-"DP_0_BB_Y":{"mode":"DPI","filters":["Y"],"lbda":[1.043],"dlbda":[140], "IRFW1":"B_Y", "IRFW2":"CLEAR","modes":"DPI,CI"},
-"DP_0_BB_J":{"mode":"DPI","filters":["J"],"lbda":[1.245],"dlbda":[240], "IRFW1":"B_J", "IRFW2":"CLEAR","modes":"DPI,CI"},
-"DP_0_BB_H":{"mode":"DPI","filters":["H"],"lbda":[1.625],"dlbda":[290], "IRFW1":"B_H", "IRFW2":"CLEAR","modes":"DPI,CI"},
-"DP_0_BB_Ks":{"mode":"DPI","filters":["Ks"],"lbda":[2.182],"dlbda":[300], "IRFW1":"B_Ks", "IRFW2":"CLEAR","modes":"DPI,CI"}
+"DP_0_BB_Y":{"mode":"DPI","filters":["Y"],"lbda":[1.043],"dlbda":[140], "IRFW1":"B_Y", "IRFW2":"P0-90","modes":"DPI,CI"},
+"DP_0_BB_J":{"mode":"DPI","filters":["J"],"lbda":[1.245],"dlbda":[240], "IRFW1":"B_J", "IRFW2":"P0-90","modes":"DPI,CI"},
+"DP_0_BB_H":{"mode":"DPI","filters":["H"],"lbda":[1.625],"dlbda":[290], "IRFW1":"B_H", "IRFW2":"P0-90","modes":"DPI,CI"},
+"DP_0_BB_Ks":{"mode":"DPI","filters":["Ks"],"lbda":[2.182],"dlbda":[300], "IRFW1":"B_Ks", "IRFW2":"P0-90","modes":"DPI,CI"}
 }
