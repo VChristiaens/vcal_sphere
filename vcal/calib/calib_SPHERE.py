@@ -466,11 +466,11 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             
                             if mask_pca_sky_sub[2] > 0:
                                 mask_tmp = create_ringed_spider_mask(tmp.shape,
-                                                     mask_pca_sky_sub[1], 
-                                                     ann_in=mask_pca_sky_sub[0], 
-                                                     sp_width=mask_pca_sky_sub[3],
-                                                     sp_angle=mask_pca_sky_sub[4], 
-                                                     nlegs=mask_pca_sky_sub[2])
+                                                                     mask_pca_sky_sub[1], 
+                                                                     ann_in=mask_pca_sky_sub[0], 
+                                                                     sp_width=mask_pca_sky_sub[3],
+                                                                     sp_angle=mask_pca_sky_sub[4], 
+                                                                     nlegs=mask_pca_sky_sub[2])
                                 coords_tmp = peak_coordinates(tmp, fwhm=4)
                                 #print("peak coords: ", coords_tmp)
                                 star_coords_xy[ii,1,s] = coords_tmp[0]
@@ -500,7 +500,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                                               border_mode='constant'
                                                               )
                                 mask_arr[ii][s]= mask_tmp_shift1*mask_tmp_shift2
-                            # remove bad pixels from mask
+                            # remove static bad pixels from mask
                             mask_arr[ii][s][np.where(bp_map_tmp)]=0
                             # make masks
         #                    mask_tmp = vip_hci.metrics.mask_source_centers(tmp, fwhm=4, 
@@ -671,15 +671,15 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 star_coords_xy[ii,1,s] = coords_tmp[0]
                                 star_coords_xy[ii,0,s] = coords_tmp[1]
                                 mask_tmp_shift1 = frame_shift(mask_circ1,
-                                                                             int(star_coords_xy[ii,1,s]-cy_tmp),
-                                                                             int(star_coords_xy[ii,0,s]-cx_tmp),
-                                                                             border_mode='constant'
-                                                                             )
+                                                              int(star_coords_xy[ii,1,s]-cy_tmp),
+                                                              int(star_coords_xy[ii,0,s]-cx_tmp),
+                                                              border_mode='constant'
+                                                              )
                                 mask_tmp_shift2 = frame_shift(mask_circ2,
-                                                                             int(star_coords_xy[ii,1,s]-cy_tmp),
-                                                                             int(star_coords_xy[ii,0,s]-cx_tmp),
-                                                                             border_mode='constant'
-                                                                             )
+                                                              int(star_coords_xy[ii,1,s]-cy_tmp),
+                                                              int(star_coords_xy[ii,0,s]-cx_tmp),
+                                                              border_mode='constant'
+                                                              )
                                 mask_arr[ii][s]= mask_tmp_shift1*mask_tmp_shift2
                             # remove bad pixels from mask
                             mask_arr[ii][s][np.where(bp_map_tmp)]=0
