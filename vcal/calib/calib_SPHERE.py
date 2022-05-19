@@ -73,6 +73,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
         nmod = np.sum([1 for filt in iflt_list if filt == comb_iflt])
         print(msg.format(nmod, len(iflt_list), comb_iflt))
         
+    if "DP" in comb_iflt:
+        raise TypeError("vcal does not handle DPI data => use IRDAP")   
+    
     with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
         filt_spec = json.load(filt_spec_file)[comb_iflt]  # Get infos of current filters combinaison
     
@@ -163,7 +166,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     ## 10-19 IFS
     
     instr = params_calib['instr']# instrument name in file name
-    science_mode = filt_spec['mode'] # current choice between {'DBI','CI','DPI'}
+    science_mode = filt_spec['mode'] # current choice between {'DBI','CI'}
     mode = params_calib.get('mode','YJH') # only matters for IFS data calibration
     
     overwrite_sof = params_calib['overwrite_sof']
@@ -881,12 +884,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 lab_SCI = 'IRD_SCIENCE_IMAGING_RAW\n'
                 lab_rec = 'science_imaging'
                 lab_lr = ["_CI_l_"+filters[0],"_CI_r_"+filters[0]]
-            elif science_mode == 'DPI':
-                lab_SCI = 'IRD_SCIENCE_DPI_RAW\n'
-                lab_rec = 'science_dpi'
-                lab_lr = ["_DPI_l_"+filters[0],"_DPI_r_"+filters[0]]
             else:
-                raise ValueError("science_mode not recognized: should be DBI, CI or DPI.")
+                raise ValueError("science_mode not recognized: should be DBI or CI.")
                 
             # OBJECT  
             sci_list_irdis = dico_lists['sci_list_irdis']
