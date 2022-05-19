@@ -382,6 +382,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             
             for ii in range(len(psf_list_irdis)):
                 os.system( "cp " + inpath + psf_list_irdis[ii] + " " + inpath + "skysub/" + psf_list_irdis[ii])
+        
         # FLAT + final bp map
         if 4 in to_do:
             if not isfile(outpath_irdis_sof+"master_flat.sof") or overwrite_sof:
@@ -517,6 +518,13 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     #                            med_psf_lvl = np.median(med_psf_lvl)
     #                            # PCA-sky subtraction
     #                            master_psf_sky_tmp = master_psf_sky_tmp-med_sky_lvl+med_psf_lvl
+                            # SUBTRACT MEDIAN SKY (incl. dark) FIRST
+                            med_sky = np.median(master_sci_sky_tmp, axis=0)
+                            for ss in range(sci_cube_tmp.shape[0]):
+                                sci_cube_tmp[ss] -= med_sky
+                            for sk in range(master_sci_sky_tmp.shape[0]):
+                                master_sci_sky_tmp[sk] -= med_sky
+                            # ACTUAL PCA SUBTRACTION
                             sci_cube_tmp = cube_subtract_sky_pca(sci_cube_tmp,
                                                                  sky_cube=master_sci_sky_tmp, 
                                                                  mask=mask_arr[ii][s], 
