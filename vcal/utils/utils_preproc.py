@@ -39,19 +39,24 @@ pi = np.pi
 
 def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
                       sub_med=True, fit_type='moff', snr_thr=5, bin_fit=1, 
-                      convolve=True, nmin=10, crop_sz=None, 
-                      sigfactor=3, full_output=False, verbose=False, 
-                      debug=False, path_debug='./', rel_dist_unc=2e-4):
+                      convolve=True, nmin=10, crop_sz=None, sigfactor=3, 
+                      full_output=False, verbose=False, debug=False, 
+                      path_debug='./', rel_dist_unc=2e-4):
     """ Recenters a cube with a background star seen in the individual 
     images. The algorithm is based on the fact that the trajectory of the bkg 
     star should lie on a perfectly circular arc if the centering is done 
     correctly, with angular spacing between images given by derotation angles.
     
-    Note: it is recommended to perform a first rough centering of the cube 
-    based on either satellite spots or a 2d fit of the bright coronagraphic 
-    mask signal. Otherwise, you can try setting rough_cen to True if the input 
-    array is not roughly centered to a couple px accuracy. For the latter to 
-    work, the rough center should be near the max intensity of convolved images. 
+    Notes: 
+        - it is recommended to perform a first rough centering of the cube based 
+        on either satellite spots or a 2d fit of the bright coronagraphic mask 
+        signal. Otherwise, you can try setting rough_cen to True if the input 
+        array is not roughly centered to a couple px accuracy. For the latter to 
+        work, the rough center should be near the max intensity of convolved images. 
+        - in the absence of "good_frame" provided as input, better results may 
+        be obtained after several iterations, e.g. by encapsulating the function
+        in a while loop with a certain condition on the absolute shifts to break
+        the loop.
 
     Parameters
     ----------
@@ -114,7 +119,7 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     cube=array.copy()
     if crop_sz is None:
         crop_sz = int(6*fwhm)
-    if not crop_sz%2:
+    if not crop_sz%2 == array.shape[-1]%2:
         crop_sz+=1
 
     #step 2 - GET MEDIAN CUBES AND EXACT MED POS 
