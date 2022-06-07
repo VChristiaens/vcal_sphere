@@ -434,7 +434,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     negative=False
                     rec_met_tmp = rec_met_psf
                 else:
-                    break  # CEN
+                    break  # CEN # Note: they are centered at the same time as OBJ (when dealing with the first OBJ cube more specifically)
                 if not file_list:
                     break  # if file_list is empty, which append when there is no psf/cen then we break.
                 
@@ -998,7 +998,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                  header=True)
                         if distort_corr:
                             cube = _cube_resc_wave(cube, scaling_list=None, ref_xy=None, 
-                                                   imlib="opencv",
+                                                   imlib="opencv", #Note: FFT unusable because scaling_y!=scaling_x
                                                    interpolation='lanczos4', 
                                                    scaling_y=scal_y_distort, 
                                                    scaling_x=scal_x_distort)
@@ -1708,7 +1708,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         if crop_sz%2: # only save final with VIP conventions, for use in postproc.  
                             write_fits(outpath+final_psfname+"{}.fits".format(filt), med_psf)
                             write_fits(outpath+final_psfname_norm+"{}.fits".format(filt), norm_psf)
-                            write_fits(outpath+final_fluxname+"{}.fits".format(filt), np.array([med_flux]))
+                            write_fits(outpath+final_fluxname+"{}.fits".format(filt), 
+                                       np.array([med_flux*dit_irdis/dit_psf_irdis, med_flux]),
+                                       header = {'Flux 0:', 'Flux scaled to coronagraphic DIT',
+                                                 'Flux 1:', 'Flux measured in PSF image'})
                             write_fits(outpath+final_fwhmname+"{}.fits".format(filt), np.array([fwhm]))
                         write_fits(outpath+"4_final_psf_med{}_{}{:.0f}.fits".format(filt,psf_model,crop_sz), med_psf)
                         write_fits(outpath+"4_final_psf_med{}_{}_norm{:.0f}.fits".format(filt,psf_model,crop_sz), norm_psf)
