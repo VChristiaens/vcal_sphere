@@ -134,7 +134,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     badfr_criteria_psf = params_preproc['badfr_crit_names_psf']
     badfr_crit = params_preproc['badfr_crit']
     badfr_crit_psf = params_preproc['badfr_crit_psf']
-    badfr_idx = params_preproc.get('badfr_idx',[[],[],[]])   
+    badfr_idx = params_preproc.get('badfr_idx',[[],[],[]])
+    max_bpix_nit = params_preproc.get('max_bpix_nit', 10)
 
     #******************** PARAMS LIKELY GOOD AS DEFAULT ***************************  
     
@@ -345,7 +346,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             cube = cube_crop_frames(cube,bp_crop_sz)
                         cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resels, 
                                                      sig=6., protect_mask=0, verbose=full_output,
-                                                     half_res_y=False, max_nit=10, full_output=full_output)
+                                                     half_res_y=False, max_nit=max_bpix_nit, full_output=full_output)
                         if full_output:
                             write_fits(outpath+filename+"_1bpcorr_bpmap.fits", cube[1], header=header)
                             cube = cube[0]
