@@ -176,8 +176,6 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     do_adi_ann = params_postproc.get('do_adi_ann',0)   # PCA-ADI in annuli in each spectral channel
     do_sadi_full=params_postproc.get('do_sadi_full',1)   # PCA-SADI in full frame
     do_sadi_ann=params_postproc.get('do_sadi_ann',0)    # PCA-SADI in annuli
-    do_snr_map = params_postproc.get('do_snr_map',0)  # to plot the snr_map (warning: computer intensive); useful only when point-like features are seen in the image
-    do_stim_map = params_postproc.get('do_stim_map',1)  # Check Pairet et al. 2018 or Christiaens+2019 for more details on STIM maps
 
 
     ## Planet?
