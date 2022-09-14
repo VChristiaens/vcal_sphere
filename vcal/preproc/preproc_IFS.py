@@ -830,9 +830,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     fluxes = np.zeros([n_z,ntot])
                     # first fit on median
                     for zz in range(n_z):
-                        _, _, fwhm[zz] = normalize_psf(np.median(cube[zz],axis=0), fwhm='fit', size=None, threshold=None, mask_core=None,
-                                                   model=psf_model, imlib='opencv', interpolation='lanczos4',
-                                                   force_odd=True, full_output=True, verbose=debug, debug=False)
+                        _, _, fwhm[zz] = normalize_psf(np.median(cube[zz],axis=0), fwhm='fit', size=final_crop_sz_psf,
+                                                       threshold=None, mask_core=None, model=psf_model, imlib='opencv',
+                                                       interpolation='lanczos4', force_odd=True, full_output=True,
+                                                       verbose=debug, debug=False)
                     write_fits(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp]), fwhm)                               
                 else:
                     fwhm = open_fits(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp]))
