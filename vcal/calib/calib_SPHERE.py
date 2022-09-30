@@ -1492,9 +1492,6 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         os.makedirs(inpath+lab_wc)
                     hdul.writeto(inpath+skysub_lab_IFS+wave_calib_list_ifs[ii], output_verify='ignore', overwrite=True)
                     
-                    
-                        
-
                     cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3,
                                                  sig=6., protect_mask=0, verbose=False,
                                                  half_res_y=False, max_nit=10, full_output=False)
