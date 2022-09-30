@@ -1,4 +1,5 @@
-0) Place VCAL-pipeline scripts in your $PATH.
+0) Install dfits or dfitspy (or any other fits header parser utility).
+The latter can be installed with: pip install dfitspy
 
 1) Download:
 	- dataset of interest + raw calibs
@@ -7,20 +8,39 @@
 
 2) Uncompress all *.Z files
 
-3) cd in downloaded directory and use following command to infer the strategy used during the observation (optionally check some raw images):
-dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
-Pro tip: make an alias in your ~/.bash_profile e.g. by adding:
-alias dfits_irdifs = 'dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS.COMB.IFLT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT'
-then simply call dfits_irdifs whenever needed in a given directory.
+3) cd in downloaded directory and use dfits or dfitspy to list relevant header values to infer the strategy used during the observation (optionally check some raw images):
+	3a) Using dfits and fitsort:
+		dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
+	Pro tip: make an alias in your ~/.bash_profile e.g. by adding:
+	alias dfits_irdifs='dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS.COMB.IFLT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT'
+	then simply call dfits_irdifs whenever needed in a given directory.
 
-4) Adapt JSON param files for:
-	a) calibration (1st bad pix corr; dark sub; flat field; sky sub; etc.)  
-	b) preprocessing (2nd bad pix corr; centering; bad frames removal; ADI cube)
+	3b) If you've installed dfitspy, open an ipython session in your 'raw' directory and run:
+		import dfitspy
+		listfiles = dfitspy.get_files(['all'])
+		rlistkeys = ['DET.ID', 'DET.SEQ1.DIT', 'INS.COMB.IFLT', 'INS1.FILT.NAME', 'INS1.OPTI2.NAME', 'DPR.TYPE', 'INS4.COMB.ROT', 'INS.COMB.IFLT']
+		listkeys = dfitspy.get_keys(rlistkeys)
+		fitsort = dfitspy.dfitsort(listfiles, listkeys)
+		dfitspy.dfitsort_view(fitsort)
+	
+4) Adapt JSON parameter files for:
+	a) calibration (flat-fielding, sky subtraction, in addition for IFS: detector-level bad pixel correction, wavelength calibration, spectral cube creation)  
+	b) preprocessing (bad pixel correction, centering, bad frame removal, ADI cube creation, derotation angle calculation)
 	c) post-processing (median-ADI; PCA-ADI full/ann; PCA-SADI/PCA-ASDI for IFS)
-Description on each param is provided in the relevant MANUAL txt files.
+Description of each parameter is provided in the relevant MANUAL txt files.
 
-5) import
-Pro tip: consider making a bash script for automated reductions.
+5) Open an ipython/jupyter notebook session, import and run vcal functions, calling the relevant parameter files:
+	a) For calibration, e.g.:
+		from vcal import calib
+		calib('VCAL_params_calib.json')
+	b) For pre-processing of IRDIS data, e.g.:
+		from vcal import preproc_IRDIS
+		calib('VCAL_params_preproc_IRDIS.json', 'VCAL_params_calib.json')
+	c) For post-processing of IRDIS data, e.g.:
+		from vcal import postproc_IRDIS
+		calib('VCAL_params_postproc_IRDIS.json', 'VCAL_params_preproc_IRDIS.json', 'VCAL_params_calib.json')
+
+Pro tip: instead of ipython/jupyter sessions, consider making a bash script for automated reductions.
 
 
 Warning: Different observations may have different specific issues that may have not been predicted for handling by the pipeline. Inspect intermediate files for diagnostic, and iterate on the requested reduction parameters in the JSON files.
