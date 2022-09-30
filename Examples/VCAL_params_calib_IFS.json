@@ -1,6 +1,6 @@
 {
     "path": "/Users/valentin/Documents/Postdoc/MWC758/SPHERE2018/MWC758/",
-    "inpath_filt_table": "/Users/valentin/GitHub/vcal_sphere/DataStatic/sph_ird_filt_table.fits",
+    "inpath_filt_table": "/home/ekokoulina/Liege/vcal_sphere/DataStatic/sph_ird_filt_table.fits",
     "dit_ifs": 96,
     "dit_irdis": 96,
     "dit_psf_ifs": 2,
