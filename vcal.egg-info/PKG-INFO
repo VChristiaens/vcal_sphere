@@ -6,7 +6,6 @@ Home-page: https://github.com/VChristiaens/vcal_sphere
 Author: Valentin Christiaens
 Author-email: valentinchrists@hotmail.com
 License: MIT
-Platform: UNKNOWN
 Classifier: Intended Audience :: Science/Research
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: MacOS :: MacOS X
@@ -89,4 +88,3 @@ Before running the pipeline, make sure:
 Acknowledgements
 ----------------
 If you use `vcal_sphere`, please cite `Christiaens et al. (2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.502.6117C/abstract>`_. 
-

@@ -18,8 +18,7 @@ The latter can be installed with: pip install dfitspy
 	3b) If you've installed dfitspy, open an ipython session in your 'raw' directory and run:
 		import dfitspy
 		listfiles = dfitspy.get_files(['all'])
-		rlistkeys = ['DET.ID', 'DET.SEQ1.DIT', 'INS.COMB.IFLT', 'INS1.FILT.NAME', 'INS1.OPTI2.NAME', 'DPR.TYPE', 'INS4.COMB.ROT', 'INS.COMB.IFLT']
-		listkeys = dfitspy.get_keys(rlistkeys)
+		listkeys = ['HIERARCH ESO DET ID', 'HIERARCH ESO DET SEQ1 DIT', 'HIERARCH ESO INS1 FILT NAME', 'HIERARCH ESO INS1 OPTI2 NAME','HIERARCH ESO DPR TYPE' ,'HIERARCH ESO INS4 COMB ROT', 'HIERARCH ESO INS COMB IFLT']
 		fitsort = dfitspy.dfitsort(listfiles, listkeys)
 		dfitspy.dfitsort_view(fitsort)
 	
