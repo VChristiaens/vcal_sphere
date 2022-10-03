@@ -193,6 +193,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     poly_order_wc = params_calib.get('poly_order_wc',1) # used to find wavelength model
     wc_win_sz = params_calib.get('wc_win_sz',2)# default: 4
     sky=params_calib.get('sky',1) # for IFS only, will subtract the sky before the science_dr recipe (corrects also for dark, incl. bias, and vast majority of bad pixels!!)
+    verbose=params_calib.get('verbose',1)
     
     ### Formatting
     skysub_lab_IRD = "skysub/"
@@ -201,6 +202,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     xtalkcorr_lab_IFS = "xtalkcorr_IFS/"
     
     ## 0. Create list of dictionaries
+    if verbose:
+        print("*** 0. Creating list of dictionaries with different file types ***")
     if 0 in to_do or not isfile(path+"dico_files.csv"):
         dico_lists = make_lists(inpath, outpath_filenames, dit_ifs=dit_ifs, 
                                 dit_irdis=dit_irdis, dit_psf_ifs=dit_psf_ifs, 
@@ -235,8 +238,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
         pca_subtr_psf = pca_subtr
         pca_subtr_cen = pca_subtr
         
-        # DARKS
+        # DARKS    
         if 1 in to_do:
+            if verbose:
+                print("*** 1. IRDIS: Collating darks (not used if SKY observations were made) ***")
             ## OBJECT
             if not isfile(outpath_irdis_sof+"master_dark.sof") or overwrite_sof:
                 dark_list_irdis = dico_lists['dark_list_irdis']
@@ -254,6 +259,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
         
         # GAINS
         if 2 in to_do:
+            if verbose:
+                print("*** 2. IRDIS: Calculating gains ***")
             ## OBJECT
             if not isfile(outpath_irdis_sof+"master_gain.sof") or overwrite_sof:
                 gain_list_irdis = dico_lists['gain_list_irdis']
@@ -273,6 +280,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 
         # Identify good SKY BKG / INS BKG (in order of priority)
         if 3 in to_do or 4 in to_do:
+            if verbose:
+                print("*** 3. IRDIS: Compiling SKY backgrounds ***")
             # OBJ
             ## sky or ins bg list?     
             sky_list_irdis = dico_lists['sky_list_irdis']
@@ -388,6 +397,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
         
         # FLAT + final bp map
         if 4 in to_do:
+            if verbose:
+                print("*** 4. IRDIS: Calculating master FLAT-FIELDS ***")
             if not isfile(outpath_irdis_sof+"master_flat.sof") or overwrite_sof:
                 flat_dark_list_irdis = dico_lists['flat_dark_list_irdis']
                 flat_list_irdis = dico_lists['flat_list_irdis']
@@ -422,7 +433,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
 
 
         # SKY CUBE (optionally PCA SUBTRACTION)
-        if 5 in to_do:                
+        if 5 in to_do: 
+            if verbose:
+                print("*** 5. IRDIS: Compiling SKY cubes ***")               
             # OBJECT  
             sci_list_irdis = dico_lists['sci_list_irdis']
             n_sci =  len(sci_list_irdis)
@@ -876,6 +889,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             
         # REDUCE
         if 6 in to_do:
+            if verbose:
+                print("*** 6. IRDIS: Reduce all datacubes ***")
             if science_mode == 'DBI':
                 lab_SCI = 'IRD_SCIENCE_DBI_RAW\n'
                 lab_rec = 'science_dbi'
@@ -1061,6 +1076,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             label_fd = 'fake_'
                 
         if 10 in to_do or 15 in to_do or 17 in to_do:
+            if verbose:
+                print("*** 10. IFS: Compiling DARKs ***")
             dark_list_ifs = dico_lists['dark_list_ifs']
             if len(dark_list_ifs)<1:
                 raise ValueError("There should be at least one dark! Double-check archive?")
@@ -1171,6 +1188,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             
         # GAINS
         if 11 in to_do:
+            if verbose:
+                print("*** 11. IFS: Calculating gains ***")
             ## OBJECT
             if not isfile(outpath_ifs_sof+"master_gain.sof") or overwrite_sof:
                 gain_list_ifs = dico_lists['gain_list_ifs']
@@ -1188,6 +1207,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 
         # MASTER DETECTOR FLAT (4 steps - see MANUAL)
         if 12 in to_do: # to check whether it should be set to True
+            if verbose:
+                print("*** 12. IFS: Calculating detector FLAT-FIELD ***")
             flat_list_ifs_det_BB = dico_lists['flat_list_ifs_det_BB']
             flat_list_ifs_det = dico_lists['flat_list_ifs_det']         
             lab_flat = ''     
@@ -1372,6 +1393,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     
         # SPECTRA POSITIONS
         if 13 in to_do:
+            if verbose:
+                print("*** 13. IFS: Calculating spectra positions ***")
             dit_ifs_flat_list = dico_lists['dit_ifs_flat']
             nfdits = len(dit_ifs_flat_list)
             if not isfile(outpath_ifs_sof+"spectra_pos.sof") or overwrite_sof:
@@ -1413,6 +1436,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 
         # TOTAL INSTRUMENT FLAT
         if 14 in to_do:
+            if verbose:
+                print("*** 14. IFS: Calculating total instrument flat-field ***")
             if not isfile(outpath_ifs_fits+"master_flat_tot.fits") or overwrite_sof or overwrite_fits:
                 if not isfile(outpath_ifs_sof+"master_flat_tot.sof") or overwrite_sof:
                     flat_list_ifs = dico_lists['flat_list_ifs']
@@ -1460,6 +1485,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     
         # WAVE CALIBRATION 
         if 15 in to_do:
+            if verbose:
+                print("*** 15. IFS: Calibrating wavelengths ***")
             dit_ifs_flat_list = dico_lists['dit_ifs_flat']
             nfdits = len(dit_ifs_flat_list)
 
@@ -1492,9 +1519,6 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         os.makedirs(inpath+lab_wc)
                     hdul.writeto(inpath+skysub_lab_IFS+wave_calib_list_ifs[ii], output_verify='ignore', overwrite=True)
                     
-                    
-                        
-
                     cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3,
                                                  sig=6., protect_mask=0, verbose=False,
                                                  half_res_y=False, max_nit=10, full_output=False)
@@ -1545,6 +1569,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     
         # IFU FLAT
         if 16 in to_do:
+            if verbose:
+                print("*** 16. IFS: Calibrating final IFU flat-fields ***")
             if not isfile(outpath_ifs_fits+"master_flat_ifu.fits") or overwrite_sof or overwrite_fits:
                 if not isfile(outpath_ifs_sof+"master_flat_ifu.sof") or overwrite_sof:
                     flat_list_ifs = dico_lists['flat_list_ifs_det'] # v1
@@ -1604,6 +1630,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             
         # PRODUCE SKY CUBES
         if 17 in to_do and sky:
+            if verbose:
+                print("*** 17. IFS: Compiling SKY cubes ***")
             ## OBJ
             sky_list_ifs = dico_lists['sky_list_ifs']
             if -1 in good_sky_list:
@@ -1671,6 +1699,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
         # REDUCE OBJECT
         lab_distort="" # no distortion correction possible for ifs in pipeline
         if 18 in to_do:
+            if verbose:
+                print("*** 18. IFS: Reduce all OBJECT datacubes ***")
             # MANUAL SKY SUBTRACTION BEF REDUCTION
             sci_list_ifs = dico_lists['sci_list_ifs']
             hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), 
@@ -1793,6 +1823,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
 
         # REDUCE CEN
         if 19 in to_do:
+            if verbose:
+                print("*** 19. IFS: Reduce all CEN data cubes ***")
             cen_list_ifs = dico_lists['cen_list_ifs']
             hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), 
                    ignore_missing_end=False,
@@ -1924,6 +1956,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
            
         # REDUCE PSF
         if 20 in to_do:
+            if verbose:
+                print("*** 20. IFS: Reduce all FLUX datacubes ***")
             psf_list_ifs = dico_lists['psf_list_ifs']
             hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), 
                    ignore_missing_end=False,
