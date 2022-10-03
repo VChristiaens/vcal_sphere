@@ -33,10 +33,10 @@ Description of each parameter is provided in the relevant MANUAL txt files.
 		from vcal import calib
 		calib('VCAL_params_calib.json')
 	b) For pre-processing of IRDIS data, e.g.:
-		from vcal import preproc_IRDIS
+		from vcal.preproc import preproc_IRDIS
 		calib('VCAL_params_preproc_IRDIS.json', 'VCAL_params_calib.json')
 	c) For post-processing of IRDIS data, e.g.:
-		from vcal import postproc_IRDIS
+		from vcal.postproc import postproc_IRDIS
 		calib('VCAL_params_postproc_IRDIS.json', 'VCAL_params_preproc_IRDIS.json', 'VCAL_params_calib.json')
 
 Pro tip: instead of ipython/jupyter sessions, consider making a bash script for automated reductions.
