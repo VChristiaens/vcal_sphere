@@ -59,6 +59,7 @@ badfr_crit_names_psf = ['corr'] # Bad frame criteria to be used for PSF cubes; s
 badfr_crit = [{"thr":0.9,"ref":"median"},{"thr":"2"}] # List of dictionaries indicating thresholds & parameters to be used for each bad frame criterion.
 badfr_crit_psf  # Same as badfr_crit but for unsaturated PSF.
 badfr_idx = [[5,6,7],None] # Whether to force some frames to be removed (e.g. if impossible to identify with criteria but clear by eye)
+max_bpix_nit = 10  # sets the maximum number of iterations on a frame to correct bpix. Can reduce processing time, but may miss bad pixels if set too low
 
 approx_xy_bkg = 0 # can be 0 or a list of 2 floats: (x,y) coords of background star in full ADI frame obtained after rough centering.
 snr_thr_bkg = 3. # float corresponding to SNR threshold to select images of the sequence for consideration to compute shifts.

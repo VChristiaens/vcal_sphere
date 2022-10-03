@@ -134,7 +134,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     badfr_criteria_psf = params_preproc['badfr_crit_names_psf']
     badfr_crit = params_preproc['badfr_crit']
     badfr_crit_psf = params_preproc['badfr_crit_psf']
-    badfr_idx = params_preproc.get('badfr_idx',[[],[],[]])   
+    badfr_idx = params_preproc.get('badfr_idx',[[],[],[]])
+    max_bpix_nit = params_preproc.get('max_bpix_nit', 10)
 
     #******************** PARAMS LIKELY GOOD AS DEFAULT ***************************  
     
@@ -345,7 +346,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             cube = cube_crop_frames(cube,bp_crop_sz)
                         cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resels, 
                                                      sig=6., protect_mask=0, verbose=full_output,
-                                                     half_res_y=False, max_nit=10, full_output=full_output)
+                                                     half_res_y=False, max_nit=max_bpix_nit, full_output=full_output)
                         if full_output:
                             write_fits(outpath+filename+"_1bpcorr_bpmap.fits", cube[1], header=header)
                             cube = cube[0]
@@ -829,9 +830,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     fluxes = np.zeros([n_z,ntot])
                     # first fit on median
                     for zz in range(n_z):
-                        _, _, fwhm[zz] = normalize_psf(np.median(cube[zz],axis=0), fwhm='fit', size=None, threshold=None, mask_core=None,
-                                                   model=psf_model, imlib='opencv', interpolation='lanczos4',
-                                                   force_odd=True, full_output=True, verbose=debug, debug=False)
+                        _, _, fwhm[zz] = normalize_psf(np.median(cube[zz],axis=0), fwhm='fit', size=final_crop_sz_psf,
+                                                       threshold=None, mask_core=None, model=psf_model, imlib='opencv',
+                                                       interpolation='lanczos4', force_odd=True, full_output=True,
+                                                       verbose=debug, debug=False)
                     write_fits(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp]), fwhm)                               
                 else:
                     fwhm = open_fits(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp]))

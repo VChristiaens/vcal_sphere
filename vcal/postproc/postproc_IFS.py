@@ -27,31 +27,30 @@ __all__ = ['postproc_IFS']
 
 import json
 import matplotlib as mpl
-mpl.use('Agg')
 import matplotlib.pyplot as plt
 from multiprocessing import cpu_count
 import numpy as np
 from os.path import isfile, isdir
 import os
-#import pandas
 from pandas import DataFrame as DF
-#import pdb
 
-import vip_hci as vip
-from vip_hci.fits import open_fits, write_fits
 try:
     from vip_hci.psfsub import pca, pca_annular
     from vip_hci.metrics import stim_map as compute_stim_map
     from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
+    from vip_hci.fm import normalize_psf, cube_inject_companions, cube_planet_free
 except:
     from vip_hci.pca import pca, pca_annular
-    from vip_hci.metrics import compute_stim_map, compute_inverse_stim_map
+    from vip_hci.metrics import compute_stim_map, compute_inverse_stim_map, cube_inject_companions
+    from vip_hci.negfc import cube_planet_free
+from vip_hci.metrics import contrast_curve, snr, snrmap
 from vip_hci.preproc import cube_derotate
-
-from vip_hci.var import mask_circle
+from vip_hci.fits import open_fits, write_fits
+from vip_hci.var import mask_circle, frame_center
 from ..utils import find_nearest
 
 from vcal import __path__ as vcal_path
+mpl.use('Agg')
 
 
 ############### PARAMETERS to be adapted to each dataset #####################
@@ -176,8 +175,6 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     do_adi_ann = params_postproc.get('do_adi_ann',0)   # PCA-ADI in annuli in each spectral channel
     do_sadi_full=params_postproc.get('do_sadi_full',1)   # PCA-SADI in full frame
     do_sadi_ann=params_postproc.get('do_sadi_ann',0)    # PCA-SADI in annuli
-    do_snr_map = params_postproc.get('do_snr_map',0)  # to plot the snr_map (warning: computer intensive); useful only when point-like features are seen in the image
-    do_stim_map = params_postproc.get('do_stim_map',1)  # Check Pairet et al. 2018 or Christiaens+2019 for more details on STIM maps
 
 
     ## Planet?
@@ -195,7 +192,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
 
     ## Post-processing
     sadi_steps  =params_postproc.get('sadi_steps',1)
-    mask_IWA_px = params_postproc.get('mask_IWA',10)  # just show pca images beyond the provided mask radius (in fwhm units)
+    mask_IWA_px = params_postproc.get('mask_IWA',10)  # just show pca images beyond the provided mask radius (provide in pixels)
     do_conv = params_postproc.get('do_conv',0) # whether to smooth final images
     do_snr_map = params_postproc.get('do_snr_map',[0,0,0]) # to plot the snr_map (warning: computer intensive); useful only when point-like features are seen in the image
     if not isinstance(do_snr_map, list):
@@ -284,11 +281,11 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     if not isdir(outpath_fig):
         os.system("mkdir "+outpath_fig)
     
-    PCA_ASDI_cube_ori= vip.fits.open_fits(inpath+final_cubename)
+    PCA_ASDI_cube_ori= open_fits(inpath+final_cubename)
     nz, nn, ny, nx = PCA_ASDI_cube_ori.shape
     
-    derot_angles = vip.fits.open_fits(inpath+final_anglename)
-    lbdas = vip.fits.open_fits(inpath+final_lbdaname)
+    derot_angles = open_fits(inpath+final_anglename)
+    lbdas = open_fits(inpath+final_lbdaname)
     
     psfn = open_fits(inpath+final_psfname)
     starphot = open_fits(inpath+fluxes_name)#[0]
@@ -312,11 +309,11 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
         label_stg = "ADI"
             
     if subtract_planet:
-        PCA_ASDI_cube_ori = vip.negfc.cube_planet_free(planet_parameter, 
+        PCA_ASDI_cube_ori = cube_planet_free(planet_parameter,
                                                    PCA_ASDI_cube_ori, derot_angles, 
                                                    psfn, plsc)
     if planet or fake_planet:
-        cy, cx = vip.var.frame_center(PCA_ASDI_cube_ori[0,0])
+        cy, cx = frame_center(PCA_ASDI_cube_ori[0,0])
     if planet:
         xx_comp = planet_pos[0]
         yy_comp = planet_pos[1]
@@ -339,15 +336,15 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
             if not isfile(outpath+'TMP_first_guess_5sig_sensitivity_ASDI'+label_test+'.fits') or not isfile(outpath+'TMP_optimal_contrast_curve_PCA-ASDI-full_randsvd.csv') or overwrite_pp:
                 df_list = []
                 for nn, npc in enumerate(firstguess_pcs):
-                    pn_contr_curve_full_rr = vip.metrics.contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
-                                                                        fwhm, plsc, starphot=starphot, 
-                                                                        algo=vip.pca.pca, sigma=5., nbranch=1, 
-                                                                        theta=0, inner_rad=1, wedge=(0,360),
-                                                                        fc_snr=fc_snr,
-                                                                        student=True, transmission=transmission, 
-                                                                        plot=True, dpi=100, 
-                                                                        verbose=verbose, ncomp=int(npc), svd_mode=svd_mode,
-                                                                        scale_list=scale_list, adimsdi='single')
+                    pn_contr_curve_full_rr = contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
+                                                            fwhm, plsc, starphot=starphot,
+                                                            algo=pca, sigma=5., nbranch=1,
+                                                            theta=0, inner_rad=1, wedge=(0,360),
+                                                            fc_snr=fc_snr,
+                                                            student=True, transmission=transmission,
+                                                            plot=True, dpi=100,
+                                                            verbose=verbose, ncomp=int(npc), svd_mode=svd_mode,
+                                                            scale_list=scale_list, adimsdi='single')
                     df_list.append(pn_contr_curve_full_rr)
                 pn_contr_curve_full_rsvd_opt = pn_contr_curve_full_rr.copy()
         
@@ -386,11 +383,11 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         flevel = starphot*sensitivity_5sig_full_rsvd_df[-1]/np.sqrt(((rad_arr[ff]*plsc)/0.5))
                     else:
                         flevel = starphot*sensitivity_5sig_full_rsvd_df[ff] # injected at ~3 sigma level instead of 5 sigma (rule is normalized at 0.5'', empirically it seems one has to be more conservative below 1'', hence division by radius)
-                    PCA_ASDI_cube = vip.metrics.cube_inject_companions(PCA_ASDI_cube, psfn, 
-                                                                       derot_angles, flevel, 
-                                                                       plsc, rad_dists=rad_arr[ff:ff+1], 
-                                                                       n_branches=1, theta=(theta0+ff*th_step)%360, 
-                                                                       imlib='opencv', verbose=verbose)                                                                 
+                    PCA_ASDI_cube = cube_inject_companions(PCA_ASDI_cube, psfn,
+                                                           derot_angles, flevel,
+                                                           plsc, rad_dists=rad_arr[ff:ff+1],
+                                                           n_branches=1, theta=(theta0+ff*th_step)%360,
+                                                           imlib='opencv', verbose=verbose)
                 write_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns), PCA_ASDI_cube)
                 #vip.fits.append_extension(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns), derot_angles)
         
@@ -444,7 +441,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             inv_stim_map[pp] = compute_inverse_stim_map(tmp_tmp,derot_angles)
                             thr[pp] = np.amax(inv_stim_map[pp])
                         if planet:
-                            snr_tmp[pp] = vip.metrics.snr(tmp[pp], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=True,
+                            snr_tmp[pp] = snr(tmp[pp], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=True,
                                                           verbose=False)
                     write_fits(outpath+'final_PCA-SDI_'+test_pcs_str+label_test+'.fits', tmp)
                     if do_stim_map:
@@ -474,8 +471,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     tmp = open_fits(outpath+'final_PCA-SDI_'+test_pcs_str+label_test+'.fits')
                     rad_in = mask_IWA
                     for pp in range(tmp.shape[0]):
-                        tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm_med, plot=False)
-                        tmp[pp] = vip.var.mask_circle(tmp[pp],rad_in*fwhm_med)
+                        tmp[pp] = snrmap(tmp[pp], fwhm_med, plot=False)
+                        tmp[pp] = mask_circle(tmp[pp],rad_in*fwhm_med)
                     write_fits(outpath+'final_PCA-SDI_'+test_pcs_str+label_test+'_snrmap.fits', tmp, verbose=False)
                 
             else:
@@ -483,7 +480,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                 tmp_tmp = np.zeros([ntest_pcs,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                 for ns in range(nspi):
                     theta0 = th0+ns*th_step
-                    PCA_ASDI_cube = vip.fits.open_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns))
+                    PCA_ASDI_cube = open_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns))
                     for pp, npc in enumerate(test_pcs_sdi):
                         if svd_mode == 'randsvd':
                             tmp_tmp_tmp = np.zeros([3,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
@@ -502,7 +499,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         for ff in range(nfcp):
                             xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
                             yy_fcp = cy + rad_arr[ff]*np.sin(np.deg2rad(theta0+ff*th_step))
-                            snr_tmp_tmp[ns,pp,ff] = vip.metrics.snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=True,
+                            snr_tmp_tmp[ns,pp,ff] = snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=True,
                                                                   verbose=True)   
                     write_fits(outpath+'TMP_PCA-SDI_'+test_pcs_str+label_test+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)                                             
                 snr_fcp = np.median(snr_tmp_tmp, axis=0)
@@ -559,8 +556,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     #rad_in = 1.5
                     #tmp_tmp = np.ones_like(tmp)
                     for pp in range(tmp.shape[0]):
-                        tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm_med, plot=False)
-                        tmp[pp] = vip.var.mask_circle(tmp[pp],rad_in*fwhm_med)
+                        tmp[pp] = snrmap(tmp[pp], fwhm_med, plot=False)
+                        tmp[pp] = mask_circle(tmp[pp],rad_in*fwhm_med)
                     write_fits(outpath+'final_PCA-SDI_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp, verbose=False)   
         
         
@@ -590,7 +587,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                          delta_rot=delta_rot, fwhm=fwhm, collapse='median', check_memory=True, 
                                          full_output=False, verbose=verbose)
                         if planet:
-                            snr_tmp[pp,zz] = vip.metrics.snr(tmp[pp,zz], (xx_comp,yy_comp), fwhm[zz], plot=False, exclude_negative_lobes=True,
+                            snr_tmp[pp,zz] = snr(tmp[pp,zz], (xx_comp,yy_comp), fwhm[zz], plot=False, exclude_negative_lobes=True,
                                                           verbose=False)
                             if zz ==0:
                                 label='npc adi = {:.0f}'.format(npc)
@@ -621,7 +618,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     plt.ylabel('SNR')
                     plt.xlabel('npc')
                     for pp, npc in enumerate(test_pcs_adi_full):
-                        snr_tmp[pp] = vip.metrics.snr(tmp_tmp[pp], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=True,
+                        snr_tmp[pp] = snr(tmp_tmp[pp], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=True,
                                                       verbose=False)
                         if snr_tmp[pp] > 5:
                             marker = 'go'
@@ -641,7 +638,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                 tmp_tmp = np.zeros([ntest_pcs,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                 for ns in range(nspi):
                     theta0 = th0+ns*th_step
-                    PCA_ASDI_cube = vip.fits.open_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns))
+                    PCA_ASDI_cube = open_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns))
                     tmp = np.zeros([nz,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                     for pp, npc in enumerate(test_pcs_adi_full):
                         for zz in range(nz):
@@ -655,7 +652,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         for ff in range(nfcp):
                             xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
                             yy_fcp = cy + rad_arr[ff]*np.sin(np.deg2rad(theta0+ff*th_step))
-                            snr_tmp[ns,pp,ff] = vip.metrics.snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=True,
+                            snr_tmp[ns,pp,ff] = snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=True,
                                                                   verbose=True)   
                     write_fits(outpath+'PCA-ADI_full_collapsed_'+test_pcs_str+label_test+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)                                             
                 snr_fcp = np.median(snr_tmp, axis=0)
@@ -701,8 +698,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     #rad_in = 1.5
                     #tmp_tmp = np.ones_like(tmp)
                     for pp in range(tmp.shape[0]):
-                        tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm_med, plot=False)
-                        tmp[pp] = vip.var.mask_circle(tmp[pp],rad_in*fwhm_med)
+                        tmp[pp] = snrmap(tmp[pp], fwhm_med, plot=False)
+                        tmp[pp] = mask_circle(tmp[pp],rad_in*fwhm_med)
                     write_fits(outpath+'final_PCA-ADI_full_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp, verbose=False)   
                 
                       
@@ -730,7 +727,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                   min_frames_lib=max(npc,10), max_frames_lib=max(max_fr,npc+1), collapse='median', full_output=False, 
                                                   verbose=verbose, nproc=nproc)
                             if planet:
-                                snr_tmp[pp,zz] = vip.metrics.snr(tmp[pp,zz], (xx_comp,yy_comp), fwhm[zz], plot=False, exclude_negative_lobes=True,
+                                snr_tmp[pp,zz] = snr(tmp[pp,zz], (xx_comp,yy_comp), fwhm[zz], plot=False, exclude_negative_lobes=True,
                                                               verbose=False)
                                 if zz ==0:
                                     label='npc adi = {:.0f}'.format(npc)
@@ -763,7 +760,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     plt.ylabel('SNR')
                     plt.xlabel('npc')
                     for pp, npc in enumerate(test_pcs_adi_ann):
-                        snr_tmp[pp] = vip.metrics.snr(tmp_tmp[pp], (xx_comp,yy_comp), 
+                        snr_tmp[pp] = snr(tmp_tmp[pp], (xx_comp,yy_comp),
                                                       fwhm_med, plot=False, exclude_negative_lobes=True,
                                                       verbose=False)
                         if snr_tmp[pp] > 5:
@@ -784,7 +781,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                 tmp_tmp = np.zeros([ntest_pcs,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                 for ns in range(nspi):
                     theta0 = th0+ns*th_step
-                    PCA_ASDI_cube = vip.fits.open_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns))
+                    PCA_ASDI_cube = open_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns))
                     tmp = np.zeros([nz,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                     for pp, npc in enumerate(test_pcs_adi_ann):
                         for zz in range(start_nz,nz):
@@ -798,7 +795,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         for ff in range(nfcp):
                             xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
                             yy_fcp = cy + rad_arr[ff]*np.sin(np.deg2rad(theta0+ff*th_step))
-                            snr_tmp[ns,pp,ff] = vip.metrics.snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=True,
+                            snr_tmp[ns,pp,ff] = snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=True,
                                                                   verbose=True)   
                     write_fits(outpath+'PCA-ADI_ann_collapsed_'+test_pcs_str+label_test+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)                                             
                 snr_fcp = np.median(snr_tmp, axis=0)
@@ -844,8 +841,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     #rad_in = 1.5
                     #tmp_tmp = np.ones_like(tmp)
                     for pp in range(tmp.shape[0]):
-                        tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm_med, plot=False)
-                        tmp[pp] = vip.var.mask_circle(tmp[pp],rad_in*fwhm_med)
+                        tmp[pp] = snrmap(tmp[pp], fwhm_med, plot=False)
+                        tmp[pp] = mask_circle(tmp[pp],rad_in*fwhm_med)
                     write_fits(outpath+'final_PCA-ADI_ann_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp, verbose=False)   
         
         
@@ -887,7 +884,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                 inv_stim_map[pp] = compute_inverse_stim_map(tmp_tmp,derot_angles)
                                 thr[pp] = np.amax(inv_stim_map[pp])
                         if planet:
-                            snr_tmp[pp] = vip.metrics.snr(tmp[pp], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=True,
+                            snr_tmp[pp] = snr(tmp[pp], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=True,
                                                           verbose=False)                  
                         if planet:
                             plt.close() 
@@ -919,16 +916,16 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             rad_in = mask_IWA # we comment it for a better visualization of the snr map (there are spurious values in the center)
                             #rad_in = 1.5
                             tmp_tmp = np.ones_like(tmp)
-                            tmp_tmp = vip.var.mask_circle(tmp_tmp,rad_in*fwhm_med)
+                            tmp_tmp = mask_circle(tmp_tmp,rad_in*fwhm_med)
                             for pp in range(tmp.shape[0]):
-                                tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm_med, plot=False)
+                                tmp[pp] = snrmap(tmp[pp], fwhm_med, plot=False)
                             write_fits(outpath+'final_PCA-SADI1_full_'+test_pcs_str+label_test+'_snrmap.fits', tmp, verbose=False)  
                     else:
                         snr_tmp_tmp = np.zeros([nspi,ntest_pcs,nfcp])
                         tmp_tmp = np.zeros([ntest_pcs,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                         for ns in range(nspi):
                             theta0 = th0+ns*th_step
-                            PCA_ASDI_cube = vip.fits.open_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns))
+                            PCA_ASDI_cube = open_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns))
                             for pp, npc in enumerate(test_pcs_sadi_full):
                                 if svd_mode == 'randsvd':
                                     tmp_tmp_tmp = np.zeros([3,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
@@ -946,7 +943,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                 for ff in range(nfcp):
                                     xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
                                     yy_fcp = cy + rad_arr[ff]*np.sin(np.deg2rad(theta0+ff*th_step))
-                                    snr_tmp_tmp[ns,pp,ff] = vip.metrics.snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=True,
+                                    snr_tmp_tmp[ns,pp,ff] = snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=True,
                                                                           verbose=True)   
                             write_fits(outpath+'TMP_PCA-SADI1_full_'+test_pcs_str+label_test+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)                                             
                         snr_fcp = np.median(snr_tmp_tmp, axis=0)
@@ -992,9 +989,9 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             rad_in = mask_IWA # we comment it for a better visualization of the snr map (there are spurious values in the center)
                             #rad_in = 1.5
                             tmp_tmp = np.ones_like(tmp)
-                            tmp_tmp = vip.var.mask_circle(tmp_tmp,rad_in*fwhm_med)
+                            tmp_tmp = mask_circle(tmp_tmp,rad_in*fwhm_med)
                             for pp in range(tmp.shape[0]):
-                                tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm_med, plot=False)
+                                tmp[pp] = snrmap(tmp[pp], fwhm_med, plot=False)
                             write_fits(outpath+'final_PCA-SADI1_full_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp, verbose=False)
         
             label_test = label_test_ori
@@ -1047,7 +1044,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                     thr[counter] = np.amax(inv_stim_map[counter])                       
                 
                                 if planet:  
-                                    snr_tmp[counter] = vip.metrics.snr(tmp_tmp[counter], (xx_comp,yy_comp), fwhm_med, 
+                                    snr_tmp[counter] = snr(tmp_tmp[counter], (xx_comp,yy_comp), fwhm_med,
                                                                        plot=False, exclude_negative_lobes=True,
                                                                        verbose=False)
                                 counter+=1                                          
@@ -1085,7 +1082,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         tmp_tmp = np.zeros([ntest_pcs,PCA_ASDI_cube.shape[1],PCA_ASDI_cube.shape[2]])
                         for ns in range(nspi):
                             theta0 = th0+ns*th_step
-                            PCA_ASDI_cube = vip.fits.open_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns))
+                            PCA_ASDI_cube = open_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns))
                             counter = 0
                             for pp1, npc1 in enumerate(test_pcs_sadi_full_sdi):
                                 for pp2, npc2 in enumerate(test_pcs_sadi_full_adi):
@@ -1097,7 +1094,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                     for ff in range(nfcp):
                                         xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
                                         yy_fcp = cy + rad_arr[ff]*np.sin(np.deg2rad(theta0+ff*th_step))
-                                        snr_tmp_tmp[ns,pp,ff] = vip.metrics.snr(tmp_tmp[counter], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=True,
+                                        snr_tmp_tmp[ns,pp,ff] = snr(tmp_tmp[counter], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=True,
                                                                               verbose=True)   
                                     counter +=1
                             write_fits(outpath+'TMP_PCA-SADI2_full_'+test_pcs_str+label_test+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)                                             
@@ -1162,9 +1159,9 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             rad_in = mask_IWA # we comment it for a better visualization of the snr map (there are spurious values in the center)
                             #rad_in = 1.5
                             tmp_tmp = np.ones_like(tmp)
-                            tmp_tmp = vip.var.mask_circle(tmp_tmp,rad_in*fwhm_med)
+                            tmp_tmp = mask_circle(tmp_tmp,rad_in*fwhm_med)
                             for pp in range(tmp.shape[0]):
-                                tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm_med, plot=False)
+                                tmp[pp] = snrmap(tmp[pp], fwhm_med, plot=False)
                             write_fits(outpath+'final_PCA-SADI2_full_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp, verbose=False)                     
             label_test = label_test_ori
         
@@ -1212,7 +1209,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                     thr[counter] = np.amax(inv_stim_map[counter])                       
                 
                                 if planet:  
-                                    snr_tmp[counter] = vip.metrics.snr(tmp_tmp[counter], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=True,
+                                    snr_tmp[counter] = snr(tmp_tmp[counter], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=True,
                                                                        verbose=False)
                                 counter+=1                                          
                         if planet:
@@ -1249,7 +1246,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         tmp_tmp = np.zeros([ntest_pcs,PCA_ASDI_cube.shape[1],PCA_ASDI_cube.shape[2]])
                         for ns in range(nspi):
                             theta0 = th0+ns*th_step
-                            PCA_ASDI_cube = vip.fits.open_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns))
+                            PCA_ASDI_cube = open_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns))
                             counter = 0
                             for pp1, npc1 in enumerate(test_pcs_sadi_ann_sdi):
                                 for pp2, npc2 in enumerate(test_pcs_sadi_ann_adi):
@@ -1261,7 +1258,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                     for ff in range(nfcp):
                                         xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
                                         yy_fcp = cy + rad_arr[ff]*np.sin(np.deg2rad(theta0+ff*th_step))
-                                        snr_tmp_tmp[ns,pp,ff] = vip.metrics.snr(tmp_tmp[counter], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=True,
+                                        snr_tmp_tmp[ns,pp,ff] = snr(tmp_tmp[counter], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=True,
                                                                               verbose=True)   
                                     counter +=1
                             write_fits(outpath+'TMP_PCA-SADI2_ann_'+test_pcs_str+label_test+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)                                             
@@ -1326,8 +1323,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             #rad_in = 1.5
                             tmp_tmp = np.ones_like(tmp)
                             for pp in range(tmp.shape[0]):
-                                tmp[pp] = vip.metrics.snrmap(tmp[pp], fwhm_med, plot=False)
-                            tmp = vip.var.mask_circle(tmp,rad_in*fwhm_med)
+                                tmp[pp] = snrmap(tmp[pp], fwhm_med, plot=False)
+                            tmp = mask_circle(tmp,rad_in*fwhm_med)
                             write_fits(outpath+'final_PCA-SADI2_ann_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp, verbose=False)                     
             
             label_test = label_test_ori
@@ -1337,7 +1334,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
         ######################### 10. Final contrast curves ###########################
         if planet and planet_parameter is not None:
             # SUBTRACT THE PLANET FROM THE CUBE
-            PCA_ASDI_cube_ori = vip.negfc.cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn, plsc)
+            PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn, plsc)
             label_emp = '_empty'
         else:
             label_emp = ''
@@ -1356,9 +1353,9 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     for rr, rad in enumerate(rad_arr):
                         if svd_mode == 'randsvd':
                             for nr in range(3):
-                                pn_contr_curve_sdi_rr_tmp = vip.metrics.contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
+                                pn_contr_curve_sdi_rr_tmp = contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
                                                                                        fwhm, plsc, starphot=starphot, scaling=scal,
-                                                                                       algo=vip.pca.pca, sigma=5., nbranch=1, 
+                                                                                       algo=pca, sigma=5., nbranch=1,
                                                                                        theta=0, inner_rad=1, wedge=(0,360),fc_snr=fc_snr,
                                                                                        student=True, transmission=transmission, 
                                                                                        plot=True, dpi=100, adimsdi='double',
@@ -1378,9 +1375,9 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                 pn_contr_curve_sdi_rr['noise'][jj] = rsvd_list[idx_min]['noise'][jj]
                                 pn_contr_curve_sdi_rr['sigma corr'][jj] = rsvd_list[idx_min]['sigma corr'][jj]
                         else:
-                            pn_contr_curve_sdi_rr = vip.metrics.contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
+                            pn_contr_curve_sdi_rr = contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
                                                                                fwhm, plsc, starphot=starphot, scaling=scal,
-                                                                               algo=vip.pca.pca, sigma=5., nbranch=1, 
+                                                                               algo=pca, sigma=5., nbranch=1,
                                                                                theta=0, inner_rad=1, wedge=(0,360),fc_snr=fc_snr,
                                                                                student=True, transmission=transmission, 
                                                                                plot=True, dpi=100, adimsdi='double',
@@ -1425,9 +1422,9 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         adimsdi = 'double'
                         npc_opt = (int(id_npc_full_df[rr,0]),int(id_npc_full_df[rr,1]))
                     for rr, rad in enumerate(rad_arr):
-                        pn_contr_curve_full_rr = vip.metrics.contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
+                        pn_contr_curve_full_rr = contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
                                                                             fwhm, plsc, starphot=starphot, 
-                                                                            algo=vip.pca.pca, sigma=5., nbranch=1, 
+                                                                            algo=pca, sigma=5., nbranch=1,
                                                                             theta=0, inner_rad=1, wedge=(0,360),fc_snr=fc_snr,
                                                                             student=True, transmission=transmission, scaling=scal,
                                                                             plot=True, dpi=100, adimsdi=adimsdi,
@@ -1463,9 +1460,9 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                          
                     df_list = []
                     for rr, rad in enumerate(rad_arr):
-                        pn_contr_curve_ann_rr = vip.metrics.contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
+                        pn_contr_curve_ann_rr = contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
                                                       fwhm, plsc, starphot=starphot, 
-                                                      algo=vip.pca.pca_annular, sigma=5., nbranch=1, 
+                                                      algo=pca_annular, sigma=5., nbranch=1,
                                                       theta=0, inner_rad=1, wedge=(0,360),fc_snr=fc_snr,
                                                       student=True, transmission=transmission, 
                                                       plot=True, dpi=100, scaling=scal,
