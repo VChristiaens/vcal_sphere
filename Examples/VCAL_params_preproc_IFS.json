@@ -11,6 +11,7 @@
     "badfr_crit_names_psf": ["corr"],
     "badfr_crit":[{"thr":0.7,"ref":"median","perc":20}],
     "badfr_crit_psf":[{"thr":0.8,"ref":"median","perc":10}],
+    "max_bpix_nit": 10,
     "cen_box_sz": [31,71,31],
     "true_ncen": 2,
     "good_cen_idx": 1,
