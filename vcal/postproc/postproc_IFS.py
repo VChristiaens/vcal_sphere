@@ -599,7 +599,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         plt.savefig(outpath_fig+'SNR_'+source+'_PCA-ADI-full_npc{:.0f}'.format(npc)+'.pdf', format='pdf')
                         write_fits(outpath+'PCA-ADI_full_SNR_npc{:.0f}'.format(npc)+label_test+'.fits', snr_tmp)
                     write_fits(outpath+'PCA-ADI_full_npc{:.0f}'.format(npc)+label_test+'.fits', tmp)  
-                tmp_tmp = np.median(tmp, axis=0)
+                tmp_tmp = np.median(tmp, axis=1)
                 
                 if planet:
                     opt_pp = np.argmax(snr_tmp,axis=0)
