@@ -1060,7 +1060,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         hdul.writeto(prod, output_verify='ignore', overwrite=True)
                         #pdb.set_trace()
 
-            # MOVE ALL FILES TO OUTPATH                        
+            # MOVE ALL FILES TO OUTPATH                  
             os.system("mv {}*.fits {}.".format(curr_path,outpath_irdis_fits))
     
     # 10-19 IFS
