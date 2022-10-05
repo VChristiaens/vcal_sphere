@@ -8,7 +8,7 @@ The latter can be installed with: pip install dfitspy
 
 2) Uncompress all *.Z files
 
-3) cd in downloaded directory and use dfits or dfitspy to list relevant header values to infer the strategy used during the observation (optionally check some raw images):
+3) cd in the 'raw' directory, and use dfits or dfitspy to list relevant header values to infer the strategy used during the observation (optionally check some raw images):
 	3a) Using dfits and fitsort:
 		dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
 	Pro tip: make an alias in your ~/.bash_profile e.g. by adding:
@@ -22,22 +22,26 @@ The latter can be installed with: pip install dfitspy
 		fitsort = dfitspy.dfitsort(listfiles, listkeys)
 		dfitspy.dfitsort_view(fitsort)
 	
-4) Adapt JSON parameter files for:
+4) Make a copy of example JSON parameter files (in vcal_sphere/example) and place them into another directory (any directory but 'raw' you created above!), then adapt them for your data:
 	a) calibration (flat-fielding, sky subtraction, in addition for IFS: detector-level bad pixel correction, wavelength calibration, spectral cube creation)  
 	b) preprocessing (bad pixel correction, centering, bad frame removal, ADI cube creation, derotation angle calculation)
 	c) post-processing (median-ADI; PCA-ADI full/ann; PCA-SADI/PCA-ASDI for IFS)
 Description of each parameter is provided in the relevant MANUAL txt files.
 
-5) Open an ipython/jupyter notebook session, import and run vcal functions, calling the relevant parameter files:
-	a) For calibration, e.g.:
-		from vcal import calib
-		calib('VCAL_params_calib.json')
-	b) For pre-processing of IRDIS data, e.g.:
-		from vcal import preproc_IRDIS
-		calib('VCAL_params_preproc_IRDIS.json', 'VCAL_params_calib.json')
-	c) For post-processing of IRDIS data, e.g.:
-		from vcal import postproc_IRDIS
-		calib('VCAL_params_postproc_IRDIS.json', 'VCAL_params_preproc_IRDIS.json', 'VCAL_params_calib.json')
+
+5) Run VCAL:
+	- cd in the directory with your adapted JSON parameter files, 
+	- open an ipython/jupyter notebook session
+	- import and run vcal functions, calling the relevant parameter files:
+		a) For calibration, e.g.:
+			from vcal.calib import calib
+			calib('VCAL_params_calib.json')
+		b) For pre-processing of IRDIS data, e.g.:
+		f	from vcal.preproc import preproc_IRDIS
+			preproc_IRDIS('VCAL_params_preproc_IRDIS.json', 'VCAL_params_calib.json')
+		c) For post-processing of IRDIS data, e.g.:
+		from vcal.postproc import postproc_IRDIS
+			postproc_IRDIS('VCAL_params_postproc_IRDIS.json', 'VCAL_params_preproc_IRDIS.json', 'VCAL_params_calib.json')
 
 Pro tip: instead of ipython/jupyter sessions, consider making a bash script for automated reductions.
 
