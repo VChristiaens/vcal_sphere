@@ -21,15 +21,20 @@ The latter can be installed with: pip install dfitspy
 		listkeys = ['HIERARCH ESO DET ID', 'HIERARCH ESO DET SEQ1 DIT', 'HIERARCH ESO INS1 FILT NAME', 'HIERARCH ESO INS1 OPTI2 NAME','HIERARCH ESO DPR TYPE' ,'HIERARCH ESO INS4 COMB ROT', 'HIERARCH ESO INS COMB IFLT']
 		fitsort = dfitspy.dfitsort(listfiles, listkeys)
 		dfitspy.dfitsort_view(fitsort)
-	
-4) Make a copy of example JSON parameter files (in vcal_sphere/example) and place them into another directory (any directory but 'raw' you created above!), then adapt them for your data:
+
+4) If you plan to reduce IFS data, double-check the following calibration files are downloaded (it appears they are not systematically downloaded when ticking "download associated calibration files"):
+- 'SPECPOS,LAMP'
+- 'WAVE,LAMP'
+If not present, you will need to download them separately from the ESO archive. Consider the calibration files that were obtained closest in time from the observations, in the same mode (INS2 COMB IFS header keyword) as the observations.
+
+5) Make a copy of example JSON parameter files (in vcal_sphere/example) and place them into another directory (any directory but 'raw' you created above!), then adapt them for your data:
 	a) calibration (flat-fielding, sky subtraction, in addition for IFS: detector-level bad pixel correction, wavelength calibration, spectral cube creation)  
 	b) preprocessing (bad pixel correction, centering, bad frame removal, ADI cube creation, derotation angle calculation)
 	c) post-processing (median-ADI; PCA-ADI full/ann; PCA-SADI/PCA-ASDI for IFS)
 Description of each parameter is provided in the relevant MANUAL txt files.
 
 
-5) Run VCAL:
+6) Run VCAL:
 	- cd in the directory with your adapted JSON parameter files, 
 	- open an ipython/jupyter notebook session
 	- import and run vcal functions, calling the relevant parameter files:
@@ -37,7 +42,7 @@ Description of each parameter is provided in the relevant MANUAL txt files.
 			from vcal.calib import calib
 			calib('VCAL_params_calib.json')
 		b) For pre-processing of IRDIS data, e.g.:
-		f	from vcal.preproc import preproc_IRDIS
+			from vcal.preproc import preproc_IRDIS
 			preproc_IRDIS('VCAL_params_preproc_IRDIS.json', 'VCAL_params_calib.json')
 		c) For post-processing of IRDIS data, e.g.:
 		from vcal.postproc import postproc_IRDIS
