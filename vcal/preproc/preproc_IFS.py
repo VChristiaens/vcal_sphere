@@ -578,7 +578,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                             nproc=1, imlib='opencv', interpolation='lanczos4',
                                                                             offset=None, negative=negative, threshold=False,
                                                                             save_shifts=False, full_output=True, verbose=True,
-                                                                            debug=False, plot=plot)
+                                                                            debug=False, plot=False)
                                 for zz in range(cube.shape[0]):
                                     cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])
                                     
