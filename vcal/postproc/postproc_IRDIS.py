@@ -13,7 +13,7 @@ __all__ = ['postproc_IRDIS']
 ######################### Importations and definitions ########################
 
 import json
-import matplotlib as mpl
+import matplotlib
 import matplotlib.pyplot as plt
 from multiprocessing import cpu_count
 import numpy as np
@@ -51,7 +51,7 @@ except:
     from vip_hci.conf import time_ini, timing
 
 from vcal import __path__ as vcal_path
-mpl.use('Agg')
+matplotlib.use('Agg')
 
 def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                    params_preproc_name='VCAL_params_preproc_IRDIS.json', 
@@ -96,7 +96,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
     used for post-processing.
     
     """
-    mpl.style.use('default')
+    plt.style.use('default')
     with open(params_postproc_name, 'r') as read_file_params_postproc:
         params_postproc = json.load(read_file_params_postproc)
     with open(params_preproc_name, 'r') as read_file_params_preproc:

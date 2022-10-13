@@ -26,7 +26,7 @@ __all__ = ['postproc_IFS']
 ######################### Importations and definitions ########################
 
 import json
-import matplotlib as mpl
+import matplotlib
 import matplotlib.pyplot as plt
 from multiprocessing import cpu_count
 import numpy as np
@@ -50,7 +50,7 @@ from vip_hci.var import mask_circle, frame_center
 from ..utils import find_nearest
 
 from vcal import __path__ as vcal_path
-mpl.use('Agg')
+matplotlib.use('Agg')
 
 
 ############### PARAMETERS to be adapted to each dataset #####################
@@ -111,7 +111,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     
     """
     ##################### 0. Load all parameters ################################
-    mpl.style.use('default')
+    plt.style.use('default')
     with open(params_postproc_name, 'r') as read_file_params_postproc:
         params_postproc = json.load(read_file_params_postproc)
     with open(params_preproc_name, 'r') as read_file_params_preproc:
