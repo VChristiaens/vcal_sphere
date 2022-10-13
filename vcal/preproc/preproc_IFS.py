@@ -364,10 +364,12 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     rec_met_tmp = rec_met
                     if fi == 0:
                         all_mjd=[]
+                        print('Recentering OBJ files', flush=True)
                 elif fi == 1:
                     negative=False
                     rec_met_tmp = rec_met_psf
-                else: # CEN
+                    print('Recentering PSF files', flush=True)
+                else:  # CEN
                     break
                 if not isfile(outpath+"{}_2cen.fits".format(file_list[-1])) or overwrite[1]:
                     if isinstance(rec_met, list):
