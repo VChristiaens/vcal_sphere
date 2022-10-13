@@ -584,8 +584,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                             debug=False, plot=False)
                                 for zz in range(cube.shape[0]):
                                     if debug:
-                                        print('z: {}, xshift: {}px, yshift: {}px'
-                                              .format(cube[zz], x_shifts[0], y_shifts[0]), flush=True)
+                                        print('z: {}, xshift: {}px, yshift: {}px for cube {}_1bpcorr.fits'
+                                              .format(zz, x_shifts[0], y_shifts[0], filename), flush=True)
                                     cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])
                                     
                             elif "satspots" in rec_met_tmp:
