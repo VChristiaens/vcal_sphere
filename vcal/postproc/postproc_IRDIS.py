@@ -14,7 +14,6 @@ __all__ = ['postproc_IRDIS']
 
 import json
 import matplotlib as mpl
-mpl.use('Agg')
 import matplotlib.pyplot as plt
 from multiprocessing import cpu_count
 import numpy as np
@@ -52,7 +51,7 @@ except:
     from vip_hci.conf import time_ini, timing
 
 from vcal import __path__ as vcal_path
-
+mpl.use('Agg')
 
 def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                    params_preproc_name='VCAL_params_preproc_IRDIS.json', 

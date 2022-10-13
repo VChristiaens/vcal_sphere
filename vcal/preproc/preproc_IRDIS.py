@@ -11,8 +11,8 @@ import ast
 from astropy.stats import sigma_clipped_stats
 import csv
 import json
-import matplotlib
-from matplotlib import pyplot as plt
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
@@ -40,8 +40,8 @@ from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
 from ..utils import (cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, 
                      set_backend, find_rot_cen, circ_interp, find_nearest)
 
-
 from vcal import __path__ as vcal_path
+mpl.use('Agg')
 
 #**************************** PARAMS TO BE ADAPTED ****************************  
 

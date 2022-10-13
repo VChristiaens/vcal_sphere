@@ -11,8 +11,8 @@ __all__ = ['preproc_IFS']
 import ast
 import csv
 import json
-import matplotlib
-from matplotlib import pyplot as plt
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
@@ -43,6 +43,7 @@ from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
 from ..utils import set_backend, find_nearest
 
 from vcal import __path__ as vcal_path
+mpl.use('Agg')
 
 def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json', 
                 params_calib_name='VCAL_params_calib.json'):
