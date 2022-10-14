@@ -31,7 +31,6 @@
     "final_fluxname":"final_flux.fits",
     "final_scalefacname":"final_scale_fac.fits",
     "overwrite":[1,1,1,1,1,1,1,1],
-    "overwrite_flux": 0,
     "debug": 0,
     "plot":1,
     "save_space": 0,

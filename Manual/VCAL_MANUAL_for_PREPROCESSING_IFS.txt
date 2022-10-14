@@ -82,7 +82,6 @@ scal_x_distort = 1.      # for IFS: 1.0059
 scal_y_distort = 1.0062  # for IFS: 1.0011
 
 # preprocessing options
-overwrite_flux = False
 window = [15,None]                                           # size of the window to smooth moving median for px stats
 idx_test_cube = 0                                            # if rec_met is list: provide index of test cube (should be the most tricky one) where all methods will be tested => best method should correspond min(stddev of shifts)
 idx_test_cube_psf = 0                                        # id as above for psf
