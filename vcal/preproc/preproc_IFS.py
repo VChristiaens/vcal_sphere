@@ -1,13 +1,12 @@
 #! /usr/bin/env python
 
 """
-Module with the preprocessing routine for SPHERE/IFS data.
+Module for pre-processing SPHERE/IFS data using VIP.
 """
 
 __author__ = 'V. Christiaens'
 __all__ = ['preproc_IFS']
 
-#PURPOSE: do the calibration steps not done in the ESO pipeline using VIP
 import ast
 import csv
 import json
@@ -38,12 +37,12 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              find_scal_vector)
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
-#from C_2019_10_J19003645.IRDIS_reduction.VCAL_1_calib_SPHERE import dit_ifs, dit_irdis, dit_psf_ifs, dit_psf_irdis
 
 from ..utils import find_nearest
 
 from vcal import __path__ as vcal_path
 matplotlib.use('Agg')
+
 
 def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json', 
                 params_calib_name='VCAL_params_calib.json'):
@@ -245,17 +244,16 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         obj_psf_list.append(PSF_IFS_list)
         labels.append('_psf')
         labels2.append('psf')
-        final_crop_szs.append(final_crop_sz_psf) 
-#    else:
-#        npsf=0
+        final_crop_szs.append(final_crop_sz_psf)
+
     CEN_IFS_list = [x[:-5] for x in os.listdir(inpath) if x.startswith(prefix[2])]  # don't include ".fits"
     ncen = len(CEN_IFS_list)
-    if ncen>0:
+    if ncen > 0:
         CEN_IFS_list.sort()
         obj_psf_list.append(CEN_IFS_list)
         labels.append('_cen')
         labels2.append('cen')
-        final_crop_szs.append(final_crop_sz) # add the same crop for CEN as for OBJ
+        final_crop_szs.append(final_crop_sz)  # add the same crop for CEN as for OBJ
 
     if isinstance(n_med_sdi, int):
         n_med_sdi = [n_med_sdi]
@@ -326,7 +324,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             
         #********************************* BPIX CORR ******************************          
         if 1 in to_do:
-            ## OBJECT + PSF
+            # OBJECT + PSF + CEN
             for file_list in obj_psf_list:
                 for fi, filename in enumerate(file_list):
                     if fi == 0:
@@ -339,7 +337,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             cube = cube[:,1:,1:]
                             header["NAXIS1"] = cube.shape[1]
                             header["NAXIS2"] = cube.shape[2]
-                        if bp_crop_sz>0 and bp_crop_sz<cube.shape[1]:
+                        if 0 < bp_crop_sz < cube.shape[1]:
                             cube = cube_crop_frames(cube,bp_crop_sz)
                         cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resels, 
                                                      sig=6., protect_mask=0, verbose=full_output,
@@ -527,8 +525,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         rec_met_tmp = rec_met_tmp[idx_min_shift]          
                         print("Best centering method for {}: {}".format(labels[fi],rec_met_tmp))
                         print("Press c if satisfied. q otherwise")                
-    
-            
+
                     if isinstance(rec_met_tmp, str):
                         final_y_shifts = []
                         final_x_shifts = []
@@ -598,7 +595,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                             debug_tmp = True
                                         else:
                                             debug_tmp = False
-                                        ### first get the MJD time of each cube                                    
+                                        ### first get the MJD time of each cube
                                         _, head_cc = open_fits(inpath+cen_cube_names[cc], header=True, verbose=debug)
                                         cube_cen = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits", verbose=debug)
                                         mjd_cen[cc] = float(head_cc['MJD-OBS'])
@@ -609,7 +606,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                             pa_sci_ini = []
                                             pa_sci_fin = []
                                             for fn_tmp, filename_tmp in enumerate(file_list):
-                                                cube_tmp, head_tmp = open_fits(inpath+OBJ_IFS_list[fn_tmp], header=True, verbose=debug)
+                                                _, head_tmp = open_fits(inpath+OBJ_IFS_list[fn_tmp], header=True, verbose=debug)
                                                 mjd_tmp = float(head_tmp['MJD-OBS'])
                                                 mjd_mean.append(mjd_tmp)
                                                 pa_sci_ini.append(float(head_tmp["HIERARCH ESO TEL PARANG START"]))
@@ -620,7 +617,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[i][0]-diff,xy_spots[i][1]-diff) for i in range(len(xy_spots))])
                                         ### find center location
-                                        res = cube_recenter_satspots(cube_cen, xy_spots_tmp, subi_size=cen_box_sz[fi], 
+                                        res = cube_recenter_satspots(cube_cen, xy_spots_tmp, subi_size=cen_box_sz[fi],
                                                                      sigfactor=sigfactor, plot=plot,
                                                                      fit_type='moff', lbda=lbdas, 
                                                                      debug=debug_tmp, verbose=True, 
