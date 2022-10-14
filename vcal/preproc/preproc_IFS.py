@@ -40,9 +40,10 @@ from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
 #from C_2019_10_J19003645.IRDIS_reduction.VCAL_1_calib_SPHERE import dit_ifs, dit_irdis, dit_psf_ifs, dit_psf_irdis
 
-from ..utils import set_backend, find_nearest
+from ..utils import find_nearest
 
 from vcal import __path__ as vcal_path
+matplotlib.use('Agg')
 
 def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json', 
                 params_calib_name='VCAL_params_calib.json'):
@@ -317,9 +318,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             dits.append(dit_cen_ifs)
             ndits.append(ndit_cen_ifs)
 
-
         resels = lbdas*0.206265/(plsc*diam)
-        max_resel = np.amax(resels)    
+        max_resel = np.amax(resels)
         
         if not isfile(outpath+final_lbdaname):
             write_fits(outpath+final_lbdaname,lbdas)
@@ -577,11 +577,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                             nproc=1, imlib='opencv', interpolation='lanczos4',
                                                                             offset=None, negative=negative, threshold=False,
                                                                             save_shifts=False, full_output=True, verbose=True,
-                                                                            debug=False, plot=False)
+                                                                            debug=False, plot=plot)
+                                if debug:
+                                    print('2dfit centering: xshift: {} px, yshift: {} px for cube {}_1bpcorr.fits'
+                                          .format(x_shifts[0], y_shifts[0], filename), flush=True)
                                 for zz in range(cube.shape[0]):
-                                    if debug:
-                                        print('z: {}, xshift: {}px, yshift: {}px for cube {}_1bpcorr.fits'
-                                              .format(zz, x_shifts[0], y_shifts[0], filename), flush=True)
                                     cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])
                                     
                             elif "satspots" in rec_met_tmp:
