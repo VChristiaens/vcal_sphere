@@ -113,7 +113,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     plot = params_preproc['plot']
     
     if isinstance(overwrite, (int, bool)):
-        overwrite = [overwrite]*7
+        overwrite = [overwrite]*8
     
     # OBS
     coro = params_preproc['coro']  # whether the observations were coronagraphic or not
@@ -159,19 +159,19 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     idx_test_cube = params_preproc.get('idx_test_cube',[0,0,0])
     if isinstance(idx_test_cube,int):
         idx_test_cube = [idx_test_cube]*3
-    cen_box_sz = params_preproc.get('cen_box_sz',[31,71,31]) # size of the subimage for 2d fit
+    cen_box_sz = params_preproc.get('cen_box_sz',[31,35,31]) # size of the subimage for 2d fit
     if isinstance(cen_box_sz,int):
         cen_box_sz = [cen_box_sz]*3
     true_ncen = params_preproc['true_ncen']# number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
     #distort_corr = params_preproc.get('distort_corr',True) 
     bp_crop_sz = params_preproc.get('bp_crop_sz',261)         # crop size before bad pix correction for OBJ, PSF and CEN
     final_crop_sz = params_preproc.get('final_crop_sz',[257,256]) #361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
-    final_crop_sz_psf  = params_preproc.get('final_crop_sz_psf',[41,64]) # 51 => 0.25'' radius (~3.5 FWHM)
+    final_crop_sz_psf = params_preproc.get('final_crop_sz_psf',[35,64]) # 51 => 0.25'' radius (~3.5 FWHM)
     psf_model = params_preproc.get('psf_model',"gauss") #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
     bin_fac = params_preproc.get('bin_fac',1)  # binning factors for final cube. If the cube is not too large, do not bin.
     # SDI
-    first_good_ch =  params_preproc.get('first_good_ch',0)
-    last_good_ch =  params_preproc.get('last_good_ch',39)
+    first_good_ch = params_preproc.get('first_good_ch',0)
+    last_good_ch = params_preproc.get('last_good_ch',39)
     n_med_sdi = params_preproc.get('n_med_sdi',[1,2,3,4,5]) # number of channels to combine at beginning and end
 
     # output names
@@ -266,7 +266,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             os.system("mkdir "+outpath)
                 
         # Extract info from example files
-        cube, header = open_fits(inpath+OBJ_IFS_list[0]+'.fits', header=True)
+        cube, header = open_fits(inpath+OBJ_IFS_list[0]+'.fits', header=True, verbose=debug)
         dit_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
         ndit_ifs = float(header['HIERARCH ESO DET NDIT'])
         #filt1 = header['HIERARCH ESO INS1 FILT NAME']
@@ -291,7 +291,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         ndits = [ndit_ifs]
     
         if npsf>0:
-            _, header = open_fits(inpath+PSF_IFS_list[0]+'.fits', header=True)
+            _, header = open_fits(inpath+PSF_IFS_list[0]+'.fits', header=True, verbose=debug)
             dit_psf_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
             ndit_psf_ifs = float(header['HIERARCH ESO DET NDIT'])
             nd_filter_PSF = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
@@ -306,7 +306,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             
         # Check that transmission is correct
         if ncen>0:
-            _, header = open_fits(inpath+CEN_IFS_list[0]+'.fits', header=True)
+            _, header = open_fits(inpath+CEN_IFS_list[0]+'.fits', header=True, verbose=debug)
             dit_cen_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
             ndit_cen_ifs = float(header['HIERARCH ESO DET NDIT'])
             nd_filter_CEN = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
@@ -322,7 +322,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         max_resel = np.amax(resels)
         
         if not isfile(outpath+final_lbdaname):
-            write_fits(outpath+final_lbdaname,lbdas)
+            write_fits(outpath+final_lbdaname,lbdas, verbose=debug)
             
         #********************************* BPIX CORR ******************************          
         if 1 in to_do:
@@ -334,7 +334,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     else:
                         full_output=False
                     if not isfile(outpath+"{}_1bpcorr.fits".format(filename)) or overwrite[0]:
-                        cube, header = open_fits(inpath+filename, header=True)
+                        cube, header = open_fits(inpath+filename, header=True, verbose=debug)
                         if cube.shape[1]%2==0 and cube.shape[2]%2==0:
                             cube = cube[:,1:,1:]
                             header["NAXIS1"] = cube.shape[1]
@@ -345,9 +345,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                      sig=6., protect_mask=0, verbose=full_output,
                                                      half_res_y=False, max_nit=max_bpix_nit, full_output=full_output)
                         if full_output:
-                            write_fits(outpath+filename+"_1bpcorr_bpmap.fits", cube[1], header=header)
+                            write_fits(outpath+filename+"_1bpcorr_bpmap.fits", cube[1], header=header, verbose=debug)
                             cube = cube[0]
-                        write_fits(outpath+filename+"_1bpcorr.fits", cube, header=header)
+                        write_fits(outpath+filename+"_1bpcorr.fits", cube, header=header, verbose=debug)
                     
                     
         #******************************* RECENTERING ******************************
@@ -371,7 +371,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 if not isfile(outpath+"{}_2cen.fits".format(file_list[-1])) or overwrite[1]:
                     if isinstance(rec_met, list):
                         # PROCEED ONLY ON TEST CUBE
-                        cube, head = open_fits(outpath+file_list[idx_test_cube[fi]]+"_1bpcorr.fits", header=True)
+                        cube, head = open_fits(outpath+file_list[idx_test_cube[fi]]+"_1bpcorr.fits", header=True, verbose=debug)
                         mjd = float(head['MJD-OBS'])
                         std_shift = []
                         for ii in range(len(rec_met_tmp)):
@@ -392,7 +392,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                debug=False, plot=plot)
                                 std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))
                                 if debug:
-                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube)                                         
+                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
                             elif "dft" in rec_met_tmp[ii]:
                                 # #1 rough centering with peak
                                 # _, peak_y, peak_x = peak_coordinates(cube, fwhm=1.2*max_resel, 
@@ -424,7 +424,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 for zz in range(cube.shape[0]):
                                     cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])                                              
                                 if debug:
-                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube)  
+                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
                             elif "satspots" in rec_met_tmp[ii]:
                                 if ncen == 0:
                                     raise ValueError("No CENTER file found. Cannot recenter based on satellite spots.")
@@ -434,8 +434,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 y_shifts_cen_tmp = np.zeros([ncen,n_z])
                                 x_shifts_cen_tmp = np.zeros([ncen,n_z])
                                 for cc in range(ncen):
-                                    _, head_cc = open_fits(inpath+cen_cube_names[cc], header = True)
-                                    cube_cen = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits")
+                                    _, head_cc = open_fits(inpath+cen_cube_names[cc], header=True, verbose=debug)
+                                    cube_cen = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits", verbose=debug)
                                     mjd_cen[cc] = float(head_cc['MJD-OBS'])
                                     
                                     # SUBTRACT TEST OBJ CUBE (to easily find sat spots)
@@ -458,10 +458,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     if true_ncen > ncen or true_ncen > 4:
                                         raise ValueError("Code not compatible with true_ncen > ncen or true_ncen > 4")
                                     if true_ncen>2:
-                                        _, header_fin = open_fits(inpath+OBJ_IFS_list[-1]+'.fits', header=True)
+                                        _, header_fin = open_fits(inpath+OBJ_IFS_list[-1]+'.fits', header=True, verbose=debug)
                                         mjd_fin = float(header_fin['MJD-OBS'])
                                     elif true_ncen>3:
-                                        _, header_mid = open_fits(inpath+OBJ_IFS_list[int(nobj/2)]+'.fits', header=True)
+                                        _, header_mid = open_fits(inpath+OBJ_IFS_list[int(nobj/2)]+'.fits', header=True, verbose=debug)
                                         mjd_mid = float(header_mid['MJD-OBS'])
                                                             
                                     unique_mjd_cen = np.zeros(true_ncen)  
@@ -501,13 +501,13 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         plt.plot(range(n_z),y_shifts,'ro', label = 'shifts y')
                                         plt.plot(range(n_z),x_shifts,'bo', label = 'shifts x')
                                         plt.show()
-                                        write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube)  
+                                        write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
                             elif "radon" in rec_met_tmp[ii]:
                                 cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
                                                                                interpolation='lanczos4')
                                 std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))                                                    
                                 if debug:
-                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube)  
+                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
                             elif "speckle" in rec_met_tmp[ii]:
                                 cube, x_shifts, y_shifts = cube_recenter_via_speckles(cube, cube_ref=None, alignment_iter=5,
                                                                                       gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
@@ -517,7 +517,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                       save_shifts=False, plot=plot)
                                 std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))                                                           
                                 if debug:
-                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube)  
+                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
                             else:
                                 raise ValueError("Centering method not recognized")                  
                             
@@ -535,7 +535,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         final_y_shifts_std = []
                         final_x_shifts_std = []
                         for fn, filename in enumerate(file_list):
-                            cube, header = open_fits(outpath+filename+"_1bpcorr.fits", header=True)
+                            cube, header = open_fits(outpath+filename+"_1bpcorr.fits", header=True, verbose=debug)
                             if fi == 1 or not coro:
                                 frame_conv = frame_filter_lowpass(np.median(cube,axis=0),fwhm_size=int(1.2*max_resel))
                                 idx_max = np.argmax(frame_conv)
@@ -599,8 +599,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         else:
                                             debug_tmp = False
                                         ### first get the MJD time of each cube                                    
-                                        _, head_cc = open_fits(inpath+cen_cube_names[cc], header = True)
-                                        cube_cen = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits")
+                                        _, head_cc = open_fits(inpath+cen_cube_names[cc], header=True, verbose=debug)
+                                        cube_cen = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits", verbose=debug)
                                         mjd_cen[cc] = float(head_cc['MJD-OBS'])
                                         # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots)
                                         cube_cen_sub = cube_cen.copy()
@@ -609,13 +609,13 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                             pa_sci_ini = []
                                             pa_sci_fin = []
                                             for fn_tmp, filename_tmp in enumerate(file_list):
-                                                cube_tmp, head_tmp = open_fits(inpath+OBJ_IFS_list[fn_tmp], header = True)
+                                                cube_tmp, head_tmp = open_fits(inpath+OBJ_IFS_list[fn_tmp], header=True, verbose=debug)
                                                 mjd_tmp = float(head_tmp['MJD-OBS'])
                                                 mjd_mean.append(mjd_tmp)
                                                 pa_sci_ini.append(float(head_tmp["HIERARCH ESO TEL PARANG START"]))
                                                 pa_sci_fin.append(float(head_tmp["HIERARCH ESO TEL PARANG END"]))
                                             m_idx = find_nearest(mjd_mean,mjd_cen[cc])
-                                            cube_near = open_fits(outpath+file_list[m_idx]+"_1bpcorr.fits")
+                                            cube_near = open_fits(outpath+file_list[m_idx]+"_1bpcorr.fits", verbose=debug)
                                             cube_cen_sub -= np.median(cube_near,axis=0)
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[i][0]-diff,xy_spots[i][1]-diff) for i in range(len(xy_spots))])
@@ -627,16 +627,16 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                      full_output=True)
                                         _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], _, _ = res
                                     # median combine results for all MJD CEN bef and all after SCI obs
-                                    _, header_ini = open_fits(inpath+OBJ_IFS_list[0]+'.fits', header=True)
+                                    _, header_ini = open_fits(inpath+OBJ_IFS_list[0]+'.fits', header=True, verbose=debug)
                                     mjd = float(header_ini['MJD-OBS']) # mjd of first obs 
                                     mjd_fin = mjd
                                     if true_ncen > ncen or true_ncen > 4:
                                         raise ValueError("Code not compatible with true_ncen > ncen or truen_ncen > 4")
                                     if true_ncen>2:
-                                        _, header_fin = open_fits(inpath+OBJ_IFS_list[-1]+'.fits', header=True)
+                                        _, header_fin = open_fits(inpath+OBJ_IFS_list[-1]+'.fits', header=True, verbose=debug)
                                         mjd_fin = float(header_fin['MJD-OBS'])
                                     elif true_ncen>3:
-                                        _, header_mid = open_fits(inpath+OBJ_IFS_list[int(nobj/2)]+'.fits', header=True)
+                                        _, header_mid = open_fits(inpath+OBJ_IFS_list[int(nobj/2)]+'.fits', header=True, verbose=debug)
                                         mjd_mid = float(header_mid['MJD-OBS'])
                                                             
                                     unique_mjd_cen = np.zeros(true_ncen)  
@@ -691,7 +691,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                             plt.errorbar(range(n_z),x_shifts_cen[cc], 
                                                          yerr=x_shifts_cen_err[cc], fmt=colors[cc+1]+'o',label='x cen shifts')
                                         plt.show()
-                                        write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp), cube)
+                                        write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp), cube, verbose=debug)
                                                                                              
                             elif "radon" in rec_met_tmp:
                                 cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
@@ -707,7 +707,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                       save_shifts=False, plot=False)                                                       
                             else:
                                 raise ValueError("Centering method not recognized")                                                                          
-                            write_fits(outpath+filename+"_2cen.fits", cube, header=header)
+                            write_fits(outpath+filename+"_2cen.fits", cube, header=header, verbose=debug)
                             final_y_shifts.append(np.median(y_shifts))
                             final_x_shifts.append(np.median(x_shifts))
                             final_y_shifts_std.append(np.std(y_shifts))
@@ -758,7 +758,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         parang_nd = []
                         #posang = []
                     for nn, filename in enumerate(file_list):
-                        cube, header = open_fits(outpath+filename+"_2cen.fits", header=True)
+                        cube, header = open_fits(outpath+filename+"_2cen.fits", header=True, verbose=debug)
                         if nn == 0:
                             master_cube = np.zeros([n_z,len(file_list),cube.shape[-2],cube.shape[-1]])
                         try:
@@ -783,7 +783,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         master_cube[zz] = master_cube[zz]/interp_trans[zz]     
                 
                     # IMPORTANT WE NORMALIZE BY DIT
-                    write_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), master_cube/dits[fi])
+                    write_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), master_cube/dits[fi], verbose=debug)
                     
                     if fi!=1:
                         final_derot_angles = np.zeros(len(file_list))
@@ -794,14 +794,14 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             parang = x +(y-x)*(0.5+(nn%ndits[fi]))/ndits[fi]
                             final_derot_angles[nn] = parang + TN + pup_off + ifs_off #+ posang[nn] 
                             final_par_angles[nn] = parang
-                        write_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]), final_derot_angles)
-                        write_fits(outpath+"1_master_par_angles{}.fits".format(labels[fi]), final_par_angles)
+                        write_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]), final_derot_angles, verbose=debug)
+                        write_fits(outpath+"1_master_par_angles{}.fits".format(labels[fi]), final_par_angles, verbose=debug)
     
                         # median-ADI
                         ADI_frame = np.zeros([n_z,master_cube.shape[-2],master_cube.shape[-1]])
                         for zz in range(n_z):
                             ADI_frame[zz] = median_sub(master_cube[zz],final_derot_angles,radius_int=10)
-                        write_fits(outpath+"median_ADI1_{}.fits".format(labels[fi]), ADI_frame)        
+                        write_fits(outpath+"median_ADI1_{}.fits".format(labels[fi]), ADI_frame, verbose=debug)
     
     
         #********************* PLOTS + TRIM BAD FRAMES OUT ************************
@@ -816,17 +816,17 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     continue
                 elif fi == 2 and not use_cen_only: # no need for CEN, except if no OBJ
                     break
-                
-                cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]))
+
+                cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), verbose=debug)
                 ntot = cube.shape[1]
-    
+
                 if not coro:
                     fi_tmp = fi
                 else:
                     fi_tmp = 1
                 # Determine fwhm
                 if not isfile(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp])):
-                    cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi_tmp]))
+                    cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi_tmp]), verbose=debug)
                     ntot = cube.shape[1]
                     fwhm = np.zeros(n_z)
                     fluxes = np.zeros([n_z,ntot])
@@ -836,12 +836,12 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                        threshold=None, mask_core=None, model=psf_model, imlib='opencv',
                                                        interpolation='lanczos4', force_odd=True, full_output=True,
                                                        verbose=debug, debug=False)
-                    write_fits(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp]), fwhm)                               
+                    write_fits(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp]), fwhm, verbose=debug)
                 else:
-                    fwhm = open_fits(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp]))
+                    fwhm = open_fits(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp]), verbose=debug)
                 fwhm_med = np.median(fwhm)
     
-                cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]))
+                cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), verbose=debug)
     
                 perc = 0 #perc_min[fi]
                 if fi != 1:
@@ -854,7 +854,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 if not isfile(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi],bad_str)) or overwrite[3]:
                     # OBJECT                 
                     if fi != 1:
-                        derot_angles = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]))
+                        derot_angles = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]), verbose=debug)
     
                     if len(badfr_idx[fi])>0:
                         cube_tmp = np.zeros([cube.shape[0], cube.shape[1]-len(badfr_idx[fi]), cube.shape[2], cube.shape[3]])
@@ -1121,10 +1121,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         print("At the end of channel {:.0f}, we keep {:.0f}/{:.0f} ({:.0f}%) frames\n".format(zz+1,len(final_good_index_list),ngood_fr_ch,100*(len(final_good_index_list)/ngood_fr_ch)))
                                                      
                     cube = cube[:,final_good_index_list]
-                    write_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi],bad_str), cube)
+                    write_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi],bad_str), cube, verbose=debug)
                     if fi != 1:
                         derot_angles = derot_angles[final_good_index_list]
-                        write_fits(outpath+"2_master_derot_angles_clean_{}.fits".format(bad_str), derot_angles)
+                        write_fits(outpath+"2_master_derot_angles_clean_{}.fits".format(bad_str), derot_angles, verbose=debug)
                           
             for fi,file_list in enumerate(obj_psf_list):
                 if fi > 1 and not use_cen_only:
@@ -1134,8 +1134,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 else:
                     badfr_crit = badfr_criteria_psf
                 bad_str = "-".join(badfr_crit)
-                cube_ori = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]))
-                cube = open_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi],bad_str))
+                cube_ori = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), verbose=debug)
+                cube = open_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi],bad_str), verbose=debug)
                 frac_good = cube.shape[1]/cube_ori.shape[1]
                 print("In total we keep {:.1f}% of all frames of the {} cube \n".format(100*frac_good,labels[fi]))
     
@@ -1153,7 +1153,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             # PSF ONLY
             for crop_sz in crop_sz_list:
                 if not isfile(outpath+"3_final_psf_flux_med_{}{:.0f}.fits".format(psf_model,crop_sz)) or overwrite[4]:
-                    cube = open_fits(outpath+"2_master_psf_ASDIcube_clean_{}.fits".format("-".join(badfr_criteria_psf)))
+                    cube = open_fits(outpath+"2_master_psf_ASDIcube_clean_{}.fits".format("-".join(badfr_criteria_psf)), verbose=debug)
                     # crop
                     if cube.shape[-2] > crop_sz or cube.shape[-1] > crop_sz:
                         if crop_sz%2 != cube.shape[-1]%2:
@@ -1173,15 +1173,15 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                              force_odd=False, full_output=True, 
                                                                              verbose=debug, debug=False)
                                      
-                    write_fits(outpath+"3_final_psf_med_{}{:.0f}.fits".format(psf_model,crop_sz), med_psf)
-                    write_fits(outpath+"3_final_psf_med_{}_norm{:.0f}.fits".format(psf_model,crop_sz), norm_psf)
-                    write_fits(outpath+"3_final_psf_flux_med_{}{:.0f}.fits".format(psf_model,crop_sz), np.array([med_flux]))
-                    write_fits(outpath+"3_final_psf_fwhm_{}.fits".format(psf_model), np.array([fwhm]))
+                    write_fits(outpath+"3_final_psf_med_{}{:.0f}.fits".format(psf_model,crop_sz), med_psf, verbose=debug)
+                    write_fits(outpath+"3_final_psf_med_{}_norm{:.0f}.fits".format(psf_model,crop_sz), norm_psf, verbose=debug)
+                    write_fits(outpath+"3_final_psf_flux_med_{}{:.0f}.fits".format(psf_model,crop_sz), np.array([med_flux]), verbose=debug)
+                    write_fits(outpath+"3_final_psf_fwhm_{}.fits".format(psf_model), np.array([fwhm]), verbose=debug)
                     if crop_sz%2:
-                        write_fits(outpath+final_psfname+".fits", med_psf)
-                        write_fits(outpath+final_psfname_norm+".fits", norm_psf)
-                        write_fits(outpath+final_fluxname+".fits", med_flux)
-                        write_fits(outpath+final_fwhmname+".fits", fwhm)
+                        write_fits(outpath+final_psfname+".fits", med_psf, verbose=debug)
+                        write_fits(outpath+final_psfname_norm+".fits", norm_psf, verbose=debug)
+                        write_fits(outpath+final_fluxname+".fits", med_flux, verbose=debug)
+                        write_fits(outpath+final_fwhmname+".fits", fwhm, verbose=debug)
                     
                     ntot = cube.shape[1]
                     fluxes = np.zeros([n_z,ntot])
@@ -1190,7 +1190,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             _, fluxes[zz,nn], _ = normalize_psf(cube[zz,nn], fwhm=fwhm[zz], size=None, threshold=None, mask_core=None,
                                                            model=psf_model, imlib='opencv', interpolation='lanczos4',
                                                            force_odd=False, full_output=True, verbose=debug, debug=False)
-                    write_fits(outpath+"3_final_psf_fluxes.fits", fluxes)
+                    write_fits(outpath+"3_final_psf_fluxes.fits", fluxes, verbose=debug)
                         
             if save_space:
                 os.system("rm {}*2cen.fits".format(outpath))
@@ -1214,10 +1214,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         fi_tmp = -1
                     else:
                         fi_tmp=0
-                    cube_notrim = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi_tmp]))
-                    cube = open_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi_tmp],"-".join(badfr_criteria)))
-                    derot_angles = open_fits(outpath+"2_master_derot_angles_clean_{}.fits".format("-".join(badfr_criteria)))
-                    derot_angles_notrim = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi_tmp]))
+                    cube_notrim = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi_tmp]), verbose=debug)
+                    cube = open_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi_tmp],"-".join(badfr_criteria)), verbose=debug)
+                    derot_angles = open_fits(outpath+"2_master_derot_angles_clean_{}.fits".format("-".join(badfr_criteria)), verbose=debug)
+                    derot_angles_notrim = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi_tmp]), verbose=debug)
                     ntot = cube.shape[1]
                     ntot_notrim = cube_notrim.shape[1]
                     if bin_fac != 1:
@@ -1241,7 +1241,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         derot_angles = derot_angles_bin
                         derot_angles_notrim = derot_angles_bin_notrim
                     if not cc:
-                        write_fits(outpath+final_cubename+"_full.fits", cube)
+                        write_fits(outpath+final_cubename+"_full.fits", cube, verbose=debug)
                     # crop
                     if cube.shape[-2] > crop_sz or cube.shape[-1] > crop_sz:
                         if crop_sz%2 != cube.shape[-1]%2:
@@ -1253,7 +1253,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             cube_notrim = cube_notrim[:,:,1:,1:]
                         cube = cube_crop_frames(cube,crop_sz,verbose=debug)
                         cube_notrim = cube_crop_frames(cube_notrim,crop_sz,verbose=debug)
-                    flux = open_fits(outpath+final_fluxname+".fits")
+                    flux = open_fits(outpath+final_fluxname+".fits", verbose=debug)
                     # only save final with VIP conventions, for use in postproc.
                     cube_norm = np.zeros_like(cube)
                     cube_notrim_norm = np.zeros_like(cube)
@@ -1261,18 +1261,18 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         cube_norm[zz] = cube[zz]/flux[zz]
                         cube_notrim_norm[zz] = cube_notrim[zz]/flux[zz]
                     if crop_sz%2: 
-                        write_fits(outpath+final_cubename+".fits", cube)
-                        write_fits(outpath+final_cubename_norm+".fits", cube_norm)
-                        write_fits(outpath+final_anglename+".fits", derot_angles)
-                    write_fits(outpath+"3_final_cube_all_bin{:.0f}_{:.0f}.fits".format(bin_fac, crop_sz), cube_notrim)
-                    write_fits(outpath+"3_final_cube_all_bin{:.0f}_{:.0f}_norm.fits".format(bin_fac, crop_sz), cube_notrim_norm)
-                    write_fits(outpath+"3_final_derot_angles_all_bin{:.0f}.fits".format(bin_fac), derot_angles_notrim)
-                    write_fits(outpath+"3_final_cube_bin{:.0f}_{:.0f}.fits".format(bin_fac, crop_sz), cube)
-                    write_fits(outpath+"3_final_cube_bin{:.0f}_{:.0f}_norm.fits".format(bin_fac, crop_sz), cube_norm)
-                    write_fits(outpath+"3_final_derot_angles_bin{:.0f}.fits".format(bin_fac), derot_angles)
+                        write_fits(outpath+final_cubename+".fits", cube, verbose=debug)
+                        write_fits(outpath+final_cubename_norm+".fits", cube_norm, verbose=debug)
+                        write_fits(outpath+final_anglename+".fits", derot_angles, verbose=debug)
+                    write_fits(outpath+"3_final_cube_all_bin{:.0f}_{:.0f}.fits".format(bin_fac, crop_sz), cube_notrim, verbose=debug)
+                    write_fits(outpath+"3_final_cube_all_bin{:.0f}_{:.0f}_norm.fits".format(bin_fac, crop_sz), cube_notrim_norm, verbose=debug)
+                    write_fits(outpath+"3_final_derot_angles_all_bin{:.0f}.fits".format(bin_fac), derot_angles_notrim, verbose=debug)
+                    write_fits(outpath+"3_final_cube_bin{:.0f}_{:.0f}.fits".format(bin_fac, crop_sz), cube, verbose=debug)
+                    write_fits(outpath+"3_final_cube_bin{:.0f}_{:.0f}_norm.fits".format(bin_fac, crop_sz), cube_norm, verbose=debug)
+                    write_fits(outpath+"3_final_derot_angles_bin{:.0f}.fits".format(bin_fac), derot_angles, verbose=debug)
                     
                 if not coro and not isfile(outpath+"final_obj_fluxes.fits"):
-                    cube = open_fits(outpath+"2_master_ASDIcube_clean_{}.fits".format("-".join(badfr_criteria_psf)))
+                    cube = open_fits(outpath+"2_master_ASDIcube_clean_{}.fits".format("-".join(badfr_criteria_psf)), verbose=debug)
                     med_psf = np.median(cube,axis=1)
                     norm_psf = np.zeros([n_z,final_crop_sz_psf,final_crop_sz_psf])
                     fwhm=np.zeros(n_z)
@@ -1283,10 +1283,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                      model=psf_model, imlib='opencv', interpolation='lanczos4',
                                                                      force_odd=False, full_output=True, verbose=debug, debug=False)
                                          
-                        write_fits(outpath+"3_final_obj_med.fits", med_psf)
-                        write_fits(outpath+"3_final_obj_norm_med_{}.fits".format(psf_model), norm_psf)
-                        write_fits(outpath+"3_final_obj_flux_med_{}.fits".format(psf_model), med_flux)
-                        write_fits(outpath+"3_final_obj_fwhm_{}.fits".format(psf_model), fwhm)
+                        write_fits(outpath+"3_final_obj_med.fits", med_psf, verbose=debug)
+                        write_fits(outpath+"3_final_obj_norm_med_{}.fits".format(psf_model), norm_psf, verbose=debug)
+                        write_fits(outpath+"3_final_obj_flux_med_{}.fits".format(psf_model), med_flux, verbose=debug)
+                        write_fits(outpath+"3_final_obj_fwhm_{}.fits".format(psf_model), fwhm, verbose=debug)
                     
                         ntot = cube.shape[1]
                         fluxes = np.zeros([n_z,ntot])
@@ -1295,7 +1295,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 _, fluxes[zz,nn], _ = normalize_psf(cube[zz,nn], fwhm=fwhm[zz], size=None, threshold=None, mask_core=None,
                                                                model=psf_model, imlib='opencv', interpolation='lanczos4',
                                                                force_odd=False, full_output=True, verbose=debug, debug=False)
-                        write_fits(outpath+"3_final_obj_fluxes_{}.fits".format(psf_model), fluxes)
+                        write_fits(outpath+"3_final_obj_fluxes_{}.fits".format(psf_model), fluxes, verbose=debug)
             
 #                if save_space:
 #                    os.system("rm {}*3crop.fits".format(outpath))
@@ -1379,9 +1379,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 #for bb, bin_fac in enumerate(bin_fac_list):
                 for cc, crop_sz in enumerate(crop_sz_list):
                 #ASDI_cube = open_fits(outpath+final_cubename)
-                    ASDI_cube = open_fits(outpath+"3_final_cube_all_bin{:.0f}_{:.0f}.fits".format(bin_fac, crop_sz))
+                    ASDI_cube = open_fits(outpath+"3_final_cube_all_bin{:.0f}_{:.0f}.fits".format(bin_fac, crop_sz), verbose=debug)
                     for ff in range(n_z):
-                        write_fits(outpath_ADIcubes+'ADI_cube_ch{:.0f}_bin{:.0f}_{:.0f}.fits'.format(ff,bin_fac, crop_sz), ASDI_cube[ff])
+                        write_fits(outpath_ADIcubes+'ADI_cube_ch{:.0f}_bin{:.0f}_{:.0f}.fits'.format(ff,bin_fac, crop_sz), ASDI_cube[ff], verbose=debug)
             # PSFs
             if isinstance(final_crop_szs[1], (float,int)):
                 crop_sz_list = [int(final_crop_szs[1])]
@@ -1396,9 +1396,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 #for bb, bin_fac in enumerate(bin_fac_list):
                 for cc, crop_sz in enumerate(crop_sz_list):
                 #ASDI_cube = open_fits(outpath+final_cubename)
-                    PSF_cube = open_fits(outpath+"3_final_psf_med_{}_norm{:.0f}.fits".format(psf_model,crop_sz))
+                    PSF_cube = open_fits(outpath+"3_final_psf_med_{}_norm{:.0f}.fits".format(psf_model,crop_sz), verbose=debug)
                     for ff in range(n_z):
-                        write_fits(outpath_PSFframes+'PSF_frame_ch{:.0f}_{:.0f}.fits'.format(ff, crop_sz), PSF_cube[ff])
+                        write_fits(outpath_PSFframes+'PSF_frame_ch{:.0f}_{:.0f}.fits'.format(ff, crop_sz), PSF_cube[ff], verbose=debug)
                 
         if save_space:
             os.system("rm {}*1bpcorr.fits".format(outpath))    
@@ -1412,21 +1412,21 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             nfp = 2 # number of free parameters for simplex search
             fluxes = np.zeros(n_z)
             print("************* 8. FINDING SCALING FACTORS ***************")
-            fluxes = open_fits(outpath+final_fluxname+".fits")
-            fwhm = open_fits(outpath+final_fwhmname+".fits")
-            derot_angles = open_fits(outpath+final_anglename+".fits")
+            fluxes = open_fits(outpath+final_fluxname+".fits", verbose=debug)
+            fwhm = open_fits(outpath+final_fwhmname+".fits", verbose=debug)
+            derot_angles = open_fits(outpath+final_anglename+".fits", verbose=debug)
                 
             n_cubes = len(derot_angles)
             scal_vector = np.ones([n_z])
             flux_fac_vec = np.ones([n_z])
             resc_cube_res_all = []
             for ff in range(n_z-1):
-                cube_ff = open_fits(outpath+final_cubename+".fits")[ff]
-                cube_last = open_fits(outpath+final_cubename+".fits")[-1]
+                cube_ff = open_fits(outpath+final_cubename+".fits", verbose=debug)[ff]
+                cube_last = open_fits(outpath+final_cubename+".fits", verbose=debug)[-1]
                 master_cube = np.array([cube_ff,cube_last])
                 if ff == 0:
                     if isinstance(mask_scal,str):
-                        mask_scal = open_fits(mask_scal)
+                        mask_scal = open_fits(mask_scal, verbose=debug)
                         ny_m, nx_m = mask_scal.shape
                         _, ny, nx = cube_ff.shape
                         if ny_m>ny:
@@ -1450,7 +1450,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             else:
                                 mask_scal = mask_circle(mask, mask_scal[0]/plsc)
                         if debug:
-                            write_fits(outpath+"TMP_mask_scal.fits", mask_scal)
+                            write_fits(outpath+"TMP_mask_scal.fits", mask_scal, verbose=debug)
                 master_cube = np.median(master_cube,axis=1)
                 lbdas_tmp = [fwhm[ff],fwhm[-1]]
                 fluxes_tmp = [fluxes[ff],fluxes[-1]]
@@ -1458,7 +1458,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                        mask=mask_scal, nfp=nfp, debug=debug)
                 scal_vector[ff], flux_fac_vec[ff] = res[0][0], res[1][0]
 
-            master_cube = open_fits(outpath+final_cubename+".fits")
+            master_cube = open_fits(outpath+final_cubename+".fits", verbose=debug)
             fg = first_good_ch
             lg = last_good_ch
             for i in range(n_cubes):
@@ -1479,9 +1479,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         tmp2 = resc_cube[-1]
                     resc_cube_res_i.append(tmp2-tmp1)
                 resc_cube_res_i = np.array(resc_cube_res_i)
-                write_fits(outpath+"TMP_resc_cube{:.0f}_res_{:.0f}fp.fits".format(i,nfp), resc_cube_res_i)
+                write_fits(outpath+"TMP_resc_cube{:.0f}_res_{:.0f}fp.fits".format(i,nfp), resc_cube_res_i, verbose=debug)
                 resc_cube_res[-1] = tmp2-tmp1
-                write_fits(outpath+"TMP_resc_cube_{:.0f}fp.fits".format(nfp), resc_cube)
+                write_fits(outpath+"TMP_resc_cube_{:.0f}fp.fits".format(nfp), resc_cube, verbose=debug)
                    
             # resc_cube_res_all = np.array(resc_cube_res_all)
             # write_fits(outpath+"TMP_resc_cube_res_all_{:.0f}fp.fits".format(nfp), resc_cube_res_all)
@@ -1490,13 +1490,13 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             for nn,n_med in enumerate(n_med_sdi):
                 resc_cube_res_all = []
                 for i in range(n_cubes):
-                    resc_cube_res_all.append(open_fits(outpath+"TMP_resc_cube{:.0f}_res_{:.0f}fp.fits".format(i,nfp))[nn])
+                    resc_cube_res_all.append(open_fits(outpath+"TMP_resc_cube{:.0f}_res_{:.0f}fp.fits".format(i,nfp), verbose=debug)[nn])
                 resc_cube_res_all = np.array(resc_cube_res_all)
                 
                 derot_cube = cube_derotate(resc_cube_res_all, derot_angles)
                 sdi_frame = np.median(derot_cube,axis=0)
                 write_fits(outpath+"final_simple_SDI_{:.0f}fp_nmed{:.0f}.fits".format(nfp,n_med), 
-                           mask_circle(sdi_frame,coro_sz))
+                           mask_circle(sdi_frame,coro_sz), verbose=debug)
                 stim_map = compute_stim_map(derot_cube)
                 inv_stim_map = compute_inverse_stim_map(resc_cube_res_all, derot_angles)
                 thr = np.percentile(mask_circle(inv_stim_map,coro_sz), 99.9)
@@ -1504,11 +1504,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 stim_maps = np.array([mask_circle(stim_map,coro_sz),
                                       mask_circle(inv_stim_map,coro_sz),
                                       mask_circle(norm_stim_map,coro_sz)])
-                write_fits(outpath+"final_simple_SDI_stim_{:.0f}fp_nmed{:.0f}.fits".format(nfp,n_med), stim_maps)
+                write_fits(outpath+"final_simple_SDI_stim_{:.0f}fp_nmed{:.0f}.fits".format(nfp,n_med), stim_maps, verbose=debug)
 
             print("original scal guess: ",fwhm[-1]/fwhm[:])
             print("original flux fac guess: ",fluxes[-1]/fluxes[:])
             print("final scal result: ",scal_vector)
             print("final flux fac result ({:.0f}): ".format(nfp),flux_fac_vec)
-            write_fits(outpath+final_scalefac_name, scal_vector)
-            write_fits(outpath+"final_flux_fac.fits", flux_fac_vec)
+            write_fits(outpath+final_scalefac_name, scal_vector, verbose=debug)
+            write_fits(outpath+"final_flux_fac.fits", flux_fac_vec, verbose=debug)
