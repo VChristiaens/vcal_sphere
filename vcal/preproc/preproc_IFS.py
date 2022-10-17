@@ -7,16 +7,17 @@ Module for pre-processing SPHERE/IFS data using VIP.
 __author__ = 'V. Christiaens'
 __all__ = ['preproc_IFS']
 
-import ast
-import csv
-import json
+from ast import literal_eval
+from csv import reader
+from json import load
 import matplotlib
 import matplotlib.pyplot as plt
+from multiprocessing import cpu_count
 import numpy as np
-import pandas as pd
-import os
+from pandas import read_csv
 import pdb
-from os.path import isfile, isdir#, join, dirname, abspath
+from os import system, listdir
+from os.path import isfile, isdir
 from vip_hci.fits import open_fits, write_fits
 try:
     from vip_hci.psfsub import median_sub
@@ -38,8 +39,7 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
 
-from ..utils import find_nearest
-
+from vcal.utils import find_nearest
 from vcal import __path__ as vcal_path
 matplotlib.use('Agg')
 
@@ -65,14 +65,14 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     """
     plt.style.use('default')
     with open(params_preproc_name, 'r') as read_file_params_preproc:
-        params_preproc = json.load(read_file_params_preproc)
+        params_preproc = load(read_file_params_preproc)
     with open(params_calib_name, 'r') as read_file_params_calib:
-        params_calib = json.load(read_file_params_calib)
+        params_calib = load(read_file_params_calib)
         
     with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
-        filt_spec = json.load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filter combination
+        filt_spec = load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filter combination
     with open(vcal_path[0] + "/instr_param/sphere.json", 'r') as instr_param_file:
-        instr_cst = json.load(instr_param_file)
+        instr_cst = load(instr_param_file)
     
     #**************************** PARAMS TO BE ADAPTED ****************************  
     path = params_calib['path'] # "/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/"
@@ -110,7 +110,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     debug = params_preproc.get('debug',0) # whether to print more info - useful for debugging
     save_space = params_preproc['save_space'] # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
     plot = params_preproc['plot']
-    
+    nproc = params_preproc.get('nproc', int(cpu_count()/2))  # number of processors to use - can also be set to cpu_count()/2 for efficiency
+
     if isinstance(overwrite, (int, bool)):
         overwrite = [overwrite]*8
     
@@ -216,9 +217,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     
     # List of OBJ and PSF files
     dico_lists = {}
-    reader = csv.reader(open(path+'dico_files.csv', 'r'))
-    for row in reader:
-         dico_lists[row[0]] = ast.literal_eval(row[1])
+    dico_files = reader(open(path+'dico_files.csv', 'r'))
+    for row in dico_files:
+         dico_lists[row[0]] = literal_eval(row[1])
          
     prefix = [sky_pre+"SPHER",sky_pre+"psf_SPHER",sky_pre+"cen_SPHER"]    
     #if len(dico_lists['sci_list_ifs'])>0:
@@ -229,7 +230,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     #prefix.append(sky_pre+"SPHER")
         
     # SEPARATE LISTS FOR OBJ AND PSF
-    OBJ_IFS_list = [x[:-5] for x in os.listdir(inpath) if x.startswith(prefix[0])]  # don't include ".fits"
+    OBJ_IFS_list = [x[:-5] for x in listdir(inpath) if x.startswith(prefix[0])]  # don't include ".fits"
     OBJ_IFS_list.sort()
     nobj = len(OBJ_IFS_list)
     obj_psf_list = [OBJ_IFS_list]
@@ -237,7 +238,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     labels2 = ['obj']
     final_crop_szs = [final_crop_sz]
     
-    PSF_IFS_list = [x[:-5] for x in os.listdir(inpath) if x.startswith(prefix[1])]  # don't include ".fits"
+    PSF_IFS_list = [x[:-5] for x in listdir(inpath) if x.startswith(prefix[1])]  # don't include ".fits"
     npsf = len(PSF_IFS_list)
     if npsf>0:
         PSF_IFS_list.sort()
@@ -246,7 +247,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         labels2.append('psf')
         final_crop_szs.append(final_crop_sz_psf)
 
-    CEN_IFS_list = [x[:-5] for x in os.listdir(inpath) if x.startswith(prefix[2])]  # don't include ".fits"
+    CEN_IFS_list = [x[:-5] for x in listdir(inpath) if x.startswith(prefix[2])]  # don't include ".fits"
     ncen = len(CEN_IFS_list)
     if ncen > 0:
         CEN_IFS_list.sort()
@@ -261,7 +262,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     if bool(to_do):
     
         if not isdir(outpath):
-            os.system("mkdir "+outpath)
+            system("mkdir "+outpath)
                 
         # Extract info from example files
         cube, header = open_fits(inpath+OBJ_IFS_list[0]+'.fits', header=True, verbose=debug)
@@ -276,7 +277,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         lbdas = np.linspace(lbda_0, lbda_0+(n_z-1)*delta_lbda, n_z)
         nd_filter_SCI = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
         
-        nd_file = pd.read_csv(nd_filename, sep = "   ", comment='#', engine="python",
+        nd_file = read_csv(nd_filename, sep = "   ", comment='#', engine="python",
                               header=None, names=['wavelength', 'ND_0.0', 'ND_1.0','ND_2.0', 'ND_3.5'])
         nd_wavelen = nd_file['wavelength']
         try:
@@ -724,7 +725,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         plt.clf()  
                     
             if save_space:
-                os.system("rm {}*0distort.fits".format(outpath))
+                system("rm {}*0distort.fits".format(outpath))
                 
                 
 #            #******************************* FINAL CROP *******************************
@@ -797,7 +798,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         # median-ADI
                         ADI_frame = np.zeros([n_z,master_cube.shape[-2],master_cube.shape[-1]])
                         for zz in range(n_z):
-                            ADI_frame[zz] = median_sub(master_cube[zz],final_derot_angles,radius_int=10)
+                            ADI_frame[zz] = median_sub(master_cube[zz],final_derot_angles,radius_int=10, nproc=nproc)
                         write_fits(outpath+"median_ADI1_{}.fits".format(labels[fi]), ADI_frame, verbose=debug)
     
     
@@ -1137,7 +1138,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 print("In total we keep {:.1f}% of all frames of the {} cube \n".format(100*frac_good,labels[fi]))
     
             if save_space:
-                os.system("rm {}*1bpcorr.fits".format(outpath))
+                system("rm {}*1bpcorr.fits".format(outpath))
                 
         #************************* FINAL PSF + FLUX + FWHM ************************                  
         if 5 in to_do and len(obj_psf_list)>1:
@@ -1155,7 +1156,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     if cube.shape[-2] > crop_sz or cube.shape[-1] > crop_sz:
                         if crop_sz%2 != cube.shape[-1]%2:
                             for zz in range(cube.shape[0]):
-                                cube[zz] = cube_shift(cube[zz],0.5,0.5)
+                                cube[zz] = cube_shift(cube[zz],0.5,0.5, nproc=nproc)
                             cube = cube[:,:,1:,1:]
                         cube = cube_crop_frames(cube, crop_sz, verbose=debug)
                     med_psf = np.median(cube,axis=1)
@@ -1190,7 +1191,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     write_fits(outpath+"3_final_psf_fluxes.fits", fluxes, verbose=debug)
                         
             if save_space:
-                os.system("rm {}*2cen.fits".format(outpath))
+                system("rm {}*2cen.fits".format(outpath))
                     
         #********************* FINAL OBJ CUBE (BIN IF NECESSARY) ******************
         if 6 in to_do:
@@ -1243,8 +1244,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     if cube.shape[-2] > crop_sz or cube.shape[-1] > crop_sz:
                         if crop_sz%2 != cube.shape[-1]%2:
                             for zz in range(cube.shape[0]):
-                                cube[zz] = cube_shift(cube[zz],0.5,0.5)
-                                cube_notrim[zz] = cube_shift(cube_notrim[zz],0.5,0.5)
+                                cube[zz] = cube_shift(cube[zz],0.5,0.5, nproc=nproc)
+                                cube_notrim[zz] = cube_shift(cube_notrim[zz],0.5,0.5, nproc=nproc)
                             #cube = cube_shift(cube,0.5,0.5)
                             cube = cube[:,:,1:,1:]
                             cube_notrim = cube_notrim[:,:,1:,1:]
@@ -1371,7 +1372,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 raise TypeError("final_crop_sz_psf should be either int or list of int")
             outpath_ADIcubes = outpath+"ADI_cubes/"
             if not isdir(outpath_ADIcubes):
-                os.system("mkdir "+outpath_ADIcubes)  
+                system("mkdir "+outpath_ADIcubes)
             if not isfile(outpath_ADIcubes+"ADI_cube_ch{:.0f}.fits".format(n_z-1)) or overwrite[6]:
                 #for bb, bin_fac in enumerate(bin_fac_list):
                 for cc, crop_sz in enumerate(crop_sz_list):
@@ -1388,7 +1389,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 raise TypeError("final_crop_sz_psf should be either int or list of int")
             outpath_PSFframes = outpath+"PSF_frames/"
             if not isdir(outpath_PSFframes):
-                os.system("mkdir "+outpath_PSFframes)  
+                system("mkdir "+outpath_PSFframes)
             if not isfile(outpath_PSFframes+"PSF_frame_ch{:.0f}.fits".format(n_z-1)) or overwrite[6]:
                 #for bb, bin_fac in enumerate(bin_fac_list):
                 for cc, crop_sz in enumerate(crop_sz_list):
@@ -1398,9 +1399,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         write_fits(outpath_PSFframes+'PSF_frame_ch{:.0f}_{:.0f}.fits'.format(ff, crop_sz), PSF_cube[ff], verbose=debug)
                 
         if save_space:
-            os.system("rm {}*1bpcorr.fits".format(outpath))    
-            os.system("rm {}*2cen.fits".format(outpath))      
-            os.system("rm {}*3crop.fits".format(outpath))                
+            system("rm {}*1bpcorr.fits".format(outpath))
+            system("rm {}*2cen.fits".format(outpath))
+            system("rm {}*3crop.fits".format(outpath))
 
             
         #********************* FINAL SCALE LIST ******************
@@ -1490,7 +1491,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     resc_cube_res_all.append(open_fits(outpath+"TMP_resc_cube{:.0f}_res_{:.0f}fp.fits".format(i,nfp), verbose=debug)[nn])
                 resc_cube_res_all = np.array(resc_cube_res_all)
                 
-                derot_cube = cube_derotate(resc_cube_res_all, derot_angles)
+                derot_cube = cube_derotate(resc_cube_res_all, derot_angles, nproc=nproc)
                 sdi_frame = np.median(derot_cube,axis=0)
                 write_fits(outpath+"final_simple_SDI_{:.0f}fp_nmed{:.0f}.fits".format(nfp,n_med), 
                            mask_circle(sdi_frame,coro_sz), verbose=debug)

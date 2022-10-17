@@ -23,7 +23,8 @@ to_do = [1,2,3,4,5,6,7,8] # parts of pre-processing to be run.
 overwrite = [1,1,1,1,1,1,1,1]  # list of bools corresponding to parts of pre-processing to be run again even if files already exist. Same order as to_do
 debug = True # whether to print more info - useful for debugging
 save_space = False # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
-plot = 0                                                     # whether to plot additional info (evo of: Strehl, cross-corr level, airmass, flux)
+plot = 0  # whether to plot additional info (evo of: Strehl, cross-corr level, airmass, flux)
+nproc = 1  # number of processors to use - default is cpu_count()/2 for efficiency
 
 # OBS
 coro = True   # whether the observations were coronagraphic or not
