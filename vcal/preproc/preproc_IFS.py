@@ -614,11 +614,14 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                 pa_sci_fin.append(float(head_tmp["HIERARCH ESO TEL PARANG END"]))
                                             m_idx = find_nearest(mjd_mean,mjd_cen[cc])
                                             cube_near = open_fits(outpath+file_list[m_idx]+"_1bpcorr.fits", verbose=debug)
-                                            cube_cen_sub -= np.median(cube_near,axis=0)
+                                            if cube_near.ndim == 4:
+                                                cube_cen_sub -= np.median(cube_near,axis=0)
+                                            else:
+                                                cube_cen_sub -= cube_near
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[i][0]-diff,xy_spots[i][1]-diff) for i in range(len(xy_spots))])
                                         ### find center location
-                                        res = cube_recenter_satspots(cube_cen, xy_spots_tmp, subi_size=cen_box_sz[fi],
+                                        res = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[fi],
                                                                      sigfactor=sigfactor, plot=plot,
                                                                      fit_type='moff', lbda=lbdas, 
                                                                      debug=debug_tmp, verbose=True, 
