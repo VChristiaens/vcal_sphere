@@ -385,7 +385,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             if "2dfit" in rec_met_tmp[ii]:
                                 cube, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=xy, fwhm=1.2*max_resel, 
                                                                                subi_size=cen_box_sz[fi], model=rec_met_tmp[ii][:-6],
-                                                                               nproc=1, imlib='opencv', interpolation='lanczos4',
+                                                                               nproc=nproc, imlib='opencv', interpolation='lanczos4',
                                                                                offset=None, negative=negative, threshold=False,
                                                                                save_shifts=False, full_output=True, verbose=True,
                                                                                debug=False, plot=plot)
@@ -409,14 +409,14 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
                                                                                         fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[ii][4:]),
                                                                                         imlib='opencv', interpolation='lanczos4',
-                                                                                        full_output=True, verbose=True, nproc=1,
+                                                                                        full_output=True, verbose=True, nproc=nproc,
                                                                                         save_shifts=False, debug=False, plot=plot)
                                 std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))                                
                                 #3 final centering based on 2d fit
                                 cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
                                 cube_tmp[0] = np.median(cube,axis=0)
                                 _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=xy, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
-                                                                            nproc=1, imlib='opencv', interpolation='lanczos4',
+                                                                            nproc=nproc, imlib='opencv', interpolation='lanczos4',
                                                                             offset=None, negative=negative, threshold=False,
                                                                             save_shifts=False, full_output=True, verbose=True,
                                                                             debug=False, plot=plot)
@@ -503,7 +503,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
                             elif "radon" in rec_met_tmp[ii]:
                                 cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
-                                                                               interpolation='lanczos4')
+                                                                               interpolation='lanczos4', nproc=nproc)
                                 std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))                                                    
                                 if debug:
                                     write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
@@ -513,7 +513,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                       fwhm=1.2*max_resel, debug=False, negative=negative,
                                                                                       recenter_median=False, subframesize=20,
                                                                                       imlib='opencv', interpolation='bilinear',
-                                                                                      save_shifts=False, plot=plot)
+                                                                                      save_shifts=False, plot=plot, nproc=nproc)
                                 std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))                                                           
                                 if debug:
                                     write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
@@ -543,7 +543,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 xy=None
                             if "2dfit" in rec_met_tmp:
                                 cube, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=xy, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model=rec_met_tmp[:-6],
-                                                                           nproc=1, imlib='opencv', interpolation='lanczos4',
+                                                                           nproc=nproc, imlib='opencv', interpolation='lanczos4',
                                                                            offset=None, negative=negative, threshold=False,
                                                                            save_shifts=False, full_output=True, verbose=True,
                                                                            debug=False, plot=False)                                                                 
@@ -564,7 +564,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
                                                                                         fwhm=4, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[4:]),
                                                                                         imlib='opencv', interpolation='lanczos4',
-                                                                                        full_output=True, verbose=True, nproc=1,
+                                                                                        full_output=True, verbose=True, nproc=nproc,
                                                                                         save_shifts=False, debug=False, plot=plot)                              
                                 #3 final centering based on 2d fit
                                 cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
@@ -572,7 +572,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 if debug:
                                     print("rough xy position: ",xy)
                                 _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
-                                                                            nproc=1, imlib='opencv', interpolation='lanczos4',
+                                                                            nproc=nproc, imlib='opencv', interpolation='lanczos4',
                                                                             offset=None, negative=negative, threshold=False,
                                                                             save_shifts=False, full_output=True, verbose=True,
                                                                             debug=False, plot=plot)
@@ -693,7 +693,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                              
                             elif "radon" in rec_met_tmp:
                                 cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
-                                                                               interpolation='lanczos4')                                             
+                                                                               interpolation='lanczos4', nproc=nproc)
                             elif "speckle" in rec_met_tmp:
                                 cube, x_shifts, y_shifts = cube_recenter_via_speckles(cube, cube_ref=None, alignment_iter=5,
                                                                                       gammaval=1, min_spat_freq=0.5, 
@@ -702,7 +702,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                       negative=negative,
                                                                                       recenter_median=False, subframesize=20,
                                                                                       imlib='opencv', interpolation='bilinear',
-                                                                                      save_shifts=False, plot=False)                                                       
+                                                                                      save_shifts=False, plot=False, nproc=nproc)
                             else:
                                 raise ValueError("Centering method not recognized")                                                                          
                             write_fits(outpath+filename+"_2cen.fits", cube, header=header, verbose=debug)
