@@ -410,7 +410,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             cube = cube_crop_frames(cube,bp_crop_sz_tmp)
                         
                         cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resel[fi], 
-                                                     sig=6., protect_psf=False, verbose=full_output,
+                                                     sig=6., protect_mask=0, verbose=full_output,
                                                      half_res_y=False, max_nit=10, full_output=full_output)
                         if full_output:
                             write_fits(outpath+filename+"_1bpcorr_bpmap.fits", cube[1], header=header) 
