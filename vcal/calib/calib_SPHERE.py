@@ -16,7 +16,7 @@ import json
 import numpy as np
 import os
 import pdb
-from os.path import isfile, isdir#, join, dirname, abspath
+from os.path import isfile, isdir
 import pathlib
 import photutils
 from vip_hci.fits import open_fits, write_fits

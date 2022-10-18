@@ -618,7 +618,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[i][0]-diff,xy_spots[i][1]-diff) for i in range(len(xy_spots))])
                                         ### find center location
-                                        res = cube_recenter_satspots(cube_cen, xy_spots_tmp, subi_size=cen_box_sz[fi], 
+                                        res = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[fi], 
                                                                      sigfactor=sigfactor, plot=plot,
                                                                      fit_type='moff', lbda=lbdas, 
                                                                      debug=debug_tmp, verbose=True, 
@@ -629,14 +629,14 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     mjd = float(header_ini['MJD-OBS']) # mjd of first obs 
                                     mjd_fin = mjd
                                     if true_ncen > ncen or true_ncen > 4:
-                                        raise ValueError("Code not compatible with true_ncen > ncen or truen_ncen > 4")
+                                        raise ValueError("Code not compatible with true_ncen > ncen or true_ncen > 4")
                                     if true_ncen>2:
                                         _, header_fin = open_fits(inpath+OBJ_IFS_list[-1]+'.fits', header=True)
                                         mjd_fin = float(header_fin['MJD-OBS'])
                                     elif true_ncen>3:
                                         _, header_mid = open_fits(inpath+OBJ_IFS_list[int(nobj/2)]+'.fits', header=True)
                                         mjd_mid = float(header_mid['MJD-OBS'])
-                                                            
+                                        
                                     unique_mjd_cen = np.zeros(true_ncen)  
                                     y_shifts_cen = np.zeros([true_ncen,n_z])
                                     x_shifts_cen = np.zeros([true_ncen,n_z])
@@ -658,10 +658,15 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         y_shifts_cen[cc] = np.median(y_shifts_cen_tmp[np.where(cond)][:], axis=0)
                                         x_shifts_cen[cc] = np.median(x_shifts_cen_tmp[np.where(cond)][:], axis=0)
                                         y_shifts_cen_err[cc] = np.std(y_shifts_cen_tmp[np.where(cond)][:], axis=0)
-                                        x_shifts_cen_err[cc] = np.std(x_shifts_cen_tmp[np.where(cond)][:], axis=0)                                # SAVE UNCERTAINTY ON CENTERING
+                                        x_shifts_cen_err[cc] = np.std(x_shifts_cen_tmp[np.where(cond)][:], axis=0)                           # SAVE UNCERTAINTY ON CENTERING
                                     #unc_cen = np.sqrt(np.power(np.amax(y_shifts_cen_err),2)+np.power(np.amax(x_shifts_cen_err),2))
                                     #write_fits(outpath+"Uncertainty_on_centering_sat_spots_px.fits", np.array([unc_cen]))
-                                
+                                    # if np.amax(x_shifts_cen_err)>3 or np.amax(y_shifts_cen_err)>3:
+                                    #     msg = "Warning: large std found for calculated shifts (std_x: {:.1f}, std_y: {:.1f}) px." 
+                                    #     msg+= "Make sure CEN cubes and sat spots fits look good."
+                                    #     print(msg)
+                                    #     pdb.set_trace()
+                                        
                                 if not use_cen_only:
                                     # APPLY THEM TO OBJ CUBES           
                                     ## interpolate based on cen shifts
