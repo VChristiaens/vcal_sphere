@@ -1,18 +1,20 @@
 This file describes the structure of the postprocessing pipeline for IRDIS, and describes the parameters that can be set in the json file.
 
-************************ POSTPROCESSING (IRDIS) ******************************
+************************ POSTPROCESSING (IFS) ******************************
 
 # OBS
 "source":"MWC758"               # name of the source without space (used for filenames saved)
 "sourcename":"MWC 758"          # name of the source with space (used for labels in plots)
-"details":" (IRDIS 2016/01/01)" # additional details to be pritned in plots (e.g. dataset info)
+"details":" (IFS 2016/01/01)" # additional details to be pritned in plots (e.g. dataset info)
 "label_test": ""                # additional label to use in output folder name (e.g. for different runs of tests)
 
 # TO DO
-"do_adi":1,
-"do_pca_sann",0,
-"do_pca_full":1,
-"do_pca_ann":1,
+"do_sdi":1,
+"do_pca_sann"0,
+"do_adi_full":1,
+"do_adi_ann":1,
+"do_sadi_full":1,
+"do_sadi_ann":1,
 "do_conv":0,  			# whether to smooth final image 
 "do_snr_map":0, 		# whether to compute SNR map associated to final images. Can either be a bool, or a list of bool. In the latter case, it tells whether the snr_map is to be computed for median-adi, pca-full and pca-ann, resp.)
 "high_pass_filter_list": [0] 	# whether to high-pass filter before ADI processing, can be [0,1]: would then post-process everything twice with and without hpf.
@@ -34,18 +36,24 @@ This file describes the structure of the postprocessing pipeline for IRDIS, and 
 
 # Post-proc options
 "mask_IWA": 10 			# numerical mask to hide central region of final images, to be provided in pixels
-"exclude_negative_lobes":0      # when computing SNR (maps) whether to exclude apertures in negative lobes
+"exclude_negative_lobes":1      # when computing SNR (maps) whether to exclude apertures in negative lobes
 
 # PCA options
 "delta_rot": [1,3] 		# threshold in field rotation to keep good frames in PCA library. Can be: float or list of 2 values (for threshold for the innermost and outermost annuli, resp.). In the latter case, the threshold is linearly interpolated for intermediate annuli.
 "asize":3, 			# width of the annnuli for either pca in concentric annuli or on a single annulus, provided in FWHM.
 "svd_mode":"lapack"             # package to use for SVD, can be a string or a list of 2 strings. In the latter case, the first one is for processing of cropped cube, and the second one for the full cube.
 "firstguess_pcs":[1,21,1] 	# number of pcs to explore for first contrast curve (used to estimate noise level). Should be a list of 3 elements: first and last npc to be tested, and step.
-"pcs_sann":[1,21,1] 		# number of pcs to be explored for PCA in single annulus.
-"pcs_full":[1,21,1] 		# number of pcs to be explored for PCA in full frame.
-"pcs_ann":[1,21,1] 		# number of pcs to be explored for PCA in concentric annuli.
-"min_fr": 10 			# min number of frames to create PCA library. Default: 10
-"max_fr": 200 			# max number of frames to create PCA library (will take the closest ones that match threshold). Default: 200.
+"pcs_sdi":[1,5,1]           # number of pcs to be explored for SDI.
+"pcs_adi_full":[1,21,1] 	# number of pcs to be explored for PCA in full frame.
+"pcs_adi_ann":[1,11,1] 		# number of pcs to be explored for PCA in concentric annuli.
+"pcs_sadi_full":[1,11,1]    # number of pcs to be explored for PCA-ASDI in full frame.
+"sadi_steps":1              # set to 2 to complete SADI in separate steps and providing npcs below.
+"pcs_sadi_full_sdi":[1,4,1]
+"pcs_sadi_full_adi":[1,11,1]
+"pcs_sadi_ann_sdi":[1,4,1]
+"pcs_sadi_ann_adi":[1,4,1]
+"min_fr": 10 			    # min number of frames to create PCA library. Default: 10
+"max_fr": 200 			    # max number of frames to create PCA library (will take the closest ones that match threshold). Default: 200.
 
 #RDI
 ref_cube_name # full path to a reference cube. If provided, will trigger RDI! Should leave a blank in the name for filter.
@@ -57,4 +65,7 @@ scaling       # scaling of the cube before RDI (default: None)
 mask_PCA      # if provided, radius in arcsec for an inner mask where the coefficients to project the PCs are NOT computed (e.g. if a bright disc is present, you may want to avoid that area to not have the ref images to try to model and subtract it). Note: sat spots are at 50px (0.6'') separation => set it to 0.65'' if sat spots are present
 
 #SDI
-start_nz = 0 # first channel for PCA-ADI_ann in each channel # To do all channels, set to 
+"start_nz":0  # int or list of first channel(s) of IFS to reduce. To do first channel onwards, set to 0 (zero-based indexing).
+"end_nz":-1   # int or list of last channel(s) of IFS to reduce. To do up to the last channel, set to -1 (uses last channel), or -2 for second last etc.
+To run multiple reductions by dividing up channels, provide a list of start and end channels to start_nz and end_nz.
+e.g. "start_nz":[0,13,26], "end_nz":[12,25,-1] would divide IFS into three reductions of 13 spectral channels

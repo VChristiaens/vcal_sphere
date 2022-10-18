@@ -12,7 +12,7 @@ from astropy.stats import sigma_clipped_stats
 import csv
 import json
 import matplotlib
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
@@ -40,8 +40,8 @@ from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
 from ..utils import (cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, 
                      set_backend, find_rot_cen, circ_interp, find_nearest)
 
-
 from vcal import __path__ as vcal_path
+matplotlib.use('Agg')
 
 #**************************** PARAMS TO BE ADAPTED ****************************  
 
@@ -64,7 +64,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     used for post-processing.
     
     """
-    matplotlib.style.use('default')
+    plt.style.use('default')
     with open(params_preproc_name, 'r') as read_file_params_preproc:
         params_preproc = json.load(read_file_params_preproc)
     with open(params_calib_name, 'r') as read_file_params_calib:
@@ -112,9 +112,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     plot = params_preproc['plot']             # whether to plot additional info (evo of: Strehl, cross-corr level, airmass, flux)
     verbose = params_preproc['verbose']
     plot_obs_cond = params_preproc.get('plot_obs_cond',False)
-    
-    if debug:
-        set_backend()
     
     # Preprocessing options
     rec_met = params_preproc['rec_met']    # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
