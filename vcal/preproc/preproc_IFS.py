@@ -1499,7 +1499,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 write_fits(outpath+"final_simple_SDI_{:.0f}fp_nmed{:.0f}.fits".format(nfp,n_med), 
                            mask_circle(sdi_frame,coro_sz), verbose=debug)
                 stim_map = compute_stim_map(derot_cube)
-                inv_stim_map = compute_inverse_stim_map(resc_cube_res_all, derot_angles)
+                inv_stim_map = compute_inverse_stim_map(resc_cube_res_all, derot_angles, nproc=nproc)
                 thr = np.percentile(mask_circle(inv_stim_map,coro_sz), 99.9)
                 norm_stim_map = stim_map/thr
                 stim_maps = np.array([mask_circle(stim_map,coro_sz),
