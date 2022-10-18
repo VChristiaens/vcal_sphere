@@ -84,7 +84,7 @@ for nn in range(len(old_names)):
                 else:
                     line_tmp = '    "inpath_filt_table": "{}{}",\n'
                     filt_name = 'sph_ird_filt_table.fits'
-                    new_line = line_tmp.format(curr_dir+"DataStatic/", filt_name)
+                    new_line = line_tmp.format(curr_dir+"Static/", filt_name)
                     fnew.write(new_line)
     os.system("rm {}{}".format(curr_dir, old_name))
     os.system("mv {}{} {}{}".format(curr_dir, new_name, curr_dir, old_name))
@@ -102,7 +102,7 @@ setup(
     long_description=README,
     license='MIT',
     author='Valentin Christiaens',
-    author_email='valentinchrists@hotmail.com',
+    author_email='valentinchrist@hotmail.com',
     url='https://github.com/VChristiaens/vcal_sphere',
     cmdclass={'install': InstallReqs,
               'develop': InstallDevReqs},

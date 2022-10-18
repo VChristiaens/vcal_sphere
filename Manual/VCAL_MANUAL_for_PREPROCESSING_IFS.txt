@@ -23,7 +23,8 @@ to_do = [1,2,3,4,5,6,7,8] # parts of pre-processing to be run.
 overwrite = [1,1,1,1,1,1,1,1]  # list of bools corresponding to parts of pre-processing to be run again even if files already exist. Same order as to_do
 debug = True # whether to print more info - useful for debugging
 save_space = False # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
-plot = 0                                                     # whether to plot additional info (evo of: Strehl, cross-corr level, airmass, flux)
+plot = 0  # whether to plot additional info (evo of: Strehl, cross-corr level, airmass, flux)
+nproc = 1  # number of processors to use - default is cpu_count()/2 for efficiency
 
 # OBS
 coro = True   # whether the observations were coronagraphic or not
@@ -33,7 +34,7 @@ coro_sz = 12  # if coronagraphic, provide radius of the coronagraph in pixels (c
 # Preprocessing options
 rec_met = "satspots"     # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
 rec_met_psf = "dft_100"
-xy_spots = [[105,169], [171,181], [117,103], [183,115]] # if recentering by satspots provide here the coordinates of the satellite spots. Two possibilities for the format:
+xy_spots = [[105,169], [171,181], [117,103], [183,115]] # if recentering by satspots, provide here the pixel coordinates of the satellite spots before bad pixel correction in pre-processing. Two possibilities for the format:
 a) provide a list of 4 lists (with 2 elements each):  top-left, top-right, bottom-left and bottom-right spots xy coordinates in the first channel's raw images. Position in other channel(s) will be inferred from wavelength scaling. Note: do not do that for IRDIS!
 b) provide a list of n_ch lists of 4 lists (e.g. n_ch is 2 for DBI): in that case all the coordinates for each channel are provided. CHECK in "_left" and "_right" calibrated cen cubes!
 sigfactor = 5 # Threshold in sigma to be used in the subimages where gaussian/moffat models are fitted to satellite spots to fing their centroid
@@ -59,6 +60,7 @@ badfr_crit_names_psf = ['corr'] # Bad frame criteria to be used for PSF cubes; s
 badfr_crit = [{"thr":0.9,"ref":"median"},{"thr":"2"}] # List of dictionaries indicating thresholds & parameters to be used for each bad frame criterion.
 badfr_crit_psf  # Same as badfr_crit but for unsaturated PSF.
 badfr_idx = [[5,6,7],None] # Whether to force some frames to be removed (e.g. if impossible to identify with criteria but clear by eye)
+max_bpix_nit = 10  # sets the maximum number of iterations on a frame to correct bpix. Can reduce processing time, but may miss bad pixels if set too low
 
 approx_xy_bkg = 0 # can be 0 or a list of 2 floats: (x,y) coords of background star in full ADI frame obtained after rough centering.
 snr_thr_bkg = 3. # float corresponding to SNR threshold to select images of the sequence for consideration to compute shifts.
@@ -81,17 +83,16 @@ scal_x_distort = 1.      # for IFS: 1.0059
 scal_y_distort = 1.0062  # for IFS: 1.0011
 
 # preprocessing options
-overwrite_flux = False
 window = [15,None]                                           # size of the window to smooth moving median for px stats
 idx_test_cube = 0                                            # if rec_met is list: provide index of test cube (should be the most tricky one) where all methods will be tested => best method should correspond min(stddev of shifts)
 idx_test_cube_psf = 0                                        # id as above for psf
-cen_box_sz = 71                                              # size of the subimage for 2d fit
+cen_box_sz = [31,35,31]                                      # int or list of sizes (in pixels) of the subimage for 2d fit [OBJ,PSF,CEN]
 true_ncen = 2                                                # number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
 norm_per_s = True                                            # if True, divide all frames by respective dit => have all fluxes in adu/s
 template_strehl = ["science_dbi_{}{:.0f}","psf_dbi_{}{:.0f}"]
 distort_corr = 1                                             # whether to correct for distortion (anamorphism) or not (following scal_x_distort and scal_y_distort)
 final_crop_sz = 361                                          # int or list (if list, cubes of different dims will be saved). NOTE: only last odd dim will be saved using final_cubename . 823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
-final_crop_sz_psf = 41                                       # int or list (if list, cubes of different dims will be saved). NOTE: only last odd dim will be saved using final_psfname. 51 => 0.25'' radius (~3.5 FWHM)
+final_crop_sz_psf = 35                                       # int or list (if list, cubes of different dims will be saved). NOTE: only last odd dim will be saved using final_psfname. 51 => 0.25'' radius (~3.5 FWHM)
 psf_model = 'gauss'                                          #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
 bin_fac_list = [1]                                           # binning factors for final cube. If the cube is not too large, do not bin.
 corono mask. NOTE: this is the index of the original cubes (not images inside the cube), (e.g. since typically there are only 2 CEN cubes, value would either be 0 or 1) 
