@@ -1710,8 +1710,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             write_fits(outpath+final_psfname_norm+"{}.fits".format(filt), norm_psf)
                             write_fits(outpath+final_fluxname+"{}.fits".format(filt), 
                                        np.array([med_flux*dit_irdis/dit_psf_irdis, med_flux]),
-                                       header = {'Flux 0:', 'Flux scaled to coronagraphic DIT',
-                                                 'Flux 1:', 'Flux measured in PSF image'})
+                                       header = {'Flux 0:': 'Flux scaled to coronagraphic DIT',
+                                                 'Flux 1:': 'Flux measured in PSF image'})
                             write_fits(outpath+final_fwhmname+"{}.fits".format(filt), np.array([fwhm]))
                         write_fits(outpath+"4_final_psf_med{}_{}{:.0f}.fits".format(filt,psf_model,crop_sz), med_psf)
                         write_fits(outpath+"4_final_psf_med{}_{}_norm{:.0f}.fits".format(filt,psf_model,crop_sz), norm_psf)
