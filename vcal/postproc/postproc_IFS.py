@@ -351,12 +351,10 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
         while rad_arr[-1] >= PCA_ASDI_cube_ori.shape[2]:
             rad_arr = rad_arr[:-1]
         nfcp = rad_arr.shape[0]                        
-
+    
+    
     for max_fr in max_fr_list:
-        if delta_rot is tuple:
-            label_test = params_postproc.get('label_test', label_test_tmp.format(mask_IWA, delta_rot[0], max_fr))
-        else:
-            label_test = params_postproc.get('label_test', label_test_tmp.format(mask_IWA, delta_rot, max_fr))
+        label_test = params_postproc.get('label_test',label_test_tmp.format(mask_IWA, delta_rot, max_fr))
         outpath = path_ifs+"3_postproc{}/".format(label_test)
         if not isdir(outpath):
             os.system("mkdir "+outpath)
