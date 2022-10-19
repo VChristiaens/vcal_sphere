@@ -10,7 +10,6 @@ This file describes the structure of the postprocessing pipeline for IRDIS, and 
 
 # TO DO
 "do_sdi":1,
-"do_pca_sann"0,
 "do_adi_full":1,
 "do_adi_ann":1,
 "do_sadi_full":1,
@@ -64,8 +63,8 @@ prep_ref_cube: [2,3]                # whether to:
 scaling       # scaling of the cube before RDI (default: None)
 mask_PCA      # if provided, radius in arcsec for an inner mask where the coefficients to project the PCs are NOT computed (e.g. if a bright disc is present, you may want to avoid that area to not have the ref images to try to model and subtract it). Note: sat spots are at 50px (0.6'') separation => set it to 0.65'' if sat spots are present
 
-#SDI
-"start_nz":0  # int or list of first channel(s) of IFS to reduce. To do first channel onwards, set to 0 (zero-based indexing).
-"end_nz":-1   # int or list of last channel(s) of IFS to reduce. To do up to the last channel, set to -1 (uses last channel), or -2 for second last etc.
+#SADI
+"start_nz":0  # int or list of first channel(s) of IFS to reduce for SADI processing. To do first channel onwards, set to 0 (zero-based indexing).
+"end_nz":-1   # int or list of last channel(s) of IFS to reduce for SADI processing. To do up to the last channel, set to -1 (uses last channel), or -2 for second last etc.
 To run multiple reductions by dividing up channels, provide a list of start and end channels to start_nz and end_nz.
 e.g. "start_nz":[0,13,26], "end_nz":[12,25,-1] would divide IFS into three reductions of 13 spectral channels
