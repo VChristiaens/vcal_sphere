@@ -34,11 +34,12 @@ This file describes the structure of the postprocessing pipeline for IRDIS, and 
 "wedge":[0,360]			# in which range of PA should the contrast curve be computed
 
 # Post-proc options
-"mask_IWA": 10 			# numerical mask to hide central region of final images, to be provided in pixels
+"mask_IWA":10 			# numerical mask to hide central region of final images, to be provided in pixels
 "exclude_negative_lobes":1      # when computing SNR (maps) whether to exclude apertures in negative lobes
 
 # PCA options
-"delta_rot": [1,3] 		# threshold in field rotation to keep good frames in PCA library. Can be: float or list of 2 values (for threshold for the innermost and outermost annuli, resp.). In the latter case, the threshold is linearly interpolated for intermediate annuli.
+"delta_rot":1 		        # threshold in field rotation to keep good frames in PCA library. Can be: float or int
+"delta_rot_ann":[1,3]       # threshold in field rotation to keep good frames in PCA library. Can be: float, int or list of 2 values (for threshold for the innermost and outermost annuli, resp.). In the latter case, the threshold is linearly interpolated for intermediate annuli.
 "asize":3, 			# width of the annnuli for either pca in concentric annuli or on a single annulus, provided in FWHM.
 "svd_mode":"lapack"             # package to use for SVD, can be a string or a list of 2 strings. In the latter case, the first one is for processing of cropped cube, and the second one for the full cube.
 "firstguess_pcs":[1,21,1] 	# number of pcs to explore for first contrast curve (used to estimate noise level). Should be a list of 3 elements: first and last npc to be tested, and step.
