@@ -353,6 +353,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     
     
     for max_fr in max_fr_list:
+        label_test_ann = label_test
         if label_test == "":  # if no custom label is provided, make one
             label_test = '_mask{:.1f}_deltarot{:.1f}_maxfr{:.0f}'.format(mask_IWA, delta_rot, max_fr)
             if type(delta_rot_ann) == tuple:
