@@ -14,7 +14,6 @@
     "max_bpix_nit": 10,
     "cen_box_sz": [31,35,31],
     "true_ncen": 2,
-    "good_cen_idx": 1,
     "template_strehl": ["science_dbi_{}{:.0f}","psf_dbi_{}{:.0f}"],
     "bp_crop_sz":261,
     "final_crop_sz":[257,256],
