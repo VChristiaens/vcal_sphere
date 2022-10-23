@@ -5,7 +5,7 @@
     "plsc":0.00746,
     "rec_met": "satspots" ,
     "rec_met_psf": "dft_100",
-    "xy_spots": [[91,153], [156,165], [103,88], [168,100]],
+    "xy_spots": [[105,169],[171,181],[117,103],[183,115]],
     "sigfactor":5,
     "badfr_crit_names": ["corr"],
     "badfr_crit_names_psf": ["corr"],
