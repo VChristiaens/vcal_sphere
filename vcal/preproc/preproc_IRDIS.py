@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+# coding: utf-8
 
 """
 Module with the preprocessing routine for SPHERE/IRDIS data.

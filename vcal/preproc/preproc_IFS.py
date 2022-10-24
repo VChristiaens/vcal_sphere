@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+# coding: utf-8
 
 """
 Module for pre-processing SPHERE/IFS data using VIP.
