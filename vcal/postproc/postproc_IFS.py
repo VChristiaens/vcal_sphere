@@ -357,7 +357,9 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
         if label_test == "":  # if no custom label is provided, make one
             label_test = '_mask{:.1f}_deltarot{:.1f}_maxfr{:.0f}'.format(mask_IWA, delta_rot, max_fr)
             if type(delta_rot_ann) == tuple:
-                label_test_ann = '_mask{:.1f}_deltarot{:.1f}-{:.1f}_maxfr{:.0f}'.format(mask_IWA, delta_rot[0], delta_rot[1], max_fr)
+                label_test_ann = '_mask{:.1f}_deltarot{:.1f}-{:.1f}_maxfr{:.0f}'.format(mask_IWA, delta_rot_ann[0], delta_rot_ann[1], max_fr)
+            elif type(delta_rot_ann) == int:
+                label_test_ann = '_mask{:.1f}_deltarot{:.1f}_maxfr{:.0f}'.format(mask_IWA, delta_rot_ann, max_fr)
             else:
                 label_test_ann = label_test
         outpath = path_ifs+"3_postproc{}/".format(label_test)
