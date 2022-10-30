@@ -327,7 +327,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         #********************************* BPIX CORR ******************************          
         if 1 in to_do:
             print('Starting bad pixel correction, this may take some time', flush=True)
-            # OBJECT + PSF + CEN
+            # OBJECT + PSF + CEN (if available)
             for file_list in obj_psf_list:
                 for fi, filename in enumerate(file_list):
                     if fi == 0:
@@ -349,6 +349,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             write_fits(outpath+filename+"_1bpcorr_bpmap.fits", cube[1], header=header, verbose=debug)
                             cube = cube[0]
                         write_fits(outpath+filename+"_1bpcorr.fits", cube, header=header, verbose=debug)
+                        cube = None
+                        header = None
                     
                     
         #******************************* RECENTERING ******************************
