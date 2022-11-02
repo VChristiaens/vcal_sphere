@@ -19,6 +19,7 @@ from pandas import read_csv
 import pdb
 from os import system, listdir
 from os.path import isfile, isdir
+from sys import getsizeof
 from vip_hci.fits import open_fits, write_fits
 try:
     from vip_hci.psfsub import median_sub
@@ -358,6 +359,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     cube = None
                     header = None
                     print('{}MB'.format(getCurrentMemoryUsage()),flush=True)
+                    objects = []
+                    for name, obj in locals().items():
+                        objects.append([name, getsizeof(obj)])
+                    sorted(objects, key=lambda x: x[1], reverse=True)
                     
                     
         #******************************* RECENTERING ******************************
