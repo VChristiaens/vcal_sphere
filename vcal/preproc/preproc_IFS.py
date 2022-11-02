@@ -362,7 +362,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     objects = []
                     for name, obj in locals().items():
                         objects.append([name, getsizeof(obj)])
-                    sorted(objects, key=lambda x: x[1], reverse=True)
+                    print(sorted(objects, key=lambda x: x[1], reverse=True), flush=True)
                     
                     
         #******************************* RECENTERING ******************************
