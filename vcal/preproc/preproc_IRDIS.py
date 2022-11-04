@@ -939,8 +939,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             print("transmission correction: ",interp_trans)
                         
                     
-                        # IMPORTANT WE NORMALIZE BY DIT
-                        write_fits(outpath+"1_master{}_cube_{}.fits".format(labels[fi],filters[ff]), master_cube/dits[fi])
+                        # IMPORTANT WE DO NOT NORMALIZE BY DIT (any more!)
+                        write_fits(outpath+"1_master{}_cube_{}.fits".format(labels[fi],filters[ff]), master_cube) #/dits[fi])
                        
                         if fi!=1 and ff==0:
                             final_derot_angles = [] #np.zeros(int(len(file_list)*ndits[fi]))

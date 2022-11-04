@@ -788,8 +788,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     for zz in range(n_z):
                         master_cube[zz] = master_cube[zz]/interp_trans[zz]     
                 
-                    # IMPORTANT WE NORMALIZE BY DIT
-                    write_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), master_cube/dits[fi], verbose=debug)
+                    # IMPORTANT WE DO NOT NORMALIZE BY DIT (anymore!)
+                    write_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), master_cube, #/dits[fi], 
+                               verbose=debug)
                     
                     if fi!=1:
                         final_derot_angles = np.zeros(len(file_list))
@@ -1186,7 +1187,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     if crop_sz%2:
                         write_fits(outpath+final_psfname+".fits", med_psf, verbose=debug)
                         write_fits(outpath+final_psfname_norm+".fits", norm_psf, verbose=debug)
-                        write_fits(outpath+final_fluxname+".fits", med_flux, verbose=debug)
+                        write_fits(outpath+final_fluxname+".fits", 
+                                   np.array([med_flux*dit_ifs/dit_psf_ifs, med_flux]),
+                                   header = {'Flux 0:': 'Flux scaled to coronagraphic DIT',
+                                             'Flux 1:': 'Flux measured in PSF image'}, 
+                                   verbose=debug)
                         write_fits(outpath+final_fwhmname+".fits", fwhm, verbose=debug)
                     
                     ntot = cube.shape[1]
