@@ -20,7 +20,6 @@ from pandas import read_csv
 import pdb
 from os import system, listdir
 from os.path import isfile, isdir
-from sys import getsizeof
 from vip_hci.fits import open_fits, write_fits
 try:
     from vip_hci.psfsub import median_sub
@@ -327,12 +326,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             write_fits(outpath+final_lbdaname,lbdas, verbose=debug)
             
         #********************************* BPIX CORR ******************************          
-        def getCurrentMemoryUsage():
-            with open('/proc/self/status') as f:
-                memusage = f.read().split('VmRSS:')[1].split('\n')[0][:-3]
-
-            return int(memusage.strip()) / 1000
-
         if 1 in to_do:
             print('Starting bad pixel correction, this may take some time', flush=True)
             # OBJECT + PSF + CEN (if available)
@@ -357,14 +350,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             write_fits(outpath+filename+"_1bpcorr_bpmap.fits", cube[1], header=header, verbose=debug)
                             cube = cube[0]
                         write_fits(outpath+filename+"_1bpcorr.fits", cube, header=header, verbose=debug)
-                    cube = None
-                    header = None
-                    print('{}MB'.format(getCurrentMemoryUsage()),flush=True)
-                    objects = []
-                    for name, obj in locals().items():
-                        objects.append([name, getsizeof(obj)])
-                    print(sorted(objects, key=lambda x: x[1], reverse=True), flush=True)
-                    
                     
         #******************************* RECENTERING ******************************
         if use_cen_only:
