@@ -316,7 +316,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     lbdas = open_fits(inpath+final_lbdaname)
     
     psfn = open_fits(inpath+final_psfname)
-    starphot = open_fits(inpath+fluxes_name)#[0]
+    starphot = open_fits(inpath+fluxes_name)[0]
     
     if final_scalefacname is not None:
         scale_list = open_fits(inpath+final_scalefacname)
