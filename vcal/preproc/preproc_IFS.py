@@ -8,6 +8,7 @@ Module for pre-processing SPHERE/IFS data using VIP.
 __author__ = 'V. Christiaens'
 __all__ = ['preproc_IFS']
 
+from astropy.io import fits
 from ast import literal_eval
 from csv import reader
 from json import load
@@ -422,24 +423,27 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 # for zz in range(cube.shape[0]):
                                 #     cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1])
                                 #2. alignment with upsampling
-                                cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
-                                                                                        fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[ii][4:]),
-                                                                                        imlib='opencv', interpolation='lanczos4',
-                                                                                        full_output=True, verbose=True, nproc=nproc,
-                                                                                        save_shifts=False, debug=False, plot=plot)
-                                std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))                                
-                                #3 final centering based on 2d fit
-                                cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
-                                cube_tmp[0] = np.median(cube,axis=0)
-                                _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=xy, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
-                                                                            nproc=nproc, imlib='opencv', interpolation='lanczos4',
-                                                                            offset=None, negative=negative, threshold=False,
-                                                                            save_shifts=False, full_output=True, verbose=True,
-                                                                            debug=False, plot=plot)
-                                for zz in range(cube.shape[0]):
-                                    cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])                                              
-                                if debug:
-                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
+                                try:
+                                    cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
+                                                                                            fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[ii][4:]),
+                                                                                            imlib='opencv', interpolation='lanczos4',
+                                                                                            full_output=True, verbose=True, nproc=nproc,
+                                                                                            save_shifts=False, debug=False, plot=plot)
+                                    std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))
+                                    #3 final centering based on 2d fit
+                                    cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
+                                    cube_tmp[0] = np.median(cube,axis=0)
+                                    _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=xy, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
+                                                                                nproc=nproc, imlib='opencv', interpolation='lanczos4',
+                                                                                offset=None, negative=negative, threshold=False,
+                                                                                save_shifts=False, full_output=True, verbose=True,
+                                                                                debug=False, plot=plot)
+                                    for zz in range(cube.shape[0]):
+                                        cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])
+                                    if debug:
+                                        write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
+                                except:
+                                    y_shifts, x_shifts = np.zeros(cube.shape[0]), np.zeros(cube.shape[0])
                             elif "satspots" in rec_met_tmp[ii]:
                                 if ncen == 0:
                                     raise ValueError("No CENTER file found. Cannot recenter based on satellite spots.")
@@ -577,26 +581,30 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 # for zz in range(cube.shape[0]):
                                 #     cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1])
                                 #2. alignment with upsampling
-                                cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
-                                                                                        fwhm=4, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[4:]),
-                                                                                        imlib='opencv', interpolation='lanczos4',
-                                                                                        full_output=True, verbose=True, nproc=nproc,
-                                                                                        save_shifts=False, debug=False, plot=plot)                              
-                                #3 final centering based on 2d fit
-                                cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
-                                cube_tmp[0] = np.median(cube,axis=0)
-                                if debug:
-                                    print("rough xy position: ",xy)
-                                _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
-                                                                            nproc=nproc, imlib='opencv', interpolation='lanczos4',
-                                                                            offset=None, negative=negative, threshold=False,
-                                                                            save_shifts=False, full_output=True, verbose=True,
-                                                                            debug=False, plot=plot)
-                                if debug:
-                                    print('dft{} + 2dfit centering: xshift: {} px, yshift: {} px for cube {}_1bpcorr.fits'
-                                          .format(int(rec_met_tmp[4:]), x_shifts[0], y_shifts[0], filename), flush=True)
-                                for zz in range(cube.shape[0]):
-                                    cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])
+                                try:
+                                    cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
+                                                                                            fwhm=4, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[4:]),
+                                                                                            imlib='opencv', interpolation='lanczos4',
+                                                                                            full_output=True, verbose=True, nproc=nproc,
+                                                                                            save_shifts=False, debug=False, plot=plot)
+                                    #3 final centering based on 2d fit
+                                    cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
+                                    cube_tmp[0] = np.median(cube,axis=0)
+                                    if debug:
+                                        print("rough xy position: ",xy)
+                                    _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
+                                                                                nproc=nproc, imlib='opencv', interpolation='lanczos4',
+                                                                                offset=None, negative=negative, threshold=False,
+                                                                                save_shifts=False, full_output=True, verbose=True,
+                                                                                debug=False, plot=plot)
+
+                                    if debug:
+                                        print('dft{} + 2dfit centering: xshift: {} px, yshift: {} px for cube {}_1bpcorr.fits'
+                                              .format(int(rec_met_tmp[4:]), x_shifts[0], y_shifts[0], filename), flush=True)
+                                    for zz in range(cube.shape[0]):
+                                        cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])
+                                except:
+                                    y_shifts, x_shifts = np.zeros(cube.shape[0]), np.zeros(cube.shape[0])
                                     
                             elif "satspots" in rec_met_tmp:
                                 if fn==0 and (fi==0 or (fi==2 and use_cen_only)):
@@ -1203,11 +1211,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     if crop_sz%2:
                         write_fits(outpath+final_psfname+".fits", med_psf, verbose=debug)
                         write_fits(outpath+final_psfname_norm+".fits", norm_psf, verbose=debug)
-                        write_fits(outpath+final_fluxname+".fits", 
-                                   np.array([med_flux*dit_ifs/dit_psf_ifs, med_flux]),
-                                   header = {'Flux 0:': 'Flux scaled to coronagraphic DIT',
-                                             'Flux 1:': 'Flux measured in PSF image'}, 
-                                   verbose=debug)
+                        header = fits.Header()
+                        header['Flux 0'] = 'Flux scaled to coronagraphic DIT'
+                        header['Flux 1'] = 'Flux measured in PSF image'
+                        write_fits(outpath+final_fluxname+".fits", np.array([med_flux*dit_ifs/dit_psf_ifs, med_flux]),
+                                   header=header, verbose=debug)
                         write_fits(outpath+final_fwhmname+".fits", fwhm, verbose=debug)
                     
                     ntot = cube.shape[1]
