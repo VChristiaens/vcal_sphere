@@ -1845,13 +1845,13 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         flux = open_fits(outpath+final_fluxname+"{}.fits".format(filt))
                         if crop_sz%2: # only save final with VIP conventions, for use in postproc.
                             write_fits(outpath+final_cubename+"{}.fits".format(filt), cube)
-                            write_fits(outpath+final_cubename_norm+"{}.fits".format(filt), cube/flux)
+                            write_fits(outpath+final_cubename_norm+"{}.fits".format(filt), cube/flux[0])
                             write_fits(outpath+final_anglename+"{}.fits".format(filt), derot_angles)
                         write_fits(outpath+"4_final_cube_all_bin{:.0f}{}_{}_{:.0f}.fits".format(bin_fac,dist_lab,filt, crop_sz), cube_notrim)
-                        write_fits(outpath+"4_final_cube_all_bin{:.0f}{}_{}_{:.0f}_norm.fits".format(bin_fac,dist_lab,filt, crop_sz), cube_notrim/flux)
+                        write_fits(outpath+"4_final_cube_all_bin{:.0f}{}_{}_{:.0f}_norm.fits".format(bin_fac,dist_lab,filt, crop_sz), cube_notrim/flux[0])
                         write_fits(outpath+"4_final_derot_angles_all_bin{:.0f}_{}.fits".format(bin_fac,filt), derot_angles_notrim)
                         write_fits(outpath+"4_final_cube_bin{:.0f}{}_{}_{:.0f}.fits".format(bin_fac,dist_lab,filt, crop_sz), cube)
-                        write_fits(outpath+"4_final_cube_bin{:.0f}{}_{}_{:.0f}_norm.fits".format(bin_fac,dist_lab,filt, crop_sz), cube/flux)
+                        write_fits(outpath+"4_final_cube_bin{:.0f}{}_{}_{:.0f}_norm.fits".format(bin_fac,dist_lab,filt, crop_sz), cube/flux[0])
                         write_fits(outpath+"4_final_derot_angles_bin{:.0f}_{}.fits".format(bin_fac,filt), derot_angles)
                         
                         med_psf = np.median(cube,axis=0)

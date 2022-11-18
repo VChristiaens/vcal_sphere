@@ -1269,8 +1269,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     cube_norm = np.zeros_like(cube)
                     cube_notrim_norm = np.zeros_like(cube)
                     for zz in range(cube.shape[0]):
-                        cube_norm[zz] = cube[zz]/flux[zz]
-                        cube_notrim_norm[zz] = cube_notrim[zz]/flux[zz]
+                        cube_norm[zz] = cube[zz]/flux[0,zz]
+                        cube_notrim_norm[zz] = cube_notrim[zz]/flux[0,zz]
                     if crop_sz%2: 
                         write_fits(outpath+final_cubename+".fits", cube, verbose=debug)
                         write_fits(outpath+final_cubename_norm+".fits", cube_norm, verbose=debug)
