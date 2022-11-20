@@ -1429,10 +1429,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         #********************* FINAL SCALE LIST ******************
 
         if 8 in to_do:
-            nfp = 2 # number of free parameters for simplex search
-            fluxes = np.zeros(n_z)
+            nfp = 2  # number of free parameters for simplex search
             print("************* 8. FINDING SCALING FACTORS ***************")
-            fluxes = open_fits(outpath+final_fluxname+".fits", verbose=debug)
+            fluxes = open_fits(outpath+final_fluxname+".fits", verbose=debug)[0]
             fwhm = open_fits(outpath+final_fwhmname+".fits", verbose=debug)
             derot_angles = open_fits(outpath+final_anglename+".fits", verbose=debug)
                 
