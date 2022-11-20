@@ -327,7 +327,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             
         #********************************* BPIX CORR ******************************          
         if 1 in to_do:
-            print('Starting bad pixel correction, this may take some time', flush=True)
+            print('************* 1. BPIX CORRECTION (this may take some time) *************', flush=True)
             # OBJECT + PSF + CEN (if available)
             for file_list in obj_psf_list:
                 for fi, filename in enumerate(file_list):
@@ -356,6 +356,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             obj_psf_list[0] = obj_psf_list[-1]
             OBJ_IFS_list = CEN_IFS_list
         if 2 in to_do:
+            print('************* 2. RECENTERING *************')
             for fi, file_list in enumerate(obj_psf_list): ## OBJECT, then PSF (but not CEN)
                 if fi != 1:
                     negative=coro
@@ -763,6 +764,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             
         #******************************* MASTER CUBES ******************************
         if 3 in to_do:
+            print('************* 3. MASTER CUBES *************', flush=True)
             for fi,file_list in enumerate(obj_psf_list):
                 if fi == 0 and use_cen_only:
                     continue
@@ -823,6 +825,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         #********************* PLOTS + TRIM BAD FRAMES OUT ************************
                         
         if 4 in to_do:
+            print('************* 4. PLOTS + TRIM BAD FRAMES OUT *************')
             for fi,file_list in enumerate(obj_psf_list):
 #                    if fi == 1:
 #                        dist_lab_tmp = "" # no need for PSF
@@ -1160,6 +1163,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 
         #************************* FINAL PSF + FLUX + FWHM ************************                  
         if 5 in to_do and len(obj_psf_list)>1:
+            print('************* 5. FINAL PSF + FLUX + FWHM *************', flush=True)
             if isinstance(final_crop_szs[1], (float,int)):
                 crop_sz_list = [int(final_crop_szs[1])]
             elif isinstance(final_crop_szs[1], list):
@@ -1217,6 +1221,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     
         #********************* FINAL OBJ CUBE (BIN IF NECESSARY) ******************
         if 6 in to_do:
+            print('************* 6. FINAL OBJ CUBE (BIN IF NECESSARY) *************', flush=True)
             if isinstance(final_crop_szs[0], (float,int)):
                 crop_sz_list = [int(final_crop_szs[0])]
             elif isinstance(final_crop_szs[0], list):
@@ -1385,6 +1390,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     
         #********************* FINAL OBJ ADI CUBES and PSF frames (necessary for NEGFC or MAYO) ******************
         if 7 in to_do:
+            print('************* 7. FINAL OBJ ADI CUBES and PSF frames *************', flush=True)
             # OBJs
             if isinstance(final_crop_szs[0], (float,int)):
                 crop_sz_list = [int(final_crop_szs[0])]
@@ -1430,7 +1436,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
         if 8 in to_do:
             nfp = 2  # number of free parameters for simplex search
-            print("************* 8. FINDING SCALING FACTORS ***************")
+            print("************* 8. FINDING SCALING FACTORS *************", flush=True)
             fluxes = open_fits(outpath+final_fluxname+".fits", verbose=debug)[0]
             fwhm = open_fits(outpath+final_fwhmname+".fits", verbose=debug)
             derot_angles = open_fits(outpath+final_anglename+".fits", verbose=debug)
