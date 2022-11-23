@@ -116,7 +116,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     # Preprocessing options
     rec_met = params_preproc['rec_met']    # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
     rec_met_psf = params_preproc['rec_met_psf']
-    
+
     # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
     xy_spots = params_preproc.get('xy_spots',[])    
     if "xy_spots" in filt_spec.keys() : xy_spots = filt_spec["xy_spots"]    
@@ -178,6 +178,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     separate_trim = params_preproc.get('separate_trim', True)                  # whether to separately trim K1 and K2. If False, will only trim based on the K1 frames
     bin_fac = params_preproc.get('bin_fac',1)                                  # binning factors for final cube. If the cube is not too large, do not bin.
     approx_xy_bkg = params_preproc.get('approx_xy_bkg',0)                      # approx bkg star position in full ADI frame obtained after rough centering 
+    sub_med4bkg = bool(params_preproc.get('sub_med4bkg',1))                    # Median subtraction before fiting gaussian to find bkg star position
     snr_thr_bkg = params_preproc.get('snr_thr_bkg',5)                          # SNR threshold for the bkg star: only frames where the SNR is above that threshold are used to find bkg star position 
     good_cen_idx = params_preproc.get('good_cen_idx', None)                    # good indices of center cubes (to be used for fine centering)
     bin_fit = params_preproc.get('bin_fit',1)
@@ -1099,6 +1100,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                         snr_thr=snr_thr_bkg,
                                                         verbose=verbose,
                                                         crop_sz=21,
+                                                        sub_med=sub_med4bkg,
                                                         good_frame=good_frame,
                                                         sigfactor=sigfactor,
                                                         bin_fit=bin_fit, 
