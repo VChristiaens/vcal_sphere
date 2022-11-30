@@ -1233,16 +1233,16 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         counter = 0
                         for pp1, npc1 in enumerate(test_pcs_sadi_ann_sdi):
                             for pp2, npc2 in enumerate(test_pcs_sadi_ann_adi):
-                                tmp_tmp, tmp_tmp_der, tmp[counter] = pca_annular(PCA_ASDI_cube, derot_angles, radius_int=mask_IWA_px, 
-                                                                                 fwhm=fwhm_med, asize=asize, delta_rot=delta_rot_ann, 
-                                                                                 ncomp=(int(npc1),int(npc2)), svd_mode=svd_mode, 
+                                tmp_tmp, tmp_tmp_der, tmp[counter] = pca_annular(PCA_ASDI_cube, derot_angles, radius_int=mask_IWA_px,
+                                                                                 fwhm=fwhm_med, asize=asize, delta_rot=delta_rot_ann,
+                                                                                 ncomp=(int(npc1),int(npc2)), svd_mode=svd_mode,
                                                                                  ifs_collapse_range=ifs_collapse_range, scaling=scal,
-                                                                                 scale_list=scale_list, min_frames_lib=max(npc,10), max_frames_lib=max(max_fr,npc1+1,npc2+1), 
+                                                                                 scale_list=scale_list, min_frames_lib=max(npc1,npc2,10), max_frames_lib=max(max_fr,npc1+1,npc2+1),
                                                                                  collapse='median', full_output=True, verbose=verbose, nproc=nproc)
                                 if do_stim_map:
                                     stim_map[counter] = compute_stim_map(tmp_tmp_der)
                                     inv_stim_map[counter] = compute_inverse_stim_map(tmp_tmp,derot_angles, nproc=nproc)
-                                    thr[counter] = np.amax(inv_stim_map[counter])                       
+                                    thr[counter] = np.amax(inv_stim_map[counter])
                 
                                 if planet:  
                                     snr_tmp[counter] = snr(tmp_tmp[counter], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=exclude_negative_lobes,
@@ -1289,7 +1289,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                     tmp_tmp[counter] = pca_annular(PCA_ASDI_cube, derot_angles, radius_int=mask_IWA_px, fwhm=fwhm_med, asize=asize, 
                                                                    delta_rot=delta_rot_ann, ncomp=(int(npc1),int(npc2)), svd_mode=svd_mode, 
                                                                    scale_list=scale_list, ifs_collapse_range=ifs_collapse_range, scaling=scal,
-                                                                   min_frames_lib=max(npc,10), max_frames_lib=max(max_fr,npc1+1,npc2+1), collapse='median', full_output=False, 
+                                                                   min_frames_lib=max(npc1,npc2,10), max_frames_lib=max(max_fr,npc1+1,npc2+1), collapse='median', full_output=False,
                                                                    verbose=verbose, nproc=nproc)
                                     for ff in range(nfcp):
                                         xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
