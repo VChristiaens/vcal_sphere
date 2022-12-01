@@ -37,7 +37,7 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              cube_recenter_satspots, cube_recenter_radon, 
                              cube_recenter_via_speckles, frame_shift, 
                              cube_crop_frames, frame_crop, cube_derotate,
-                             find_scal_vector)
+                             find_scal_vector, cube_subsample)
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
 
@@ -1243,30 +1243,14 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     cube = open_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi_tmp],"-".join(badfr_criteria)), verbose=debug)
                     derot_angles = open_fits(outpath+"2_master_derot_angles_clean_{}.fits".format("-".join(badfr_criteria)), verbose=debug)
                     derot_angles_notrim = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi_tmp]), verbose=debug)
-                    ntot = cube.shape[1]
-                    ntot_notrim = cube_notrim.shape[1]
-                    if bin_fac != 1:
-                        bin_fac = int(bin_fac)
-                        ntot_bin = int(np.ceil(ntot/bin_fac))
-                        ntot_bin_notrim = int(np.ceil(ntot_notrim/bin_fac))
-                        cube_bin = np.zeros([n_z,ntot_bin,cube.shape[2],cube.shape[3]])
-                        cube_bin_notrim = np.zeros([n_z,ntot_bin_notrim,cube_notrim.shape[1],cube_notrim.shape[2]])
-                        derot_angles_bin = np.zeros(ntot_bin)
-                        derot_angles_bin_notrim = np.zeros(ntot_bin_notrim)
-                        for nn in range(ntot_bin):
-                            for zz in range(n_z):
-                                cube_bin[zz,nn] = np.median(cube[zz,nn*bin_fac:(nn+1)*bin_fac],axis=0)
-                            derot_angles_bin[nn] = np.median(derot_angles[nn*bin_fac:(nn+1)*bin_fac])
-                        for nn in range(ntot_bin_notrim):
-                            for zz in range(n_z):
-                                cube_bin_notrim[zz,nn] = np.median(cube_notrim[zz,nn*bin_fac:(nn+1)*bin_fac],axis=0)
-                            derot_angles_bin_notrim[nn] = np.median(derot_angles_notrim[nn*bin_fac:(nn+1)*bin_fac])
-                        cube = cube_bin
-                        cube_notrim = cube_bin_notrim
-                        derot_angles = derot_angles_bin
-                        derot_angles_notrim = derot_angles_bin_notrim
-                    if not cc:
-                        write_fits(outpath+final_cubename+"_full.fits", cube, verbose=debug)
+
+                    if bin_fac != 1 and bin_fac is not None and bin_fac != 0:
+                        cube, derot_angles = cube_subsample(cube, bin_fac, mode="median", parallactic=derot_angles,
+                                                            verbose=debug)
+                        cube_notrim, derot_angles_notrim = cube_subsample(cube_notrim, bin_fac,
+                                                                          mode="median",
+                                                                          parallactic=derot_angles_notrim,
+                                                                          verbose=debug)
                     # crop
                     if cube.shape[-2] > crop_sz or cube.shape[-1] > crop_sz:
                         if crop_sz%2 != cube.shape[-1]%2:
