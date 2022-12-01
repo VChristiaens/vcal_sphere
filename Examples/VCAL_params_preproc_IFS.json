@@ -19,7 +19,7 @@
     "final_crop_sz":[257,256],
     "final_crop_sz_psf": [35,64],
     "psf_model": "gauss",
-    "bin_fac_list": [1],
+    "bin_fac": 1,
     "mask_scal":[0.7,0],
     "n_med_sdi":[1,2,3,4,5,6,7,8,9,10],
     "first_good_ch":0,
