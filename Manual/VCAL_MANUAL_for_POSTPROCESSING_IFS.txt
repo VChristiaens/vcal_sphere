@@ -20,8 +20,7 @@ This file describes the structure of the postprocessing pipeline for IRDIS, and 
 
 # Planet?
 "planet":0                    # whether a companion candidate is present or not
-"planet_pos_crop": [21,21]    # (x,y) position of the companion candidate in cropped final image
-"planet_pos_full": [42,42]    # (x,y) position of the companion candidate in full final image
+"planet_pos": [21,21]         # (x,y) position of the companion candidate in final image
 "subtract_planet":0           # if a planet is present, subtract it? Note: input argument "planet_parameter" must be set if True. This is necessary to calculate meaningful contrast curves.
 
 # Inject fake planets?

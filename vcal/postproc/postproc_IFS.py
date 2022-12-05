@@ -80,7 +80,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     set in the parameter file:
         #1. planet = False, fake_planet=False 
             => do_adi= True, do_adi_full=True, do_adi_ann=True
-        #2. If a blob is found: set planet_pos_crop to the coordinates of the 
+        #2. If a blob is found: set planet_pos to the coordinates of the
             blob. Set planet=True and do_pca_sann=True (single annulus PCA)
         #3. If no blob is found: do_pca_sann=False; fake_planet=True => will 
             calculate contrast curves
@@ -178,7 +178,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
 
     ## Planet?
     planet = params_postproc.get('planet',0)                      # is there a companion?
-    planet_pos = params_postproc.get('planet_pos',None) # If so, where is it (or where is it expected)?   (x, y) in cropped frames
+    planet_pos = params_postproc.get('planet_pos',None) # If so, where is it (or where is it expected)?   (x, y) in frame
     subtract_planet = params_postproc.get('subtract_planet',0)    # this should only be used as a second iteration, after negfc on the companion has enabled to determine its parameters
 
     
