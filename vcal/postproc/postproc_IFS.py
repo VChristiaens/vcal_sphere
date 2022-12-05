@@ -209,7 +209,6 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     ##SDI
     start_nz = params_postproc.get('start_nz',0)
     end_nz = params_postproc.get('end_nz',-1)
-    scale_list = params_postproc.get('scale_list',None)
     adimsdi = params_postproc.get('adimsdi',"double")
     crop_ifs = params_postproc.get('crop_ifs',0)  # whether to crop the IFS frames after rescaling during PCA-SDI. Leave it to False for SINFONI.
     scalings = [params_postproc.get('scaling',None)] # list of pre-PCA cube scaling(s) to be tested for PCA-SADI.
@@ -320,7 +319,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     if final_scalefacname is not None:
         scale_list = open_fits(inpath+final_scalefacname)
     else:
-        scale_list = np.amax(lbdas)/lbdas 
+        scale_list = np.amax(lbdas)/lbdas
 
     #mask_IWA_px = int(mask_IWA*fwhm_med)
     mask_IWA = mask_IWA_px/fwhm_med
