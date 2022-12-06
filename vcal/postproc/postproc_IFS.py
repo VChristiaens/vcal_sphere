@@ -335,9 +335,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
         label_stg = "ADI"
             
     if subtract_planet:
-        PCA_ASDI_cube_ori = cube_planet_free(planet_parameter,
-                                                   PCA_ASDI_cube_ori, derot_angles, 
-                                                   psfn, plsc)
+        PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn)
     if planet or fake_planet:
         cy, cx = frame_center(PCA_ASDI_cube_ori[0,0])
     if planet:
@@ -1369,7 +1367,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
         ######################### 10. Final contrast curves ###########################
         if planet and planet_parameter is not None:
             # SUBTRACT THE PLANET FROM THE CUBE
-            PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn, plsc)
+            PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn)
             label_emp = '_empty'
         else:
             label_emp = ''
