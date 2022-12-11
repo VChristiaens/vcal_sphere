@@ -889,7 +889,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         print("********** Trimming bad frames from channel {:.0f} ***********\n".format(zz+1))
                         ngood_fr_ch = len(final_good_index_list)
                         #counter = 0
-                        if "stat" in badfr_crit:
+                        if "stat" in badfr_critn_tmp:
                             idx_stat = badfr_critn_tmp.index("stat")
                             # Default parameters
                             mode = "circle"
@@ -927,7 +927,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     #                                perc = 100*len(bad_index_list)/cube.shape[1]
     #                                print("Percentile updated to {:.1f} based on stat".format(perc))
                             #counter+=1
-                        if "ell" in badfr_crit:
+                        if "ell" in badfr_critn_tmp:
                             idx_ell = badfr_critn_tmp.index("ell")
                             # default params
                             roundhi = 0.2
@@ -1083,14 +1083,17 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 #                                    ax5.plot(UTC[good_index_list]-UTC_0, [val]*len(good_index_list), cols[ff][0]+markers_1[fi], label=label)
 #                                counter+=1                                  
                             
-                        if "corr" in badfr_crit:
+                        if "corr" in badfr_critn_tmp:
                             idx_corr = badfr_critn_tmp.index("corr")
                             # default params
                             thr = 0.8
                             perc = 0
                             ref = "median"
-                            crop_sz = 6
+                            crop_sz = 10
                             dist = 'pearson'
+                            mode = 'annulus'
+                            inradius = 10
+                            width = 20
                             # update if provided
                             if "perc" in badfr_crit_tmp[idx_corr].keys():
                                 perc = max(perc, badfr_crit_tmp[idx_corr]["perc"])
@@ -1101,7 +1104,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             if "ref" in badfr_crit_tmp[idx_corr].keys():
                                 ref = badfr_crit_tmp[idx_corr]["ref"]
                             if ref== "median":
-                                good_frame = np.median(cube[zz][final_good_index_list],axis=0)
+                                good_frame = np.median(cube[zz][final_good_index_list], axis=0)
                             else:
                                 good_frame = cube[zz,badfr_crit_tmp[idx_corr]["ref"]]
                             if "crop_sz" in badfr_crit_tmp[idx_corr].keys():
@@ -1111,7 +1114,13 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 crop_size+=1
                             if "dist" in badfr_crit_tmp[idx_corr].keys(): 
                                 dist = badfr_crit_tmp[idx_corr]["dist"]
-
+                            if "mode" in badfr_crit_tmp[idx_corr].keys():
+                                mode = badfr_crit_tmp[idx_corr]["mode"]
+                            if "inradius" in badfr_crit_tmp[idx_corr].keys():
+                                mode = badfr_crit_tmp[idx_corr]["inradius"]
+                            if "width" in badfr_crit_tmp[idx_corr].keys():
+                                mode = badfr_crit_tmp[idx_corr]["width"]
+                                    
                             crop_size = min(cube[zz].shape[1]-2,crop_size)
                             plot_tmp=False
                             if zz == 0 or zz == n_z-1:
