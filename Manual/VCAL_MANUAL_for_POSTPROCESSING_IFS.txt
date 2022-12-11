@@ -10,7 +10,6 @@ This file describes the structure of the postprocessing pipeline for IRDIS, and 
 
 # TO DO
 "do_sdi":1,
-"do_pca_sann"0,
 "do_adi_full":1,
 "do_adi_ann":1,
 "do_sadi_full":1,
@@ -21,8 +20,7 @@ This file describes the structure of the postprocessing pipeline for IRDIS, and 
 
 # Planet?
 "planet":0                    # whether a companion candidate is present or not
-"planet_pos_crop": [21,21]    # (x,y) position of the companion candidate in cropped final image
-"planet_pos_full": [42,42]    # (x,y) position of the companion candidate in full final image
+"planet_pos": [21,21]         # (x,y) position of the companion candidate in final image
 "subtract_planet":0           # if a planet is present, subtract it? Note: input argument "planet_parameter" must be set if True. This is necessary to calculate meaningful contrast curves.
 
 # Inject fake planets?
@@ -35,11 +33,12 @@ This file describes the structure of the postprocessing pipeline for IRDIS, and 
 "wedge":[0,360]			# in which range of PA should the contrast curve be computed
 
 # Post-proc options
-"mask_IWA": 10 			# numerical mask to hide central region of final images, to be provided in pixels
+"mask_IWA":10 			# numerical mask to hide central region of final images, to be provided in pixels
 "exclude_negative_lobes":1      # when computing SNR (maps) whether to exclude apertures in negative lobes
 
 # PCA options
-"delta_rot": [1,3] 		# threshold in field rotation to keep good frames in PCA library. Can be: float or list of 2 values (for threshold for the innermost and outermost annuli, resp.). In the latter case, the threshold is linearly interpolated for intermediate annuli.
+"delta_rot":1 		        # threshold in field rotation to keep good frames in PCA library. Can be: float or int
+"delta_rot_ann":[1,3]       # threshold in field rotation to keep good frames in PCA library. Can be: float, int or list of 2 values (for threshold for the innermost and outermost annuli, resp.). In the latter case, the threshold is linearly interpolated for intermediate annuli.
 "asize":3, 			# width of the annnuli for either pca in concentric annuli or on a single annulus, provided in FWHM.
 "svd_mode":"lapack"             # package to use for SVD, can be a string or a list of 2 strings. In the latter case, the first one is for processing of cropped cube, and the second one for the full cube.
 "firstguess_pcs":[1,21,1] 	# number of pcs to explore for first contrast curve (used to estimate noise level). Should be a list of 3 elements: first and last npc to be tested, and step.
@@ -64,8 +63,8 @@ prep_ref_cube: [2,3]                # whether to:
 scaling       # scaling of the cube before RDI (default: None)
 mask_PCA      # if provided, radius in arcsec for an inner mask where the coefficients to project the PCs are NOT computed (e.g. if a bright disc is present, you may want to avoid that area to not have the ref images to try to model and subtract it). Note: sat spots are at 50px (0.6'') separation => set it to 0.65'' if sat spots are present
 
-#SDI
-"start_nz":0  # int or list of first channel(s) of IFS to reduce. To do first channel onwards, set to 0 (zero-based indexing).
-"end_nz":-1   # int or list of last channel(s) of IFS to reduce. To do up to the last channel, set to -1 (uses last channel), or -2 for second last etc.
+#SADI
+"start_nz":0  # int or list of first channel(s) of IFS to reduce for SADI processing. To do first channel onwards, set to 0 (zero-based indexing).
+"end_nz":-1   # int or list of last channel(s) of IFS to reduce for SADI processing. To do up to the last channel, set to -1 (uses last channel), or -2 for second last etc.
 To run multiple reductions by dividing up channels, provide a list of start and end channels to start_nz and end_nz.
 e.g. "start_nz":[0,13,26], "end_nz":[12,25,-1] would divide IFS into three reductions of 13 spectral channels

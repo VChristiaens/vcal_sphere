@@ -202,8 +202,13 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
 
     #step 6 - median ADI position
     if good_frame is None:
-        good_frame = median_sub(cube[above_thr_idx],
+        if sub_med: 
+            good_frame = median_sub(cube[above_thr_idx],
                                 derot_angles[above_thr_idx])
+        else : 
+            good_frame = np.median(cube_derotate(cube[above_thr_idx], 
+                                        derot_angles[above_thr_idx]))
+
     med_x, med_y = fit2d_bkg_pos(np.array([good_frame]), 
                                  np.array([approx_xy_bkg[0]]), 
                                  np.array([approx_xy_bkg[1]]), fwhm, 

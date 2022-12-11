@@ -21,6 +21,7 @@
     "do_stim_map":1,
     "exclude_negative_lobes":1,
     "delta_rot":1,
+    "delta_rot_ann":[1,3],
     "asize":3,
     "svd_mode":"lapack",
     "firstguess_pcs":[1,21,1],
