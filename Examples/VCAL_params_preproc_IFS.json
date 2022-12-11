@@ -29,7 +29,6 @@
     "final_anglename": "final_derot_angles.fits",
     "final_psfname": "final_psf_med.fits",
     "final_fluxname":"final_flux.fits",
-    "final_scalefacname":"final_scale_fac.fits",
     "overwrite":[1,1,1,1,1,1,1,1],
     "debug": 0,
     "plot":1,

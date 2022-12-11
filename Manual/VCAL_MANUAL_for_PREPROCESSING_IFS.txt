@@ -54,8 +54,11 @@ badfr_crit_names_psf = ['corr'] # Bad frame criteria to be used for PSF cubes; s
 	- "thr": min correlation level with median frame. Notes: supersedes perc if both are provided; use "plot" to check a plot of correlation level for the frames of the cube.
 	- "perc": min percentile for bad frames (e.g. if set to 10, the 10% worst frames in the cube will be automatically rejected) . Default: 0
 	- "ref": "median" or int (index of ref frame to be used)
-	- "crop_sz": in fwhm. Default: 6.
+	- "crop_sz": in pixels. Default: 31.
 	- "dist": Type of distance/correlation to be used. Cfr. description of vip_hci.preproc.cube_detect_badfr_correlation. Default: "pearson"
+	- "mode": {'full', 'annulus'}. Whether to calculate the distance over the full (cropped) image or an annulus.
+	- "inradius": [mode='annulus'] the inner radius of the annulus.
+	- "width": [mode='annulus'] the width of the annulus.
 	NOTE: if using perc, final number of bad frames can be larger than perc if other criteria are provided.
 badfr_crit = [{"thr":0.9,"ref":"median"},{"thr":"2"}] # List of dictionaries indicating thresholds & parameters to be used for each bad frame criterion.
 badfr_crit_psf  # Same as badfr_crit but for unsaturated PSF.
@@ -109,6 +112,7 @@ final_cubename = "final_cube"                     # can be provided with or with
 final_anglename = "final_derot_angles.fits"       # can be provided with or without the suffix ".fits"   
 final_psfname = "final_psf"                       # can be provided with or without the suffix ".fits" 
 final_fluxname = "final_flux"
+final_scalefacname = None                         # can be a string corresponding to the filename scaling factor. "final_scale_fac". Note: not recommended.
 
 # output options
 "verbose": 1                                                 # whether to print more info during processing                          

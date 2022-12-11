@@ -1550,8 +1550,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 thr = 0.8
                                 perc = 0
                                 ref = "median"
-                                crop_sz = 6
                                 dist = 'pearson'
+                                mode = 'annulus'
+                                inradius = 10
+                                width = 20
+                                crop_sz = int(2*int(inradius+width)+3)
                                 # update if provided
                                 if "perc" in badfr_crit_tmp[idx_corr].keys():
                                     perc = max(perc, badfr_crit_tmp[idx_corr]["perc"])
@@ -1574,11 +1577,20 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     crop_size = max([good_frame.shape[-1],cube.shape[-1]]) - 2
                                 if "dist" in badfr_crit_tmp[idx_corr].keys(): 
                                     dist = badfr_crit_tmp[idx_corr]["dist"]
+                                if "mode" in badfr_crit_tmp[idx_corr].keys():
+                                    mode = badfr_crit_tmp[idx_corr]["mode"]
+                                if "inradius" in badfr_crit_tmp[idx_corr].keys():
+                                    mode = badfr_crit_tmp[idx_corr]["inradius"]
+                                if "width" in badfr_crit_tmp[idx_corr].keys():
+                                    mode = badfr_crit_tmp[idx_corr]["width"]
                                 
                                 good_index_list, bad_index_list = cube_detect_badfr_correlation(cube, good_frame, 
                                                                                                 crop_size=crop_size, 
                                                                                                 threshold=thr,
                                                                                                 dist=dist, 
+                                                                                                mode=mode,
+                                                                                                inradius=inradius,
+                                                                                                width=width,
                                                                                                 percentile=perc, 
                                                                                                 plot=plot, verbose=debug)
                                 if plot:
