@@ -41,7 +41,7 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
 
-from vcal.utils import find_nearest
+from vcal.utils import find_nearest, fit2d_bkg_pos
 from vcal import __path__ as vcal_path
 matplotlib.use('Agg')
 
@@ -965,66 +965,67 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     #                                print("Percentile updated to {:.1f} based on ell".format(perc))                                                                                        
                             final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]                   
                             #counter+=1
-#                            if "bkg" in badfr_critn_tmp:
-#                                idx_bkg = badfr_critn_tmp.index("bkg")
-#                                # default params
-#                                sigma = 3
-#                                # Update if provided
-#                                if "thr" in badfr_crit_tmp[idx_bkg].keys():
-#                                    sigma = badfr_crit_tmp[idx_bkg]["thr"]
-#                                # infer rough bkg location in each frame
-#                                cen_adi_img = open_fits(outpath+"median_ADI2_{}{}{}.fits".format(labels[-1],filters[ff],
-#                                                        dist_lab_tmp))
-#                                med_x, med_y = fit2d_bkg_pos(np.array([cen_adi_img]), 
-#                                                             np.array([approx_xy_bkg[0]]), 
-#                                                             np.array([approx_xy_bkg[1]]), 
-#                                                             fwhm, fit_type=psf_model)
-#                                xy_bkg_derot = (med_x,med_y)
-#                                cy, cx = frame_center(cube[0])
-#                                center_bkg = (cx, cy)
-#                                x_bkg, y_bkg = interpolate_bkg_pos(xy_bkg_derot, 
-#                                                                   center_bkg, 
-#                                                                   derot_angles)
-#                                final_x_bkg, final_y_bkg = fit2d_bkg_pos(cube, 
-#                                                                         x_bkg, 
-#                                                                         y_bkg, 
-#                                                                         fwhm, 
-#                                                                         fit_type=psf_model)
-#                                # measure bkg star fluxes
-#                                n_fr = cube.shape[0]
-#                                flux_bkg = np.zeros(n_fr)
-#                                crop_sz = int(6*fwhm)
-#                                if not crop_sz%2:
-#                                    crop_sz+=1
-#                                for ii in range(n_fr):
-#                                    subframe = frame_crop(cube[ii], crop_sz,
-#                                                          cenxy=(int(final_x_bkg[ii]), 
-#                                                                  int(final_y_bkg[ii])),
-#                                                                  force=True, verbose=verbose)
-#                                    subpx_shifts = (final_x_bkg[ii]-int(final_x_bkg[ii]),
-#                                                    final_y_bkg[ii]-int(final_y_bkg[ii]))
-#                                    subframe = frame_shift(subframe, subpx_shifts[1],
-#                                                           subpx_shifts[0])
-#                                    _, flux_bkg[ii], _ = normalize_psf(subframe, fwhm=fwhm, 
-#                                                                       full_output=True, 
-#                                                                       verbose=verbose, debug=debug)
-#                                # infer outliers
-#                                med_fbkg = np.median(flux_bkg)
-#                                std_fbkg = np.std(flux_bkg)
-#                                good_index_list = [i for i in range(n_fr) if flux_bkg[i] > med_fbkg-sigma*std_fbkg]
-#                                bad_index_list = [i for i in range(n_fr) if i not in good_index_list]
-#                                final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
-#                                if 100*len(bad_index_list)/cube.shape[0] > perc:
-#                                    perc = 100*len(bad_index_list)/cube.shape[0]
-#                                    print("Percentile updated to {:.1f} based on bkg".format(perc))
-#                                if plot_obs_cond:
-#                                    val = counter + (2*(ff%2)-1)*0.2
-#                                    if fi!= 1:
-#                                        label=filt+'- stat'
-#                                    else:
-#                                        label = None
-#                                    ax5.plot(UTC[good_index_list]-UTC_0, [val]*len(good_index_list), cols[ff][0]+markers_1[fi], label=label)
-#                                counter+=1        
+                       # if "bkg" in badfr_critn_tmp:
+                       #     idx_bkg = badfr_critn_tmp.index("bkg")
+                       #     # default params
+                       #     sigma = 3
+                       #     # Update if provided
+                       #     if "thr" in badfr_crit_tmp[idx_bkg].keys():
+                       #         sigma = badfr_crit_tmp[idx_bkg]["thr"]
+                       #     # infer rough bkg location in each frame
+                       #     cen_adi_img = open_fits(outpath+"median_ADI1_{}.fits".format(labels[fi]))
+                       #     # collapse since the above is a spectral cube
+                       #     cen_adi_img = np.mean(cen_adi_img, axis=0)
+                       #     med_x, med_y = fit2d_bkg_pos(np.array([cen_adi_img]),
+                       #                                  np.array([approx_xy_bkg[0]]),
+                       #                                  np.array([approx_xy_bkg[1]]),
+                       #                                  fwhm, fit_type=psf_model)
+                       #     xy_bkg_derot = (med_x,med_y)
+                       #     cy, cx = frame_center(cube[0])
+                       #     center_bkg = (cx, cy)
+                       #     x_bkg, y_bkg = interpolate_bkg_pos(xy_bkg_derot,
+                       #                                        center_bkg,
+                       #                                        derot_angles)
+                       #     final_x_bkg, final_y_bkg = fit2d_bkg_pos(cube,
+                       #                                              x_bkg,
+                       #                                              y_bkg,
+                       #                                              fwhm,
+                       #                                              fit_type=psf_model)
+                       #     # measure bkg star fluxes
+                       #     n_fr = cube.shape[0]
+                       #     flux_bkg = np.zeros(n_fr)
+                       #     crop_sz = int(6*fwhm)
+                       #     if not crop_sz%2:
+                       #         crop_sz+=1
+                       #     for ii in range(n_fr):
+                       #         subframe = frame_crop(cube[ii], crop_sz,
+                       #                               cenxy=(int(final_x_bkg[ii]),
+                       #                                       int(final_y_bkg[ii])),
+                       #                                       force=True, verbose=verbose)
+                       #         subpx_shifts = (final_x_bkg[ii]-int(final_x_bkg[ii]),
+                       #                         final_y_bkg[ii]-int(final_y_bkg[ii]))
+                       #         subframe = frame_shift(subframe, subpx_shifts[1],
+                       #                                subpx_shifts[0])
+                       #         _, flux_bkg[ii], _ = normalize_psf(subframe, fwhm=fwhm,
+                       #                                            full_output=True,
+                       #                                            verbose=verbose, debug=debug)
+                       #     # infer outliers
+                       #     med_fbkg = np.median(flux_bkg)
+                       #     std_fbkg = np.std(flux_bkg)
+                       #     good_index_list = [i for i in range(n_fr) if flux_bkg[i] > med_fbkg-sigma*std_fbkg]
+                       #     bad_index_list = [i for i in range(n_fr) if i not in good_index_list]
+                       #     final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
+                       #     if 100*len(bad_index_list)/cube.shape[0] > perc:
+                       #         perc = 100*len(bad_index_list)/cube.shape[0]
+                       #         print("Percentile updated to {:.1f} based on bkg".format(perc))
+                       #     if plot_obs_cond:
+                       #         val = counter + (2*(ff%2)-1)*0.2
+                       #         if fi!= 1:
+                       #             label=filt+'- stat'
+                       #         else:
+                       #             label = None
+                       #         ax5.plot(UTC[good_index_list]-UTC_0, [val]*len(good_index_list), cols[ff][0]+markers_1[fi], label=label)
+                       #     counter+=1
                             
 #                            if "shifts" in badfr_critn_tmp:
 #                                if not isfile(outpath+"TMP_shifts_fine_recentering_bkg.fits"):
@@ -1139,8 +1140,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 plot_tmp = plot
                             good_index_list, bad_index_list = cube_detect_badfr_correlation(cube[zz], good_frame, 
                                                                                             crop_size=crop_size,
-                                                                                            threshold=thr,
-                                                                                            dist=dist, percentile=perc, 
+                                                                                            threshold=thr, dist=dist,
+                                                                                            percentile=perc, mode=mode,
+                                                                                            inradius=inradius, width=width,
                                                                                             plot=plot_tmp, verbose=debug)
                             final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
                             if plot_tmp:
