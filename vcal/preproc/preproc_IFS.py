@@ -861,8 +861,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 fwhm_med = np.median(fwhm)
     
                 cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), verbose=debug)
-    
-                perc = 0 #perc_min[fi]
+
                 if fi != 1:
                     badfr_critn_tmp = badfr_criteria
                     badfr_crit_tmp = badfr_crit
@@ -952,7 +951,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 roundlo = badfr_crit_tmp[idx_ell]["roundlo"]
                             if "crop_sz" in badfr_crit_tmp[idx_ell].keys():
                                 crop_sz = badfr_crit_tmp[idx_ell]["crop_sz"]
-                            crop_size = int(crop_sz*fwhm)
+                            crop_size = int(crop_sz*fwhm[zz])
                             if not crop_sz%2:
                                 crop_size+=1
                             crop_sz = min(cube[zz].shape[1]-2,crop_sz)
@@ -1122,7 +1121,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 good_frame = cube[zz,badfr_crit_tmp[idx_corr]["ref"]]
                             if "crop_sz" in badfr_crit_tmp[idx_corr].keys():
                                 crop_sz = badfr_crit_tmp[idx_corr]["crop_sz"]
-                            crop_size = int(crop_sz*fwhm)
+                            crop_size = int(crop_sz*fwhm[zz])
                             if not crop_size%2:
                                 crop_size+=1
                             if "dist" in badfr_crit_tmp[idx_corr].keys(): 
