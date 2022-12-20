@@ -1273,7 +1273,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     flux = open_fits(outpath+final_fluxname+".fits", verbose=debug)
                     # only save final with VIP conventions, for use in postproc.
                     cube_norm = np.zeros_like(cube)
-                    cube_notrim_norm = np.zeros_like(cube)
+                    cube_notrim_norm = np.zeros_like(cube_notrim)
                     for zz in range(cube.shape[0]):
                         cube_norm[zz] = cube[zz]/flux[0,zz]
                         cube_notrim_norm[zz] = cube_notrim[zz]/flux[0,zz]
