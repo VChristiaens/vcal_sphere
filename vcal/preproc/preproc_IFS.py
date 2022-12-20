@@ -1098,8 +1098,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         if "corr" in badfr_critn_tmp:
                             idx_corr = badfr_critn_tmp.index("corr")
                             # default params
-                            thr = 0.8
-                            perc = 0
+                            thr = None
+                            perc = 10
                             ref = "median"
                             crop_sz = 10
                             dist = 'pearson'
@@ -1111,11 +1111,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 perc = max(perc, badfr_crit_tmp[idx_corr]["perc"])
                             if "thr" in badfr_crit_tmp[idx_corr].keys():
                                 thr = badfr_crit_tmp[idx_corr]["thr"]
-                            else:
-                                thr = None
                             if "ref" in badfr_crit_tmp[idx_corr].keys():
                                 ref = badfr_crit_tmp[idx_corr]["ref"]
-                            if ref== "median":
+                            if ref == "median":
                                 good_frame = np.median(cube[zz][final_good_index_list], axis=0)
                             else:
                                 good_frame = cube[zz,badfr_crit_tmp[idx_corr]["ref"]]
@@ -1129,16 +1127,14 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             if "mode" in badfr_crit_tmp[idx_corr].keys():
                                 mode = badfr_crit_tmp[idx_corr]["mode"]
                             if "inradius" in badfr_crit_tmp[idx_corr].keys():
-                                mode = badfr_crit_tmp[idx_corr]["inradius"]
+                                inradius = badfr_crit_tmp[idx_corr]["inradius"]
                             if "width" in badfr_crit_tmp[idx_corr].keys():
-                                mode = badfr_crit_tmp[idx_corr]["width"]
+                                width = badfr_crit_tmp[idx_corr]["width"]
                                     
                             crop_size = min(cube[zz].shape[1]-2,crop_size)
                             plot_tmp=False
                             if zz == 0 or zz == n_z-1:
                                 plot_tmp = plot
-                            import pdb
-                            pdb.set_trace()
                             good_index_list, bad_index_list = cube_detect_badfr_correlation(cube[zz], good_frame,
                                                                                             crop_size=crop_size,
                                                                                             threshold=thr, dist=dist,
