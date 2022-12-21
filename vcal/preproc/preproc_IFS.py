@@ -1099,7 +1099,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             idx_corr = badfr_critn_tmp.index("corr")
                             # default params
                             thr = None
-                            perc = 10
+                            perc = 0
                             ref = "median"
                             crop_sz = 10
                             dist = 'pearson'
