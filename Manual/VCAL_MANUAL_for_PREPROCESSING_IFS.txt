@@ -54,7 +54,7 @@ badfr_crit_names_psf = ['corr'] # Bad frame criteria to be used for PSF cubes; s
 	- "thr": min correlation level with median frame. Notes: supersedes perc if both are provided; use "plot" to check a plot of correlation level for the frames of the cube.
 	- "perc": min percentile for bad frames (e.g. if set to 10, the 10% worst frames in the cube will be automatically rejected) . Default: 0
 	- "ref": "median" or int (index of ref frame to be used)
-	- "crop_sz": in pixels. Default: 31.
+	- "crop_sz": in FWHM. Default: 10
 	- "dist": Type of distance/correlation to be used. Cfr. description of vip_hci.preproc.cube_detect_badfr_correlation. Default: "pearson"
 	- "mode": {'full', 'annulus'}. Whether to calculate the distance over the full (cropped) image or an annulus.
 	- "inradius": [mode='annulus'] the inner radius of the annulus.
