@@ -783,7 +783,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             elif cc == 1 and true_ncen == 3:
                                                 cond = (mjd_cen > mjd & mjd_cen < mjd_fin)
                                             elif cc == 1 and true_ncen == 4:
-                                                cond = (mjd_cen > mjd & mjd_cen < mjd_mid)
+                                                cond = ((mjd_cen > mjd) & (mjd_cen < mjd_mid))
                                             else:
                                                 cond = (mjd_cen < mjd_fin & mjd_cen > mjd_mid)
                                                 
