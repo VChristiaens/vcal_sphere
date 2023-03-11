@@ -761,17 +761,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         y_shifts_cen_err = y_shifts_cen_std
                                         x_shifts_cen_err = x_shifts_cen_std
                                     else:
-                                        print('test')
                                         if true_ncen > ncen:
                                             raise ValueError("Code not compatible with true_ncen > ncen")
-                                        if true_ncen>2:
+                                        if true_ncen > 2:
                                             _, header_fin = open_fits(inpath+OBJ_IRDIS_list[-1]+'_left.fits', header=True)
                                             mjd_fin = float(header_fin['MJD-OBS'])
-                                        elif true_ncen>3:
-                                            print('test2')
+                                        if true_ncen > 3:
                                             _, header_mid = open_fits(inpath+OBJ_IRDIS_list[int(nobj/2)]+'_left.fits', header=True)
                                             mjd_mid = float(header_mid['MJD-OBS'])
-                                            print(mjd_mid)
                                                                 
                                         unique_mjd_cen = np.zeros(true_ncen)  
                                         unique_pa_cen = np.zeros(true_ncen)  
