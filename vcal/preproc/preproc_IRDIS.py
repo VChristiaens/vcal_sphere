@@ -746,6 +746,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     nfr_tmp = cube.shape[0]
                                     mjd = float(header['MJD-OBS'])+(nfr_tmp*dits[fi]/2.)/(3600*24) # mjd of first obs 
                                     mjd_fin = mjd
+                                    print('true_ncen:', true_ncen)
                                     if true_ncen is None:
                                         unique_mjd_cen = mjd_cen.copy()
                                         y_shifts_cen = y_shifts_cen_med
@@ -768,6 +769,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         elif true_ncen>3:
                                             _, header_mid = open_fits(inpath+OBJ_IRDIS_list[int(nobj/2)]+'_left.fits', header=True)
                                             mjd_mid = float(header_mid['MJD-OBS'])
+                                            print(mjd_mid)
                                                                 
                                         unique_mjd_cen = np.zeros(true_ncen)  
                                         unique_pa_cen = np.zeros(true_ncen)  
