@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+# coding: utf-8
 
 """
 Module with the preprocessing routine for SPHERE/IRDIS data.
@@ -118,7 +119,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     # Preprocessing options
     rec_met = params_preproc['rec_met']    # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
     rec_met_psf = params_preproc['rec_met_psf']
-    
+
     # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
     xy_spots = params_preproc.get('xy_spots',[])    
     if "xy_spots" in filt_spec.keys() : xy_spots = filt_spec["xy_spots"]    
@@ -180,6 +181,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     separate_trim = params_preproc.get('separate_trim', True)                  # whether to separately trim K1 and K2. If False, will only trim based on the K1 frames
     bin_fac = params_preproc.get('bin_fac',1)                                  # binning factors for final cube. If the cube is not too large, do not bin.
     approx_xy_bkg = params_preproc.get('approx_xy_bkg',0)                      # approx bkg star position in full ADI frame obtained after rough centering 
+    sub_med4bkg = bool(params_preproc.get('sub_med4bkg',1))                    # Median subtraction before fiting gaussian to find bkg star position
     snr_thr_bkg = params_preproc.get('snr_thr_bkg',5)                          # SNR threshold for the bkg star: only frames where the SNR is above that threshold are used to find bkg star position 
     good_cen_idx = params_preproc.get('good_cen_idx', None)                    # good indices of center cubes (to be used for fine centering)
     bin_fit = params_preproc.get('bin_fit',1)
@@ -1043,8 +1045,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             print("transmission correction: ",interp_trans)
                         
                     
-                        # IMPORTANT WE NORMALIZE BY DIT
-                        write_fits(outpath+"1_master{}_cube_{}.fits".format(labels[fi],filters[ff]), master_cube/dits[fi])
+                        # IMPORTANT WE DO NOT NORMALIZE BY DIT (any more!)
+                        write_fits(outpath+"1_master{}_cube_{}.fits".format(labels[fi],filters[ff]), master_cube) #/dits[fi])
                        
                         if fi!=1 and ff==0:
                             final_derot_angles = [] #np.zeros(int(len(file_list)*ndits[fi]))
@@ -1203,6 +1205,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                         snr_thr=snr_thr_bkg,
                                                         verbose=verbose,
                                                         crop_sz=21,
+                                                        sub_med=sub_med4bkg,
                                                         good_frame=good_frame,
                                                         sigfactor=sigfactor,
                                                         bin_fit=bin_fit, 
@@ -1654,8 +1657,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 thr = 0.8
                                 perc = 0
                                 ref = "median"
-                                crop_sz = 6
                                 dist = 'pearson'
+                                mode = 'annulus'
+                                inradius = 10
+                                width = 20
+                                crop_sz = int(2*int(inradius+width)+3)
                                 # update if provided
                                 if "perc" in badfr_crit_tmp[idx_corr].keys():
                                     perc = max(perc, badfr_crit_tmp[idx_corr]["perc"])
@@ -1678,11 +1684,20 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     crop_size = max([good_frame.shape[-1],cube.shape[-1]]) - 2
                                 if "dist" in badfr_crit_tmp[idx_corr].keys(): 
                                     dist = badfr_crit_tmp[idx_corr]["dist"]
+                                if "mode" in badfr_crit_tmp[idx_corr].keys():
+                                    mode = badfr_crit_tmp[idx_corr]["mode"]
+                                if "inradius" in badfr_crit_tmp[idx_corr].keys():
+                                    mode = badfr_crit_tmp[idx_corr]["inradius"]
+                                if "width" in badfr_crit_tmp[idx_corr].keys():
+                                    mode = badfr_crit_tmp[idx_corr]["width"]
                                 
                                 good_index_list, bad_index_list = cube_detect_badfr_correlation(cube, good_frame, 
                                                                                                 crop_size=crop_size, 
                                                                                                 threshold=thr,
                                                                                                 dist=dist, 
+                                                                                                mode=mode,
+                                                                                                inradius=inradius,
+                                                                                                width=width,
                                                                                                 percentile=perc, 
                                                                                                 plot=plot, verbose=debug)
                                 if plot:
@@ -1952,13 +1967,13 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         flux = open_fits(outpath+final_fluxname+"{}.fits".format(filt))
                         if crop_sz%2: # only save final with VIP conventions, for use in postproc.
                             write_fits(outpath+final_cubename+"{}.fits".format(filt), cube)
-                            write_fits(outpath+final_cubename_norm+"{}.fits".format(filt), cube/flux)
+                            write_fits(outpath+final_cubename_norm+"{}.fits".format(filt), cube/flux[0])
                             write_fits(outpath+final_anglename+"{}.fits".format(filt), derot_angles)
                         write_fits(outpath+"4_final_cube_all_bin{:.0f}{}_{}_{:.0f}.fits".format(bin_fac,dist_lab,filt, crop_sz), cube_notrim)
-                        write_fits(outpath+"4_final_cube_all_bin{:.0f}{}_{}_{:.0f}_norm.fits".format(bin_fac,dist_lab,filt, crop_sz), cube_notrim/flux)
+                        write_fits(outpath+"4_final_cube_all_bin{:.0f}{}_{}_{:.0f}_norm.fits".format(bin_fac,dist_lab,filt, crop_sz), cube_notrim/flux[0])
                         write_fits(outpath+"4_final_derot_angles_all_bin{:.0f}_{}.fits".format(bin_fac,filt), derot_angles_notrim)
                         write_fits(outpath+"4_final_cube_bin{:.0f}{}_{}_{:.0f}.fits".format(bin_fac,dist_lab,filt, crop_sz), cube)
-                        write_fits(outpath+"4_final_cube_bin{:.0f}{}_{}_{:.0f}_norm.fits".format(bin_fac,dist_lab,filt, crop_sz), cube/flux)
+                        write_fits(outpath+"4_final_cube_bin{:.0f}{}_{}_{:.0f}_norm.fits".format(bin_fac,dist_lab,filt, crop_sz), cube/flux[0])
                         write_fits(outpath+"4_final_derot_angles_bin{:.0f}_{}.fits".format(bin_fac,filt), derot_angles)
                         
                         med_psf = np.median(cube,axis=0)

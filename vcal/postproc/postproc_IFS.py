@@ -80,7 +80,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     set in the parameter file:
         #1. planet = False, fake_planet=False 
             => do_adi= True, do_adi_full=True, do_adi_ann=True
-        #2. If a blob is found: set planet_pos_crop to the coordinates of the 
+        #2. If a blob is found: set planet_pos to the coordinates of the
             blob. Set planet=True and do_pca_sann=True (single annulus PCA)
         #3. If no blob is found: do_pca_sann=False; fake_planet=True => will 
             calculate contrast curves
@@ -128,7 +128,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     coro = params_preproc['coro']
     plsc = np.array(params_preproc['plsc'])
     final_crop_sz = params_preproc.get('final_crop_sz', 101)
-    final_cubename = params_preproc.get('final_cubename', 'final_cube_ASDI_norm')
+    final_cubename = params_preproc.get('final_cubename', 'final_cube_ASDI')
     final_anglename = params_preproc.get('final_anglename', 'final_derot_angles')
     final_psfname = params_preproc.get('final_psfname', 'final_psf_med')
     final_fluxname = params_preproc.get('final_fluxname','final_flux')
@@ -158,8 +158,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     # from postproc param file
     source = params_postproc['source']            # should be without space
     sourcename = params_postproc['sourcename']    # can have spaces
-    details = params_postproc['details']
-    #label_test = params_postproc.get('label_test','')
+    details = params_postproc['details']          # such as instrument and date
+    label_test = params_postproc.get('label_test', "")    # manually provide a test label
     
     ## Options
     verbose = params_postproc.get("verbose",0)     # whether to print(more information during the reduction
@@ -178,7 +178,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
 
     ## Planet?
     planet = params_postproc.get('planet',0)                      # is there a companion?
-    planet_pos = params_postproc.get('planet_pos',None) # If so, where is it (or where is it expected)?   (x, y) in cropped frames
+    planet_pos = params_postproc.get('planet_pos',None) # If so, where is it (or where is it expected)?   (x, y) in frame
     subtract_planet = params_postproc.get('subtract_planet',0)    # this should only be used as a second iteration, after negfc on the companion has enabled to determine its parameters
 
     
@@ -209,15 +209,15 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     ##SDI
     start_nz = params_postproc.get('start_nz',0)
     end_nz = params_postproc.get('end_nz',-1)
-    scale_list = params_postproc.get('scale_list',None)
     adimsdi = params_postproc.get('adimsdi',"double")
     crop_ifs = params_postproc.get('crop_ifs',0)  # whether to crop the IFS frames after rescaling during PCA-SDI. Leave it to False for SINFONI.
     scalings = [params_postproc.get('scaling',None)] # list of pre-PCA cube scaling(s) to be tested for PCA-SADI.
 
     ### PCA options
-    delta_rot=params_postproc.get('delta_rot',1) # float or tuple expressed in FWHM # Threshold in azimuthal motion to keep frames in the PCA library created by PCA-annular. If a tuple, corresponds to the threshold for the innermost and outermost annuli, respectively.
-    delta_rot_ann = params_postproc.get('delta_rot_ann',[1,4]) 
-    delta_rot_ann = tuple(delta_rot_ann)
+    delta_rot = params_postproc.get('delta_rot', 1)  # float or int expressed in FWHM. Threshold in azimuthal motion to keep frames in the PCA library
+    delta_rot_ann = params_postproc.get('delta_rot_ann', [1, 3]) # float, int or tuple expressed in FWHM. Threshold in azimuthal motion to keep frames in the PCA library created by PCA-annular. If a tuple, corresponds to the threshold for the innermost and outermost annuli, respectively.
+    if type(delta_rot_ann) == list and len(delta_rot_ann) == 2:
+        delta_rot_ann = tuple(delta_rot_ann)  # converts to tuple as .json parameter file does not support tuples
     asize=params_postproc.get('asize',3) # width of the annnuli for either pca in concentric annuli or on a single annulus, provided in FWHM
     #### how is SVD done for PCA:
     svd_mode = params_postproc.get('svd_mode','lapack')
@@ -236,8 +236,6 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     max_fr_list = params_postproc.get('max_fr_list',[50])
     
     ############### 1. Define variables and load data + FORMATTING ################
-    label_test_tmp =  '_mask{:.1f}_deltarot{:.1f}_maxfr{:.0f}' # default format if no label test provided
-    
     fwhm = open_fits(inpath+final_fwhmname)
     fwhm_med = np.median(fwhm)
     asize*=fwhm_med
@@ -316,12 +314,12 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     lbdas = open_fits(inpath+final_lbdaname)
     
     psfn = open_fits(inpath+final_psfname)
-    starphot = open_fits(inpath+fluxes_name)#[0]
+    starphot = open_fits(inpath+fluxes_name)[0]
     
     if final_scalefacname is not None:
         scale_list = open_fits(inpath+final_scalefacname)
     else:
-        scale_list = np.amax(lbdas)/lbdas 
+        scale_list = np.amax(lbdas)/lbdas
 
     #mask_IWA_px = int(mask_IWA*fwhm_med)
     mask_IWA = mask_IWA_px/fwhm_med
@@ -337,9 +335,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
         label_stg = "ADI"
             
     if subtract_planet:
-        PCA_ASDI_cube_ori = cube_planet_free(planet_parameter,
-                                                   PCA_ASDI_cube_ori, derot_angles, 
-                                                   psfn, plsc)
+        PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn)
     if planet or fake_planet:
         cy, cx = frame_center(PCA_ASDI_cube_ori[0,0])
     if planet:
@@ -354,7 +350,15 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     
     
     for max_fr in max_fr_list:
-        label_test = params_postproc.get('label_test',label_test_tmp.format(mask_IWA, delta_rot, max_fr))
+        label_test_ann = label_test
+        if label_test == "":  # if no custom label is provided, make one
+            label_test = '_mask{:.1f}_deltarot{:.1f}_maxfr{:.0f}'.format(mask_IWA, delta_rot, max_fr)
+            if type(delta_rot_ann) == tuple:
+                label_test_ann = '_mask{:.1f}_deltarot{:.1f}-{:.1f}_maxfr{:.0f}'.format(mask_IWA, delta_rot_ann[0], delta_rot_ann[1], max_fr)
+            elif type(delta_rot_ann) == int:
+                label_test_ann = '_mask{:.1f}_deltarot{:.1f}_maxfr{:.0f}'.format(mask_IWA, delta_rot_ann, max_fr)
+            else:
+                label_test_ann = label_test
         outpath = path_ifs+"3_postproc{}/".format(label_test)
         if not isdir(outpath):
             os.system("mkdir "+outpath)
@@ -748,7 +752,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                 tmp_tmp = np.zeros([ntest_pcs, PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                 tmp = np.zeros([ntest_pcs,nz,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                 for pp, npc in enumerate(test_pcs_adi_ann):
-                    if not isfile(outpath+'PCA-ADI_ann_npc{:.0f}'.format(npc)+label_test+'.fits') or overwrite_pp:
+                    if not isfile(outpath+'PCA-ADI_ann_npc{:.0f}'.format(npc)+label_test_ann+'.fits') or overwrite_pp:
                         for zz in range(start_nz,nz):
                             tmp[pp,zz] = pca_annular(PCA_ASDI_cube[zz], derot_angles, radius_int=mask_IWA_px, fwhm=fwhm_med, asize=asize, 
                                                   delta_rot=delta_rot_ann, ncomp=int(npc), svd_mode=svd_mode, scale_list=None,
@@ -765,8 +769,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         if planet:
                             plt.legend(loc='best')
                             plt.savefig(outpath_fig+'SNR_'+source+'_PCA-ADI-ann_npc{:.0f}'.format(npc)+'.pdf', format='pdf')
-                            write_fits(outpath+'PCA-ADI_ann_SNR_npc{:.0f}'.format(npc)+label_test+'.fits', snr_tmp)
-                        write_fits(outpath+'PCA-ADI_ann_npc{:.0f}'.format(npc)+label_test+'.fits', tmp[pp])  
+                            write_fits(outpath+'PCA-ADI_ann_SNR_npc{:.0f}'.format(npc)+label_test_ann+'.fits', snr_tmp)
+                        write_fits(outpath+'PCA-ADI_ann_npc{:.0f}'.format(npc)+label_test_ann+'.fits', tmp[pp])
                 tmp_tmp = np.median(tmp[:,start_nz:], axis=1)
                 
                 if planet:
@@ -776,10 +780,10 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     for zz in range(start_nz,nz):
                         tmp_tmp_tmp[zz] = tmp[opt_pp[zz],zz]
                         opt_npc[zz] = test_pcs_adi_ann[opt_pp[zz]]
-                    write_fits(outpath+'final_PCA-ADI_ann_opt_npc_planet{}.fits'.format(label_test), tmp_tmp_tmp)
+                    write_fits(outpath+'final_PCA-ADI_ann_opt_npc_planet{}.fits'.format(label_test_ann), tmp_tmp_tmp)
                     tmp=None
                     tmp_tmp_tmp = None
-                    write_fits(outpath+'PCA-ADI_ann_OPT_NPC_planet{}.fits'.format(label_test), opt_npc)
+                    write_fits(outpath+'PCA-ADI_ann_OPT_NPC_planet{}.fits'.format(label_test_ann), opt_npc)
                     
                     snr_tmp = np.zeros(ntest_pcs)
                     plt.close() 
@@ -801,9 +805,9 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     opt_pp = np.argmax(snr_tmp)
                     npc_opt = test_pcs_adi_ann[opt_pp]
                     plt.savefig(outpath_fig+'SNR_'+source+'_PCA-ADI-ann_collapsed.pdf', format='pdf')
-                    write_fits(outpath+'PCA-ADI_ann_collapsed_SNR{}.fits'.format(label_test), snr_tmp)
-                    write_fits(outpath+'final_PCA-ADI_ann_collapsed_opt_npc{:.0f}_planet{}.fits'.format(npc_opt,label_test), tmp_tmp[opt_pp])  
-                write_fits(outpath+'PCA-ADI_ann_collapsed_{}{}.fits'.format(test_pcs_str,label_test), tmp_tmp) 
+                    write_fits(outpath+'PCA-ADI_ann_collapsed_SNR{}.fits'.format(label_test_ann), snr_tmp)
+                    write_fits(outpath+'final_PCA-ADI_ann_collapsed_opt_npc{:.0f}_planet{}.fits'.format(npc_opt,label_test_ann), tmp_tmp[opt_pp])
+                write_fits(outpath+'PCA-ADI_ann_collapsed_{}{}.fits'.format(test_pcs_str,label_test_ann), tmp_tmp)
             else:
                 snr_tmp = np.zeros([nspi,ntest_pcs,nfcp])
                 tmp_tmp = np.zeros([ntest_pcs,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
@@ -818,14 +822,14 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                               min_frames_lib=max(npc,10), max_frames_lib=max(max_fr,npc+1), collapse='median', full_output=False, 
                                               verbose=verbose, nproc=nproc)
                         if debug:
-                            write_fits(outpath+'TMP_PCA-ADI_ann_npc{:.0f}{}_fcp_spi{:.0f}.fits'.format(npc,label_test,ns), tmp)
+                            write_fits(outpath+'TMP_PCA-ADI_ann_npc{:.0f}{}_fcp_spi{:.0f}.fits'.format(npc,label_test_ann,ns), tmp)
                         tmp_tmp[pp] = np.median(tmp[start_nz:], axis=0)
                         for ff in range(nfcp):
                             xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
                             yy_fcp = cy + rad_arr[ff]*np.sin(np.deg2rad(theta0+ff*th_step))
                             snr_tmp[ns,pp,ff] = snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=exclude_negative_lobes,
                                                                   verbose=True)   
-                    write_fits(outpath+'PCA-ADI_ann_collapsed_'+test_pcs_str+label_test+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)                                             
+                    write_fits(outpath+'PCA-ADI_ann_collapsed_'+test_pcs_str+label_test_ann+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)
                 snr_fcp = np.median(snr_tmp, axis=0)
                 plt.close() 
                 plt.figure()
@@ -837,7 +841,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     for pp, npc in enumerate(test_pcs_adi_ann):
                         plt.plot(npc, snr_fcp[pp,ff], marker)
                 plt.savefig(outpath_fig+'SNR_fcps_PCA-ADI_ann'+'.pdf', format='pdf')
-                write_fits(outpath+'PCA-ADI_ann_SNR_fcps_'+test_pcs_str+label_test+'.fits', snr_fcp)   
+                write_fits(outpath+'PCA-ADI_ann_SNR_fcps_'+test_pcs_str+label_test_ann+'.fits', snr_fcp)
                 
                 ## Find best npc for each radius
                 for ff in range(nfcp):
@@ -857,21 +861,21 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                               min_frames_lib=max(npc,10), max_frames_lib=max(max_fr,npc+1), collapse='median', full_output=False, 
                                               verbose=verbose, nproc=nproc)
                     if debug:
-                        write_fits(outpath+'TMP_PCA-ADI_ann_opt_npc{:.0f}{}_fcp_spi{:.0f}.fits'.format(npc,label_test,ns), tmp)
+                        write_fits(outpath+'TMP_PCA-ADI_ann_opt_npc{:.0f}{}_fcp_spi{:.0f}.fits'.format(npc,label_test_ann,ns), tmp)
                     tmp_tmp[pp] = np.median(tmp[start_nz:], axis=0)            
-                write_fits(outpath+'final_PCA-ADI_ann_image_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp_tmp)
-                write_fits(outpath+'final_PCA-ADI_ann_opt_npc_at_{}as'.format(test_rad_str)+label_test+'.fits', id_npc_adi_ann_df)           
+                write_fits(outpath+'final_PCA-ADI_ann_image_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test_ann+'.fits', tmp_tmp)
+                write_fits(outpath+'final_PCA-ADI_ann_opt_npc_at_{}as'.format(test_rad_str)+label_test_ann+'.fits', id_npc_adi_ann_df)
                 
                 ### SNR map  
-                if (not isfile(outpath+'final_PCA-ADI_ann_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits') or overwrite_pp) and do_snr_map:
-                    tmp = open_fits(outpath+'final_PCA-ADI_ann_image_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits')
+                if (not isfile(outpath+'final_PCA-ADI_ann_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test_ann+'.fits') or overwrite_pp) and do_snr_map:
+                    tmp = open_fits(outpath+'final_PCA-ADI_ann_image_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test_ann+'.fits')
                     rad_in = mask_IWA # we comment it for a better visualization of the snr map (there are spurious values in the center)
                     #rad_in = 1.5
                     #tmp_tmp = np.ones_like(tmp)
                     for pp in range(tmp.shape[0]):
                         tmp[pp] = snrmap(tmp[pp], fwhm_med, plot=False, nproc=nproc)
                         tmp[pp] = mask_circle(tmp[pp],rad_in*fwhm_med)
-                    write_fits(outpath+'final_PCA-ADI_ann_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp, verbose=False)   
+                    write_fits(outpath+'final_PCA-ADI_ann_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test_ann+'.fits', tmp, verbose=False)
         
         
         label_test_ori = label_test
@@ -1212,7 +1216,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                 else:
                     scal_lab = scal
                 for ii, ifs_collapse_range in enumerate(ifs_collapse_range_list):
-                    label_test = label_test_ori+'_'+scal_lab+'_'+ifs_collapse_range_lab[ii]
+                    label_test_ann_ori = label_test_ann
+                    label_test_ann = label_test_ann_ori+'_'+scal_lab+'_'+ifs_collapse_range_lab[ii]
                     
                     if not fake_planet:
                         tmp = np.zeros([ntest_pcs,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
@@ -1225,16 +1230,16 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         counter = 0
                         for pp1, npc1 in enumerate(test_pcs_sadi_ann_sdi):
                             for pp2, npc2 in enumerate(test_pcs_sadi_ann_adi):
-                                tmp_tmp, tmp_tmp_der, tmp[counter] = pca_annular(PCA_ASDI_cube, derot_angles, radius_int=mask_IWA_px, 
-                                                                                 fwhm=fwhm_med, asize=asize, delta_rot=delta_rot_ann, 
-                                                                                 ncomp=(int(npc1),int(npc2)), svd_mode=svd_mode, 
+                                tmp_tmp, tmp_tmp_der, tmp[counter] = pca_annular(PCA_ASDI_cube, derot_angles, radius_int=mask_IWA_px,
+                                                                                 fwhm=fwhm_med, asize=asize, delta_rot=delta_rot_ann,
+                                                                                 ncomp=(int(npc1),int(npc2)), svd_mode=svd_mode,
                                                                                  ifs_collapse_range=ifs_collapse_range, scaling=scal,
-                                                                                 scale_list=scale_list, min_frames_lib=max(npc,10), max_frames_lib=max(max_fr,npc1+1,npc2+1), 
+                                                                                 scale_list=scale_list, min_frames_lib=max(npc1,npc2,10), max_frames_lib=max(max_fr,npc1+1,npc2+1),
                                                                                  collapse='median', full_output=True, verbose=verbose, nproc=nproc)
                                 if do_stim_map:
                                     stim_map[counter] = compute_stim_map(tmp_tmp_der)
                                     inv_stim_map[counter] = compute_inverse_stim_map(tmp_tmp,derot_angles, nproc=nproc)
-                                    thr[counter] = np.amax(inv_stim_map[counter])                       
+                                    thr[counter] = np.amax(inv_stim_map[counter])
                 
                                 if planet:  
                                     snr_tmp[counter] = snr(tmp_tmp[counter], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=exclude_negative_lobes,
@@ -1263,12 +1268,12 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                     counter+=1
                             plt.legend(loc='best')
                             plt.savefig(outpath_fig+'SNR_'+source+'_PCA-SADI2-ann'+'.pdf', format='pdf')
-                            write_fits(outpath+'final_PCA-SADI2_ann_SNR_'+test_pcs_str+label_test+'.fits', snr_tmp)
-                        write_fits(outpath+'final_PCA-SADI2_ann_'+test_pcs_str+label_test+'.fits', tmp)
+                            write_fits(outpath+'final_PCA-SADI2_ann_SNR_'+test_pcs_str+label_test_ann+'.fits', snr_tmp)
+                        write_fits(outpath+'final_PCA-SADI2_ann_'+test_pcs_str+label_test_ann+'.fits', tmp)
                         if do_stim_map:
-                            write_fits(outpath+'final_PCA-SADI2_ann_'+test_pcs_str+label_test+'_stimmap.fits', stim_map)
-                            write_fits(outpath+'final_PCA-SADI2_ann_'+test_pcs_str+label_test+'_invstimmap.fits', inv_stim_map)
-                            write_fits(outpath+'final_PCA-SADI2_ann_'+test_pcs_str+label_test+'_stimthr.fits', thr)
+                            write_fits(outpath+'final_PCA-SADI2_ann_'+test_pcs_str+label_test_ann+'_stimmap.fits', stim_map)
+                            write_fits(outpath+'final_PCA-SADI2_ann_'+test_pcs_str+label_test_ann+'_invstimmap.fits', inv_stim_map)
+                            write_fits(outpath+'final_PCA-SADI2_ann_'+test_pcs_str+label_test_ann+'_stimthr.fits', thr)
                     else:
                         snr_tmp_tmp = np.zeros([nspi,ntest_pcs,nfcp])
                         tmp_tmp = np.zeros([ntest_pcs,PCA_ASDI_cube.shape[1],PCA_ASDI_cube.shape[2]])
@@ -1281,7 +1286,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                     tmp_tmp[counter] = pca_annular(PCA_ASDI_cube, derot_angles, radius_int=mask_IWA_px, fwhm=fwhm_med, asize=asize, 
                                                                    delta_rot=delta_rot_ann, ncomp=(int(npc1),int(npc2)), svd_mode=svd_mode, 
                                                                    scale_list=scale_list, ifs_collapse_range=ifs_collapse_range, scaling=scal,
-                                                                   min_frames_lib=max(npc,10), max_frames_lib=max(max_fr,npc1+1,npc2+1), collapse='median', full_output=False, 
+                                                                   min_frames_lib=max(npc1,npc2,10), max_frames_lib=max(max_fr,npc1+1,npc2+1), collapse='median', full_output=False,
                                                                    verbose=verbose, nproc=nproc)
                                     for ff in range(nfcp):
                                         xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
@@ -1289,7 +1294,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                         snr_tmp_tmp[ns,pp,ff] = snr(tmp_tmp[counter], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=exclude_negative_lobes,
                                                                               verbose=True)   
                                     counter +=1
-                            write_fits(outpath+'TMP_PCA-SADI2_ann_'+test_pcs_str+label_test+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)                                             
+                            write_fits(outpath+'TMP_PCA-SADI2_ann_'+test_pcs_str+label_test_ann+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)
                         snr_fcp = np.median(snr_tmp_tmp, axis=0)
                         plt.close() 
                         plt.figure()
@@ -1309,7 +1314,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                     counter+=1
                         plt.savefig(outpath_fig+'SNR_fcps_PCA-SADI2-ann'+'.pdf', format='pdf')
                 
-                        write_fits(outpath+'final_PCA-SADI2_ann_SNR_fcps_'+test_pcs_str+label_test+'.fits', snr_fcp)   
+                        write_fits(outpath+'final_PCA-SADI2_ann_SNR_fcps_'+test_pcs_str+label_test_ann+'.fits', snr_fcp)
                         
                         ## Find best npc for each radius
                         for ff in range(nfcp):
@@ -1340,29 +1345,29 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                       delta_rot=delta_rot_ann, ncomp=(int(idx_npc_ann[0]),int(idx_npc_ann[1])), scaling=scal,
                                                       svd_mode=svd_mode, scale_list=scale_list, ifs_collapse_range=ifs_collapse_range,
                                                       collapse='median', max_frames_lib=max(max_fr,max(idx_npc_ann)+1), full_output=False, verbose=verbose, nproc=nproc)
-                        write_fits(outpath+'final_PCA-SADI2_ann_image_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp_tmp)
-                        write_fits(outpath+'final_PCA-SADI2_ann_opt_npc_at_{}as'.format(test_rad_str)+label_test+'.fits', id_npc_ann_df)
+                        write_fits(outpath+'final_PCA-SADI2_ann_image_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test_ann+'.fits', tmp_tmp)
+                        write_fits(outpath+'final_PCA-SADI2_ann_opt_npc_at_{}as'.format(test_rad_str)+label_test_ann+'.fits', id_npc_ann_df)
                 
                     
                         ### SNR map  
-                        if (not isfile(outpath+'final_PCA-SADI2_ann_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits') or overwrite_pp) and do_snr_map:
-                            tmp = open_fits(outpath+'final_PCA-SADI2_ann_image_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits')
+                        if (not isfile(outpath+'final_PCA-SADI2_ann_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test_ann+'.fits') or overwrite_pp) and do_snr_map:
+                            tmp = open_fits(outpath+'final_PCA-SADI2_ann_image_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test_ann+'.fits')
                             rad_in = mask_IWA # we comment it for a better visualization of the snr map (there are spurious values in the center)
                             #rad_in = 1.5
                             tmp_tmp = np.ones_like(tmp)
                             for pp in range(tmp.shape[0]):
                                 tmp[pp] = snrmap(tmp[pp], fwhm_med, plot=False, nproc=nproc)
                             tmp = mask_circle(tmp,rad_in*fwhm_med)
-                            write_fits(outpath+'final_PCA-SADI2_ann_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp, verbose=False)                     
+                            write_fits(outpath+'final_PCA-SADI2_ann_snrmap_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test_ann+'.fits', tmp, verbose=False)
             
-            label_test = label_test_ori
+            label_test_ann = label_test_ann_ori
         
         
         
         ######################### 10. Final contrast curves ###########################
         if planet and planet_parameter is not None:
             # SUBTRACT THE PLANET FROM THE CUBE
-            PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn, plsc)
+            PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn)
             label_emp = '_empty'
         else:
             label_emp = ''

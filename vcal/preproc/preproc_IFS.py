@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+# coding: utf-8
 
 """
 Module for pre-processing SPHERE/IFS data using VIP.
@@ -7,6 +8,7 @@ Module for pre-processing SPHERE/IFS data using VIP.
 __author__ = 'V. Christiaens'
 __all__ = ['preproc_IFS']
 
+from astropy.io import fits
 from ast import literal_eval
 from csv import reader
 from json import load
@@ -35,11 +37,11 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              cube_recenter_satspots, cube_recenter_radon, 
                              cube_recenter_via_speckles, frame_shift, 
                              cube_crop_frames, frame_crop, cube_derotate,
-                             find_scal_vector)
+                             find_scal_vector, cube_subsample)
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
 
-from vcal.utils import find_nearest
+from vcal.utils import find_nearest, fit2d_bkg_pos
 from vcal import __path__ as vcal_path
 matplotlib.use('Agg')
 
@@ -325,7 +327,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             
         #********************************* BPIX CORR ******************************          
         if 1 in to_do:
-            # OBJECT + PSF + CEN
+            print('************* 1. BPIX CORRECTION (this may take some time) *************', flush=True)
+            # OBJECT + PSF + CEN (if available)
             for file_list in obj_psf_list:
                 for fi, filename in enumerate(file_list):
                     if fi == 0:
@@ -340,7 +343,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             header["NAXIS2"] = cube.shape[2]
                         if 0 < bp_crop_sz < cube.shape[1]:
                             cube = cube_crop_frames(cube,bp_crop_sz)
-                        cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resels, 
+                        cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resels,
                                                      sig=6., protect_mask=0, verbose=full_output,
                                                      half_res_y=False, max_nit=max_bpix_nit, full_output=full_output)
                         if full_output:
@@ -348,12 +351,12 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             cube = cube[0]
                         write_fits(outpath+filename+"_1bpcorr.fits", cube, header=header, verbose=debug)
                     
-                    
         #******************************* RECENTERING ******************************
         if use_cen_only:
             obj_psf_list[0] = obj_psf_list[-1]
             OBJ_IFS_list = CEN_IFS_list
         if 2 in to_do:
+            print('************* 2. RECENTERING *************')
             for fi, file_list in enumerate(obj_psf_list): ## OBJECT, then PSF (but not CEN)
                 if fi != 1:
                     negative=coro
@@ -406,24 +409,27 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 # for zz in range(cube.shape[0]):
                                 #     cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1])
                                 #2. alignment with upsampling
-                                cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
-                                                                                        fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[ii][4:]),
-                                                                                        imlib='opencv', interpolation='lanczos4',
-                                                                                        full_output=True, verbose=True, nproc=nproc,
-                                                                                        save_shifts=False, debug=False, plot=plot)
-                                std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))                                
-                                #3 final centering based on 2d fit
-                                cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
-                                cube_tmp[0] = np.median(cube,axis=0)
-                                _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=xy, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
-                                                                            nproc=nproc, imlib='opencv', interpolation='lanczos4',
-                                                                            offset=None, negative=negative, threshold=False,
-                                                                            save_shifts=False, full_output=True, verbose=True,
-                                                                            debug=False, plot=plot)
-                                for zz in range(cube.shape[0]):
-                                    cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])                                              
-                                if debug:
-                                    write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
+                                try:
+                                    cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
+                                                                                            fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[ii][4:]),
+                                                                                            imlib='opencv', interpolation='lanczos4',
+                                                                                            full_output=True, verbose=True, nproc=nproc,
+                                                                                            save_shifts=False, debug=False, plot=plot)
+                                    std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))
+                                    #3 final centering based on 2d fit
+                                    cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
+                                    cube_tmp[0] = np.median(cube,axis=0)
+                                    _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=xy, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
+                                                                                nproc=nproc, imlib='opencv', interpolation='lanczos4',
+                                                                                offset=None, negative=negative, threshold=False,
+                                                                                save_shifts=False, full_output=True, verbose=True,
+                                                                                debug=False, plot=plot)
+                                    for zz in range(cube.shape[0]):
+                                        cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])
+                                    if debug:
+                                        write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
+                                except:
+                                    y_shifts, x_shifts = np.zeros(cube.shape[0]), np.zeros(cube.shape[0])
                             elif "satspots" in rec_met_tmp[ii]:
                                 if ncen == 0:
                                     raise ValueError("No CENTER file found. Cannot recenter based on satellite spots.")
@@ -561,26 +567,30 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 # for zz in range(cube.shape[0]):
                                 #     cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1])
                                 #2. alignment with upsampling
-                                cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
-                                                                                        fwhm=4, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[4:]),
-                                                                                        imlib='opencv', interpolation='lanczos4',
-                                                                                        full_output=True, verbose=True, nproc=nproc,
-                                                                                        save_shifts=False, debug=False, plot=plot)                              
-                                #3 final centering based on 2d fit
-                                cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
-                                cube_tmp[0] = np.median(cube,axis=0)
-                                if debug:
-                                    print("rough xy position: ",xy)
-                                _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
-                                                                            nproc=nproc, imlib='opencv', interpolation='lanczos4',
-                                                                            offset=None, negative=negative, threshold=False,
-                                                                            save_shifts=False, full_output=True, verbose=True,
-                                                                            debug=False, plot=plot)
-                                if debug:
-                                    print('dft{} + 2dfit centering: xshift: {} px, yshift: {} px for cube {}_1bpcorr.fits'
-                                          .format(int(rec_met_tmp[4:]), x_shifts[0], y_shifts[0], filename), flush=True)
-                                for zz in range(cube.shape[0]):
-                                    cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])
+                                try:
+                                    cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
+                                                                                            fwhm=4, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[4:]),
+                                                                                            imlib='opencv', interpolation='lanczos4',
+                                                                                            full_output=True, verbose=True, nproc=nproc,
+                                                                                            save_shifts=False, debug=False, plot=plot)
+                                    #3 final centering based on 2d fit
+                                    cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
+                                    cube_tmp[0] = np.median(cube,axis=0)
+                                    if debug:
+                                        print("rough xy position: ",xy)
+                                    _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
+                                                                                nproc=nproc, imlib='opencv', interpolation='lanczos4',
+                                                                                offset=None, negative=negative, threshold=False,
+                                                                                save_shifts=False, full_output=True, verbose=True,
+                                                                                debug=False, plot=plot)
+
+                                    if debug:
+                                        print('dft{} + 2dfit centering: xshift: {} px, yshift: {} px for cube {}_1bpcorr.fits'
+                                              .format(int(rec_met_tmp[4:]), x_shifts[0], y_shifts[0], filename), flush=True)
+                                    for zz in range(cube.shape[0]):
+                                        cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])
+                                except:
+                                    y_shifts, x_shifts = np.zeros(cube.shape[0]), np.zeros(cube.shape[0])
                                     
                             elif "satspots" in rec_met_tmp:
                                 if fn==0 and (fi==0 or (fi==2 and use_cen_only)):
@@ -754,6 +764,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             
         #******************************* MASTER CUBES ******************************
         if 3 in to_do:
+            print('************* 3. MASTER CUBES *************', flush=True)
             for fi,file_list in enumerate(obj_psf_list):
                 if fi == 0 and use_cen_only:
                     continue
@@ -788,8 +799,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     for zz in range(n_z):
                         master_cube[zz] = master_cube[zz]/interp_trans[zz]     
                 
-                    # IMPORTANT WE NORMALIZE BY DIT
-                    write_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), master_cube/dits[fi], verbose=debug)
+                    # IMPORTANT WE DO NOT NORMALIZE BY DIT (anymore!)
+                    write_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), master_cube, #/dits[fi], 
+                               verbose=debug)
                     
                     if fi!=1:
                         final_derot_angles = np.zeros(len(file_list))
@@ -813,6 +825,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         #********************* PLOTS + TRIM BAD FRAMES OUT ************************
                         
         if 4 in to_do:
+            print('************* 4. PLOTS + TRIM BAD FRAMES OUT *************')
             for fi,file_list in enumerate(obj_psf_list):
 #                    if fi == 1:
 #                        dist_lab_tmp = "" # no need for PSF
@@ -848,8 +861,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 fwhm_med = np.median(fwhm)
     
                 cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), verbose=debug)
-    
-                perc = 0 #perc_min[fi]
+
                 if fi != 1:
                     badfr_critn_tmp = badfr_criteria
                     badfr_crit_tmp = badfr_crit
@@ -888,7 +900,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         print("********** Trimming bad frames from channel {:.0f} ***********\n".format(zz+1))
                         ngood_fr_ch = len(final_good_index_list)
                         #counter = 0
-                        if "stat" in badfr_crit:
+                        if "stat" in badfr_critn_tmp:
                             idx_stat = badfr_critn_tmp.index("stat")
                             # Default parameters
                             mode = "circle"
@@ -926,7 +938,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     #                                perc = 100*len(bad_index_list)/cube.shape[1]
     #                                print("Percentile updated to {:.1f} based on stat".format(perc))
                             #counter+=1
-                        if "ell" in badfr_crit:
+                        if "ell" in badfr_critn_tmp:
                             idx_ell = badfr_critn_tmp.index("ell")
                             # default params
                             roundhi = 0.2
@@ -939,7 +951,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 roundlo = badfr_crit_tmp[idx_ell]["roundlo"]
                             if "crop_sz" in badfr_crit_tmp[idx_ell].keys():
                                 crop_sz = badfr_crit_tmp[idx_ell]["crop_sz"]
-                            crop_size = int(crop_sz*fwhm)
+                            crop_size = int(crop_sz*fwhm[zz])
                             if not crop_sz%2:
                                 crop_size+=1
                             crop_sz = min(cube[zz].shape[1]-2,crop_sz)
@@ -952,66 +964,67 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     #                                print("Percentile updated to {:.1f} based on ell".format(perc))                                                                                        
                             final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]                   
                             #counter+=1
-#                            if "bkg" in badfr_critn_tmp:
-#                                idx_bkg = badfr_critn_tmp.index("bkg")
-#                                # default params
-#                                sigma = 3
-#                                # Update if provided
-#                                if "thr" in badfr_crit_tmp[idx_bkg].keys():
-#                                    sigma = badfr_crit_tmp[idx_bkg]["thr"]
-#                                # infer rough bkg location in each frame
-#                                cen_adi_img = open_fits(outpath+"median_ADI2_{}{}{}.fits".format(labels[-1],filters[ff],
-#                                                        dist_lab_tmp))
-#                                med_x, med_y = fit2d_bkg_pos(np.array([cen_adi_img]), 
-#                                                             np.array([approx_xy_bkg[0]]), 
-#                                                             np.array([approx_xy_bkg[1]]), 
-#                                                             fwhm, fit_type=psf_model)
-#                                xy_bkg_derot = (med_x,med_y)
-#                                cy, cx = frame_center(cube[0])
-#                                center_bkg = (cx, cy)
-#                                x_bkg, y_bkg = interpolate_bkg_pos(xy_bkg_derot, 
-#                                                                   center_bkg, 
-#                                                                   derot_angles)
-#                                final_x_bkg, final_y_bkg = fit2d_bkg_pos(cube, 
-#                                                                         x_bkg, 
-#                                                                         y_bkg, 
-#                                                                         fwhm, 
-#                                                                         fit_type=psf_model)
-#                                # measure bkg star fluxes
-#                                n_fr = cube.shape[0]
-#                                flux_bkg = np.zeros(n_fr)
-#                                crop_sz = int(6*fwhm)
-#                                if not crop_sz%2:
-#                                    crop_sz+=1
-#                                for ii in range(n_fr):
-#                                    subframe = frame_crop(cube[ii], crop_sz,
-#                                                          cenxy=(int(final_x_bkg[ii]), 
-#                                                                  int(final_y_bkg[ii])),
-#                                                                  force=True, verbose=verbose)
-#                                    subpx_shifts = (final_x_bkg[ii]-int(final_x_bkg[ii]),
-#                                                    final_y_bkg[ii]-int(final_y_bkg[ii]))
-#                                    subframe = frame_shift(subframe, subpx_shifts[1],
-#                                                           subpx_shifts[0])
-#                                    _, flux_bkg[ii], _ = normalize_psf(subframe, fwhm=fwhm, 
-#                                                                       full_output=True, 
-#                                                                       verbose=verbose, debug=debug)
-#                                # infer outliers
-#                                med_fbkg = np.median(flux_bkg)
-#                                std_fbkg = np.std(flux_bkg)
-#                                good_index_list = [i for i in range(n_fr) if flux_bkg[i] > med_fbkg-sigma*std_fbkg]
-#                                bad_index_list = [i for i in range(n_fr) if i not in good_index_list]
-#                                final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
-#                                if 100*len(bad_index_list)/cube.shape[0] > perc:
-#                                    perc = 100*len(bad_index_list)/cube.shape[0]
-#                                    print("Percentile updated to {:.1f} based on bkg".format(perc))
-#                                if plot_obs_cond:
-#                                    val = counter + (2*(ff%2)-1)*0.2
-#                                    if fi!= 1:
-#                                        label=filt+'- stat'
-#                                    else:
-#                                        label = None
-#                                    ax5.plot(UTC[good_index_list]-UTC_0, [val]*len(good_index_list), cols[ff][0]+markers_1[fi], label=label)
-#                                counter+=1        
+                       # if "bkg" in badfr_critn_tmp:
+                       #     idx_bkg = badfr_critn_tmp.index("bkg")
+                       #     # default params
+                       #     sigma = 3
+                       #     # Update if provided
+                       #     if "thr" in badfr_crit_tmp[idx_bkg].keys():
+                       #         sigma = badfr_crit_tmp[idx_bkg]["thr"]
+                       #     # infer rough bkg location in each frame
+                       #     cen_adi_img = open_fits(outpath+"median_ADI1_{}.fits".format(labels[fi]))
+                       #     # collapse since the above is a spectral cube
+                       #     cen_adi_img = np.mean(cen_adi_img, axis=0)
+                       #     med_x, med_y = fit2d_bkg_pos(np.array([cen_adi_img]),
+                       #                                  np.array([approx_xy_bkg[0]]),
+                       #                                  np.array([approx_xy_bkg[1]]),
+                       #                                  fwhm, fit_type=psf_model)
+                       #     xy_bkg_derot = (med_x,med_y)
+                       #     cy, cx = frame_center(cube[0])
+                       #     center_bkg = (cx, cy)
+                       #     x_bkg, y_bkg = interpolate_bkg_pos(xy_bkg_derot,
+                       #                                        center_bkg,
+                       #                                        derot_angles)
+                       #     final_x_bkg, final_y_bkg = fit2d_bkg_pos(cube,
+                       #                                              x_bkg,
+                       #                                              y_bkg,
+                       #                                              fwhm,
+                       #                                              fit_type=psf_model)
+                       #     # measure bkg star fluxes
+                       #     n_fr = cube.shape[0]
+                       #     flux_bkg = np.zeros(n_fr)
+                       #     crop_sz = int(6*fwhm)
+                       #     if not crop_sz%2:
+                       #         crop_sz+=1
+                       #     for ii in range(n_fr):
+                       #         subframe = frame_crop(cube[ii], crop_sz,
+                       #                               cenxy=(int(final_x_bkg[ii]),
+                       #                                       int(final_y_bkg[ii])),
+                       #                                       force=True, verbose=verbose)
+                       #         subpx_shifts = (final_x_bkg[ii]-int(final_x_bkg[ii]),
+                       #                         final_y_bkg[ii]-int(final_y_bkg[ii]))
+                       #         subframe = frame_shift(subframe, subpx_shifts[1],
+                       #                                subpx_shifts[0])
+                       #         _, flux_bkg[ii], _ = normalize_psf(subframe, fwhm=fwhm,
+                       #                                            full_output=True,
+                       #                                            verbose=verbose, debug=debug)
+                       #     # infer outliers
+                       #     med_fbkg = np.median(flux_bkg)
+                       #     std_fbkg = np.std(flux_bkg)
+                       #     good_index_list = [i for i in range(n_fr) if flux_bkg[i] > med_fbkg-sigma*std_fbkg]
+                       #     bad_index_list = [i for i in range(n_fr) if i not in good_index_list]
+                       #     final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
+                       #     if 100*len(bad_index_list)/cube.shape[0] > perc:
+                       #         perc = 100*len(bad_index_list)/cube.shape[0]
+                       #         print("Percentile updated to {:.1f} based on bkg".format(perc))
+                       #     if plot_obs_cond:
+                       #         val = counter + (2*(ff%2)-1)*0.2
+                       #         if fi!= 1:
+                       #             label=filt+'- stat'
+                       #         else:
+                       #             label = None
+                       #         ax5.plot(UTC[good_index_list]-UTC_0, [val]*len(good_index_list), cols[ff][0]+markers_1[fi], label=label)
+                       #     counter+=1
                             
 #                            if "shifts" in badfr_critn_tmp:
 #                                if not isfile(outpath+"TMP_shifts_fine_recentering_bkg.fits"):
@@ -1082,43 +1095,51 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 #                                    ax5.plot(UTC[good_index_list]-UTC_0, [val]*len(good_index_list), cols[ff][0]+markers_1[fi], label=label)
 #                                counter+=1                                  
                             
-                        if "corr" in badfr_crit:
+                        if "corr" in badfr_critn_tmp:
                             idx_corr = badfr_critn_tmp.index("corr")
                             # default params
-                            thr = 0.8
+                            thr = None
                             perc = 0
                             ref = "median"
-                            crop_sz = 6
+                            crop_sz = 10
                             dist = 'pearson'
+                            mode = 'annulus'
+                            inradius = 10
+                            width = 20
                             # update if provided
                             if "perc" in badfr_crit_tmp[idx_corr].keys():
                                 perc = max(perc, badfr_crit_tmp[idx_corr]["perc"])
                             if "thr" in badfr_crit_tmp[idx_corr].keys():
                                 thr = badfr_crit_tmp[idx_corr]["thr"]
-                            else:
-                                thr = None
                             if "ref" in badfr_crit_tmp[idx_corr].keys():
                                 ref = badfr_crit_tmp[idx_corr]["ref"]
-                            if ref== "median":
-                                good_frame = np.median(cube[zz][final_good_index_list],axis=0)
+                            if ref == "median":
+                                good_frame = np.median(cube[zz][final_good_index_list], axis=0)
                             else:
                                 good_frame = cube[zz,badfr_crit_tmp[idx_corr]["ref"]]
                             if "crop_sz" in badfr_crit_tmp[idx_corr].keys():
                                 crop_sz = badfr_crit_tmp[idx_corr]["crop_sz"]
-                            crop_size = int(crop_sz*fwhm)
+                            crop_size = int(crop_sz*fwhm[zz])
                             if not crop_size%2:
                                 crop_size+=1
                             if "dist" in badfr_crit_tmp[idx_corr].keys(): 
                                 dist = badfr_crit_tmp[idx_corr]["dist"]
-
+                            if "mode" in badfr_crit_tmp[idx_corr].keys():
+                                mode = badfr_crit_tmp[idx_corr]["mode"]
+                            if "inradius" in badfr_crit_tmp[idx_corr].keys():
+                                inradius = badfr_crit_tmp[idx_corr]["inradius"]
+                            if "width" in badfr_crit_tmp[idx_corr].keys():
+                                width = badfr_crit_tmp[idx_corr]["width"]
+                                    
                             crop_size = min(cube[zz].shape[1]-2,crop_size)
                             plot_tmp=False
                             if zz == 0 or zz == n_z-1:
                                 plot_tmp = plot
-                            good_index_list, bad_index_list = cube_detect_badfr_correlation(cube[zz], good_frame, 
+                            good_index_list, bad_index_list = cube_detect_badfr_correlation(cube[zz], good_frame,
                                                                                             crop_size=crop_size,
-                                                                                            threshold=thr,
-                                                                                            dist=dist, percentile=perc, 
+                                                                                            threshold=thr, dist=dist,
+                                                                                            percentile=perc, mode=mode,
+                                                                                            inradius=inradius, width=width,
                                                                                             plot=plot_tmp, verbose=debug)
                             final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
                             if plot_tmp:
@@ -1150,6 +1171,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 
         #************************* FINAL PSF + FLUX + FWHM ************************                  
         if 5 in to_do and len(obj_psf_list)>1:
+            print('************* 5. FINAL PSF + FLUX + FWHM *************', flush=True)
             if isinstance(final_crop_szs[1], (float,int)):
                 crop_sz_list = [int(final_crop_szs[1])]
             elif isinstance(final_crop_szs[1], list):
@@ -1186,7 +1208,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     if crop_sz%2:
                         write_fits(outpath+final_psfname+".fits", med_psf, verbose=debug)
                         write_fits(outpath+final_psfname_norm+".fits", norm_psf, verbose=debug)
-                        write_fits(outpath+final_fluxname+".fits", med_flux, verbose=debug)
+                        header = fits.Header()
+                        header['Flux 0'] = 'Flux scaled to coronagraphic DIT'
+                        header['Flux 1'] = 'Flux measured in PSF image'
+                        write_fits(outpath+final_fluxname+".fits", np.array([med_flux*dit_ifs/dit_psf_ifs, med_flux]),
+                                   header=header, verbose=debug)
                         write_fits(outpath+final_fwhmname+".fits", fwhm, verbose=debug)
                     
                     ntot = cube.shape[1]
@@ -1203,6 +1229,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     
         #********************* FINAL OBJ CUBE (BIN IF NECESSARY) ******************
         if 6 in to_do:
+            print('************* 6. FINAL OBJ CUBE (BIN IF NECESSARY) *************', flush=True)
             if isinstance(final_crop_szs[0], (float,int)):
                 crop_sz_list = [int(final_crop_szs[0])]
             elif isinstance(final_crop_szs[0], list):
@@ -1224,30 +1251,14 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     cube = open_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi_tmp],"-".join(badfr_criteria)), verbose=debug)
                     derot_angles = open_fits(outpath+"2_master_derot_angles_clean_{}.fits".format("-".join(badfr_criteria)), verbose=debug)
                     derot_angles_notrim = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi_tmp]), verbose=debug)
-                    ntot = cube.shape[1]
-                    ntot_notrim = cube_notrim.shape[1]
-                    if bin_fac != 1:
-                        bin_fac = int(bin_fac)
-                        ntot_bin = int(np.ceil(ntot/bin_fac))
-                        ntot_bin_notrim = int(np.ceil(ntot_notrim/bin_fac))
-                        cube_bin = np.zeros([n_z,ntot_bin,cube.shape[2],cube.shape[3]])
-                        cube_bin_notrim = np.zeros([n_z,ntot_bin_notrim,cube_notrim.shape[1],cube_notrim.shape[2]])
-                        derot_angles_bin = np.zeros(ntot_bin)
-                        derot_angles_bin_notrim = np.zeros(ntot_bin_notrim)
-                        for nn in range(ntot_bin):
-                            for zz in range(n_z):
-                                cube_bin[zz,nn] = np.median(cube[zz,nn*bin_fac:(nn+1)*bin_fac],axis=0)
-                            derot_angles_bin[nn] = np.median(derot_angles[nn*bin_fac:(nn+1)*bin_fac])
-                        for nn in range(ntot_bin_notrim):
-                            for zz in range(n_z):
-                                cube_bin_notrim[zz,nn] = np.median(cube_notrim[zz,nn*bin_fac:(nn+1)*bin_fac],axis=0)
-                            derot_angles_bin_notrim[nn] = np.median(derot_angles_notrim[nn*bin_fac:(nn+1)*bin_fac])
-                        cube = cube_bin
-                        cube_notrim = cube_bin_notrim
-                        derot_angles = derot_angles_bin
-                        derot_angles_notrim = derot_angles_bin_notrim
-                    if not cc:
-                        write_fits(outpath+final_cubename+"_full.fits", cube, verbose=debug)
+
+                    if bin_fac != 1 and bin_fac is not None and bin_fac != 0:
+                        cube, derot_angles = cube_subsample(cube, bin_fac, mode="median", parallactic=derot_angles,
+                                                            verbose=debug)
+                        cube_notrim, derot_angles_notrim = cube_subsample(cube_notrim, bin_fac,
+                                                                          mode="median",
+                                                                          parallactic=derot_angles_notrim,
+                                                                          verbose=debug)
                     # crop
                     if cube.shape[-2] > crop_sz or cube.shape[-1] > crop_sz:
                         if crop_sz%2 != cube.shape[-1]%2:
@@ -1262,10 +1273,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     flux = open_fits(outpath+final_fluxname+".fits", verbose=debug)
                     # only save final with VIP conventions, for use in postproc.
                     cube_norm = np.zeros_like(cube)
-                    cube_notrim_norm = np.zeros_like(cube)
+                    cube_notrim_norm = np.zeros_like(cube_notrim)
                     for zz in range(cube.shape[0]):
-                        cube_norm[zz] = cube[zz]/flux[zz]
-                        cube_notrim_norm[zz] = cube_notrim[zz]/flux[zz]
+                        cube_norm[zz] = cube[zz]/flux[0,zz]
+                        cube_notrim_norm[zz] = cube_notrim[zz]/flux[0,zz]
                     if crop_sz%2: 
                         write_fits(outpath+final_cubename+".fits", cube, verbose=debug)
                         write_fits(outpath+final_cubename_norm+".fits", cube_norm, verbose=debug)
@@ -1371,6 +1382,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     
         #********************* FINAL OBJ ADI CUBES and PSF frames (necessary for NEGFC or MAYO) ******************
         if 7 in to_do:
+            print('************* 7. FINAL OBJ ADI CUBES and PSF frames *************', flush=True)
             # OBJs
             if isinstance(final_crop_szs[0], (float,int)):
                 crop_sz_list = [int(final_crop_szs[0])]
@@ -1415,10 +1427,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         #********************* FINAL SCALE LIST ******************
 
         if 8 in to_do:
-            nfp = 2 # number of free parameters for simplex search
-            fluxes = np.zeros(n_z)
-            print("************* 8. FINDING SCALING FACTORS ***************")
-            fluxes = open_fits(outpath+final_fluxname+".fits", verbose=debug)
+            nfp = 2  # number of free parameters for simplex search
+            print("************* 8. FINDING SCALING FACTORS *************", flush=True)
+            fluxes = open_fits(outpath+final_fluxname+".fits", verbose=debug)[0]
             fwhm = open_fits(outpath+final_fwhmname+".fits", verbose=debug)
             derot_angles = open_fits(outpath+final_anglename+".fits", verbose=debug)
                 
