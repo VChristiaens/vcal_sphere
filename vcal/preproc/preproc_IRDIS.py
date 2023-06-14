@@ -918,7 +918,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     elif fi == 2 and not "satspots" in rec_met:
                         msg = "Are you sure you do not want to use the satellite spots for centering?"
                         # msg += "(If so press 'c' to continue, else 'q' to abort then re-run step 2 after changing the value of 'rec_met' in parameter file)"
-                        # print(msg)
+                        print(msg)
                         # pdb.set_trace()
                         print("Will proceed with {}".format(rec_met))
                         break
