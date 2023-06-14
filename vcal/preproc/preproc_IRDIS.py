@@ -917,9 +917,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         continue
                     elif fi == 2 and not "satspots" in rec_met:
                         msg = "Are you sure you do not want to use the satellite spots for centering?"
-                        msg += "(If so press 'c' to continue, else 'q' to abort then re-run step 2 after changing the value of 'rec_met' in parameter file)"
-                        print(msg)
-                        pdb.set_trace()
+                        # msg += "(If so press 'c' to continue, else 'q' to abort then re-run step 2 after changing the value of 'rec_met' in parameter file)"
+                        # print(msg)
+                        # pdb.set_trace()
                         print("Will proceed with {}".format(rec_met))
                         break
                     elif not file_list : break # If file_list is empty, which append when there is no psf/cen then we break.
