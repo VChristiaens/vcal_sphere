@@ -10,6 +10,7 @@ __all__ = ['preproc_IRDIS']
 
 import ast
 from astropy.stats import sigma_clipped_stats
+from astropy.io import fits
 import csv
 import json
 import matplotlib
@@ -24,6 +25,7 @@ from vip_hci.fits import open_fits, write_fits
 from vip_hci.metrics import peak_coordinates
 try:
     from vip_hci.psfsub import median_sub
+    from vip_hci.psfsub import MedsubParams
     from vip_hci.fm import normalize_psf
     from vip_hci.metrics import stim_map as compute_stim_map
     from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
@@ -169,7 +171,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     idx_test_cube = params_preproc.get('idx_test_cube', [0,0,0])                                            # if rec_met is list: provide index of test cube (should be the most tricky one) where all methods will be tested => best method should correspond min(stddev of shifts)
     #idx_test_cube_psf = params_preproc['']                                    # id as above for psf
     cen_box_sz = params_preproc.get('cen_box_sz',[31,71,31])                   # size of the subimage for 2d fit, for OBJ, PSF and CEN
-    true_ncen = params_preproc['true_ncen']                                    # number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
+    true_ncen = params_preproc.get('true_ncen', None)                          # number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
     #norm_per_s = params_preproc['']                                           # if True, divide all frames by respective dit => have all fluxes in adu/s
     template_strehl = params_preproc['template_strehl']
     distort_corr = params_preproc.get('distort_corr',1)                        # whether to correct manually for distortion (anamorphism) or not
@@ -640,7 +642,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             cube_tmp, head_tmp = open_fits(inpath + OBJ_IRDIS_list[fn_tmp] + filters_lab[ff],
                                                            header=True)
                             mjd_tmp = float(head_tmp['MJD-OBS'])
-                            mjd_tmp_list = [mjd_tmp + i * dit_irdis for i in range(cube_tmp.shape[0])]
+                            mjd_tmp_list = [mjd_tmp + i * dit_irdis/86400 for i in range(cube_tmp.shape[0])]  # DIT in seconds to MJD
                             mjd_all.extend(mjd_tmp_list)
                             mjd_mean.append(np.mean(mjd_tmp_list))
                             pa_sci_ini.append(float(head_tmp["HIERARCH ESO TEL PARANG START"]))
@@ -675,8 +677,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 for zz in range(cube.shape[0]):
                                     cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1])
                                 #2. alignment with upsampling
-                                cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=None, negative=negative,
-                                                                                        fwhm=4, subi_size=cen_box_sz[fi], 
+                                cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=None, negative=False,
+                                                                                        fwhm=4, subi_size=cen_box_sz[fi],
                                                                                         upsample_factor=int(rec_met_tmp[4:]),
                                                                                         interpolation='lanczos4',
                                                                                         full_output=True, verbose=verbose, nproc=nproc,
@@ -686,13 +688,16 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 cube_tmp[0] = np.median(cube,axis=0)
                                 _, y_shifts_tmp, x_shifts_tmp = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], model='moff',
                                                                             nproc=nproc, interpolation='lanczos4',
-                                                                            offset=None, negative=negative, threshold=False,
+                                                                            offset=None, negative=False, threshold=False,
                                                                             save_shifts=False, full_output=True, verbose=verbose,
                                                                             debug=False, plot=plot)
                                 for zz in range(cube.shape[0]):
                                     cube[zz] = frame_shift(cube[zz], y_shifts_tmp[0], x_shifts_tmp[0])
                                 y_shifts = y_shifts+y_shifts_tmp[0]
                                 x_shifts = x_shifts+x_shifts_tmp[0]
+                                if debug:
+                                    print('dft{} + 2dfit centering: xshift: {} px, yshift: {} px for cube {}_1bpcorr.fits'
+                                          .format(int(rec_met_tmp[4:]), x_shifts[0], y_shifts[0], filename), flush=True)
                             elif "satspots" in rec_met_tmp:
                                 if fn==0:
                                     if ncen == 0:
@@ -779,20 +784,19 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             if cc == 0:
                                                 cond = mjd_cen < mjd
                                             elif cc == true_ncen-1:
-                                                cond = mjd_cen > mjd_fin
+                                                cond = mjd_cen > mjd_fin  # if a science cube is taken after the last center file, this will give False for cond
                                             elif cc == 1 and true_ncen == 3:
                                                 cond = ((mjd_cen > mjd) & (mjd_cen < mjd_fin))
                                             elif cc == 1 and true_ncen == 4:
                                                 cond = ((mjd_cen > mjd) & (mjd_cen < mjd_mid))
                                             else:
                                                 cond = ((mjd_cen < mjd_fin) & (mjd_cen > mjd_mid))
-                                                
                                             unique_mjd_cen[cc] = np.median(mjd_cen[np.where(cond)])
                                             unique_pa_cen[cc]= np.median(np.array(pa_cen)[np.where(cond)])
                                             y_shifts_cen[cc] = np.median(y_shifts_cen_med[np.where(cond)])
                                             x_shifts_cen[cc] = np.median(x_shifts_cen_med[np.where(cond)])
                                             y_shifts_cen_err[cc] = np.std(y_shifts_cen_std[np.where(cond)])
-                                            x_shifts_cen_err[cc] = np.std(x_shifts_cen_std[np.where(cond)])                             # SAVE UNCERTAINTY ON CENTERING
+                                            x_shifts_cen_err[cc] = np.std(x_shifts_cen_std[np.where(cond)])  # SAVE UNCERTAINTY ON CENTERING
                                         unc_cen = np.sqrt(np.power(np.amax(y_shifts_cen_std),2)+np.power(np.amax(x_shifts_cen_std),2))
                                         write_fits(outpath+"Uncertainty_on_centering_sat_spots_px.fits", np.array([unc_cen]))
                                     if np.amax(x_shifts_cen_err)>3 or np.amax(y_shifts_cen_err)>3:
@@ -882,9 +886,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             write_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_x_shifts))
                         if fi != 1 and plot and not use_cen_only:
                             f, (ax1) = plt.subplots(1,1, figsize=(15,10))
-                            t0 = np.amin(unique_mjd_cen)
+                            t0 = np.amin(mjd_all)  # first file
                             ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                         (mjd_all-t0)*60*24,
+                                         (mjd_all-t0)*60*24,  # convert to minutes since first file
                                          final_y_shifts, final_y_shifts_std,
                                          fmt='bo', label='y')
                             ax1.errorbar(#np.arange(1,len(file_list)+1,1./cube.shape[0]),
@@ -892,11 +896,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                          final_x_shifts, final_x_shifts_std,
                                          fmt='ro',label='x')
                             if "satspots" in rec_met_tmp:
-                                ax1.errorbar((unique_mjd_cen-t0)/60.,y_shifts_cen,y_shifts_cen_err,
+                                t0 = np.amin(unique_mjd_cen)
+                                ax1.errorbar((unique_mjd_cen-t0)*60*24,y_shifts_cen,y_shifts_cen_err,
                                              fmt='co',label='y cen')
-                                ax1.errorbar((unique_mjd_cen-t0)/60.,x_shifts_cen,x_shifts_cen_err,
+                                ax1.errorbar((unique_mjd_cen-t0)*60*24,x_shifts_cen,x_shifts_cen_err,
                                              fmt='mo',label='x cen')
                             ax1.set_xlabel("Time from start of obs. (min)")
+                            ax1.set_ylabel("Shift (px)")
+                            ax1.minorticks_on()
                             plt.legend(loc='best')
                             plt.savefig(outpath+"Shifts_xy{}_{}.pdf".format(labels[fi],rec_met_tmp),bbox_inches='tight', format='pdf')
                             plt.clf()
@@ -973,7 +980,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             # median-ADI
                             master_cube = open_fits(outpath+"1_master{}_cube_{}.fits".format(labels[fi],filters[ff]))
                             final_derot_angles = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]))
-                            ADI_frame = median_sub(master_cube,final_derot_angles,radius_int=10, nproc=nproc)
+                            params = MedsubParams(cube=master_cube, angle_list=final_derot_angles, radius_int=10,
+                                                  nproc=nproc)
+                            ADI_frame = median_sub(algo_params=params)
                             write_fits(outpath+"median_ADI1_{}{}.fits".format(labels[fi],filters[ff]), ADI_frame)
                             #master_cube_full = None
                             #cube_full = None
@@ -1012,7 +1021,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         # median-ADI
                         master_cube = open_fits(outpath+"2_master{}_cube_{}{}.fits".format(labels[fi],filters[ff],dist_lab_tmp))
                         final_derot_angles = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]))
-                        ADI_frame = median_sub(master_cube,final_derot_angles,radius_int=10, nproc=nproc)
+                        params = MedsubParams(cube=master_cube, angle_list=final_derot_angles, radius_int=10,
+                                              nproc=nproc)
+                        ADI_frame = median_sub(algo_params=params)
                         write_fits(outpath+"median_ADI2_{}{}{}.fits".format(labels[fi],filters[ff],dist_lab_tmp), ADI_frame)
                         #cube_full = None
                             
@@ -1725,10 +1736,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         if crop_sz%2: # only save final with VIP conventions, for use in postproc.  
                             write_fits(outpath+final_psfname+"{}.fits".format(filt), med_psf)
                             write_fits(outpath+final_psfname_norm+"{}.fits".format(filt), norm_psf)
-                            write_fits(outpath+final_fluxname+"{}.fits".format(filt), 
+                            header = fits.Header()
+                            header['Flux 0'] = 'Flux scaled to coronagraphic DIT'
+                            header['Flux 1'] = 'Flux measured in PSF image'
+                            write_fits(outpath+final_fluxname+"{}.fits".format(filt),
                                        np.array([med_flux*dit_irdis/dit_psf_irdis, med_flux]),
-                                       header = {'Flux 0:': 'Flux scaled to coronagraphic DIT',
-                                                 'Flux 1:': 'Flux measured in PSF image'})
+                                       header=header)
                             write_fits(outpath+final_fwhmname+"{}.fits".format(filt), np.array([fwhm]))
                         write_fits(outpath+"4_final_psf_med{}_{}{:.0f}.fits".format(filt,psf_model,crop_sz), med_psf)
                         write_fits(outpath+"4_final_psf_med{}_{}_norm{:.0f}.fits".format(filt,psf_model,crop_sz), norm_psf)
@@ -1900,7 +1913,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 write_fits(outpath+"4_final_obj_fluxes_bin{:.0f}{}_{}.fits".format(bin_fac,dist_lab,filt), fluxes)
 
             if save_space:
-                os.system("rm {}*3crop.fits".format(outpath))            
+                os.system("rm {}3_*.fits".format(outpath))
                 
         #******************* 10. SCALE FACTOR CALCULATION *********************
 
