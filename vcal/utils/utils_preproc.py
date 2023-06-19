@@ -16,19 +16,13 @@ __all__ = ['cube_recenter_bkg',
            ]
 
 import pdb
-#from hciplot import plot_frames
-#import pandas as pd
 import numpy as np
-#from circle_fit import *
 from scipy import optimize
 from scipy.interpolate import interp1d
-from matplotlib import pyplot as plt#, cm, colors
-#import vip_hci
+from matplotlib import pyplot as plt
 from vip_hci.fits import write_fits
-try:
-    from vip_hci.psfsub import median_sub
-except:
-    from vip_hci.medsub import median_sub
+from vip_hci.psfsub import median_sub
+from vip_hci.psfsub import MedsubParams
 from vip_hci.metrics import snr
 from vip_hci.preproc import (cube_derotate, frame_shift,
                              approx_stellar_position, cube_subsample)
@@ -36,12 +30,11 @@ from vip_hci.var import (get_square, fit_2dgaussian, fit_2dmoffat, dist,
                          fit_2dairydisk, frame_center, cube_filter_lowpass)
 pi = np.pi
 
-
 def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
                       sub_med=True, fit_type='moff', snr_thr=5, bin_fit=1, 
                       convolve=True, nmin=10, crop_sz=None, sigfactor=3, 
                       full_output=False, verbose=False, debug=False, 
-                      path_debug='./', rel_dist_unc=2e-4):
+                      path_debug='./', rel_dist_unc=2e-4, nproc=None):
     """ Recenters a cube with a background star seen in the individual 
     images. The algorithm is based on the fact that the trajectory of the bkg 
     star should lie on a perfectly circular arc if the centering is done 
@@ -104,6 +97,9 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         Relative uncertainty on distortion. Recommended: 2e-4
         (Maire et al. 2016). Used for uncertainty estimate, in case 
         full_output is set to True.
+    nproc : None or int, optional
+        Number of processes for parallel computing. If None the number of
+        processes will be set to cpu_count()/2.
         
     Returns
     -------
@@ -203,8 +199,9 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
     #step 6 - median ADI position
     if good_frame is None:
         if sub_med: 
-            good_frame = median_sub(cube[above_thr_idx],
-                                derot_angles[above_thr_idx])
+            params = MedsubParams(cube=cube[above_thr_idx], angle_list=derot_angles[above_thr_idx], nproc=nproc,
+                                  verbose=verbose)
+            good_frame = median_sub(algo_params=params)
         else : 
             good_frame = np.median(cube_derotate(cube[above_thr_idx], 
                                         derot_angles[above_thr_idx]))
