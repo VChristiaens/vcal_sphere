@@ -656,12 +656,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             if "2dfit" in rec_met_tmp:
                                 tmp = frame_filter_lowpass(np.median(cube,axis=0))
                                 y_max, x_max = np.unravel_index(np.argmax(tmp),tmp.shape)
-                                cy, cx = frame_center(tmp)
-                                cube, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=(int(x_max), int(y_max)), fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], model=rec_met_tmp[:-6],
-                                                                           nproc=nproc, interpolation='lanczos4',
-                                                                           offset=None, negative=negative, threshold=False,
-                                                                           save_shifts=False, full_output=True, verbose=verbose,
-                                                                           debug=False, plot=False)
+                                cube, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=(int(x_max), int(y_max)),
+                                                                               fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], model=rec_met_tmp[:-6],
+                                                                               nproc=nproc, interpolation='lanczos4',
+                                                                               offset=None, negative=negative, threshold=False,
+                                                                               save_shifts=False, full_output=True, verbose=verbose,
+                                                                               debug=False, plot=False)
                                                      
                             elif "dft" in rec_met_tmp:
                                 #1 rough centering with peak

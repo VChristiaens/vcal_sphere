@@ -112,6 +112,9 @@ STEPS:
     "overwrite_sof": True,
     "overwrite_fits": True
 
+# Processing
+    "nproc": 1, adapt for multiprocessing
+
 
 ************************ 0. CLASSIFICATION ***************************
 

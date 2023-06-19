@@ -20,6 +20,7 @@ import pdb
 from os.path import isfile, isdir
 import pathlib
 import photutils
+from multiprocessing import cpu_count
 from vip_hci.fits import open_fits, write_fits
 from vip_hci.var import frame_center, create_ringed_spider_mask, mask_circle
 from vip_hci.metrics import peak_coordinates
@@ -195,6 +196,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     wc_win_sz = params_calib.get('wc_win_sz',2)# default: 4
     sky=params_calib.get('sky',1) # for IFS only, will subtract the sky before the science_dr recipe (corrects also for dark, incl. bias, and vast majority of bad pixels!!)
     verbose=params_calib.get('verbose',1)
+    nproc = params_calib.get('nproc', int(cpu_count() / 2))  # number of processors to use, default cpu_count()/2 for efficiency
     
     ### Formatting
     skysub_lab_IRD = "skysub/"
@@ -1733,12 +1735,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     hdul[0].data = cube
                     hdul.writeto(inpath+skysub_lab_IFS+lab_bp+sci_list_ifs[ii], output_verify='ignore', overwrite=True)
 
-                cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3,
-                                                             sig=6., protect_mask=0, verbose=False,
-                                                             half_res_y=False, max_nit=10, full_output=False)
-                cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3,
-                                                             sig=10., protect_mask=0, verbose=False,
-                                                             half_res_y=False, max_nit=1, full_output=False)
+                cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, sig=6., protect_mask=0,
+                                             verbose=False, half_res_y=False, max_nit=10, full_output=False, nproc=nproc)
+                cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, sig=10., protect_mask=0,
+                                             verbose=False, half_res_y=False, max_nit=1, full_output=False, nproc=nproc)
                 hdul[0].data = cube
                 lab_sci = bpcorr_lab_IFS
                 if not isdir(inpath+lab_sci):
@@ -1998,12 +1998,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
 #                    fits.writeto(inpath+'skysub_lab_IFS'+lab_bp+sci_list_ifs[ii], tmp, head, output_verify='ignore', overwrite=True)
                 
                 
-                cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3,
-                                                             sig=6., protect_mask=0, verbose=False,
-                                                             half_res_y=False, max_nit=10, full_output=False)
-                cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3,
-                                                             sig=10., protect_mask=0, verbose=False,
-                                                             half_res_y=False, max_nit=1, full_output=False)
+                cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, sig=6., protect_mask=0,
+                                             verbose=False, half_res_y=False, max_nit=10, full_output=False, nproc=nproc)
+                cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, sig=10., protect_mask=0,
+                                             verbose=False, half_res_y=False, max_nit=1, full_output=False, nproc=nproc)
                 hdul[0].data = cube
                 lab_sci = bpcorr_lab_IFS
                 if not isdir(inpath+lab_sci):
