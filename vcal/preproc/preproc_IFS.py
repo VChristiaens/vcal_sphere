@@ -21,14 +21,10 @@ import pdb
 from os import system, listdir
 from os.path import isfile, isdir
 from vip_hci.fits import open_fits, write_fits
-try:
-    from vip_hci.psfsub import median_sub
-    from vip_hci.fm import normalize_psf
-    from vip_hci.metrics import stim_map as compute_stim_map
-    from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
-except:
-    from vip_hci.medsub import median_sub
-    from vip_hci.metrics import normalize_psf, compute_stim_map, compute_inverse_stim_map
+from vip_hci.psfsub import median_sub, MedsubParams
+from vip_hci.fm import normalize_psf
+from vip_hci.metrics import stim_map as compute_stim_map
+from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
 from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit, 
                              cube_recenter_dft_upsampling, cube_shift,
                              cube_detect_badfr_pxstats, 
@@ -345,7 +341,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             cube = cube_crop_frames(cube,bp_crop_sz)
                         cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resels,
                                                      sig=6., protect_mask=0, verbose=full_output,
-                                                     half_res_y=False, max_nit=max_bpix_nit, full_output=full_output)
+                                                     half_res_y=False, max_nit=max_bpix_nit, full_output=full_output,
+                                                     nproc=nproc)
                         if full_output:
                             write_fits(outpath+filename+"_1bpcorr_bpmap.fits", cube[1], header=header, verbose=debug)
                             cube = cube[0]
@@ -818,7 +815,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         # median-ADI
                         ADI_frame = np.zeros([n_z,master_cube.shape[-2],master_cube.shape[-1]])
                         for zz in range(n_z):
-                            ADI_frame[zz] = median_sub(master_cube[zz],final_derot_angles,radius_int=10, nproc=nproc)
+                            params = MedsubParams(cube=master_cube[zz], angle_list=final_derot_angles, radius_int=10,
+                                                  nproc=nproc)
+                            ADI_frame[zz] = median_sub(algo_params=params)
                         write_fits(outpath+"median_ADI1_{}.fits".format(labels[fi]), ADI_frame, verbose=debug)
     
     
