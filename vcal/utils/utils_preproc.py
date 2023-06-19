@@ -21,8 +21,7 @@ from scipy import optimize
 from scipy.interpolate import interp1d
 from matplotlib import pyplot as plt
 from vip_hci.fits import write_fits
-from vip_hci.psfsub import median_sub
-from vip_hci.psfsub import MedsubParams
+from vip_hci.psfsub import median_sub, MedsubParams
 from vip_hci.metrics import snr
 from vip_hci.preproc import (cube_derotate, frame_shift,
                              approx_stellar_position, cube_subsample)
