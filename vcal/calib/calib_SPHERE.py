@@ -1714,26 +1714,24 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 print("*** 18. IFS: Reduce all OBJECT datacubes ***")
             # MANUAL SKY SUBTRACTION BEF REDUCTION
             sci_list_ifs = dico_lists['sci_list_ifs']
-            hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), 
-                   ignore_missing_end=False,
-                   memmap=True)
+            hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), ignore_missing_end=False,
+                                   memmap=True)
         
-            bpmap = hdulist_bp[0].data #vip_hci.fits.open_fits("{}master_badpixelmap.fits".format(outpath_ifs_fits))
+            bpmap = hdulist_bp[0].data
             for ii in range(len(sci_list_ifs)):
                 hdul = fits.open(inpath+sci_list_ifs[ii])
                 cube = hdul[0].data
                 cube = np.array(cube, dtype=np.float)
-                lab_bp=''
                 
                 if sky:
-                    #tmp, head = vip_hci.fits.open_fits(inpath+sci_list_ifs[ii], header=True)
                     tmp_tmp = open_fits("{}master_sky.fits".format(outpath_ifs_fits))
                     for zz in range(cube.shape[0]):
-                        cube[zz] = cube[zz]-tmp_tmp
+                        cube[zz] -= tmp_tmp
                     lab_bp = 'skycorr_'
-                    lab_sci = skysub_lab_IFS
                     hdul[0].data = cube
                     hdul.writeto(inpath+skysub_lab_IFS+lab_bp+sci_list_ifs[ii], output_verify='ignore', overwrite=True)
+                else:
+                    lab_bp = ''
 
                 cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, sig=6., protect_mask=0,
                                              verbose=False, half_res_y=False, max_nit=10, full_output=False, nproc=nproc)
@@ -1743,8 +1741,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 lab_sci = bpcorr_lab_IFS
                 if not isdir(inpath+lab_sci):
                     os.makedirs(inpath+lab_sci)
-                hdul.writeto(inpath+bpcorr_lab_IFS+lab_bp+sci_list_ifs[ii], output_verify='ignore', overwrite=True) 
-                #pdb.set_trace()
+                hdul.writeto(inpath+bpcorr_lab_IFS+lab_bp+sci_list_ifs[ii], output_verify='ignore', overwrite=True)
                 
                 
                 if xtalk_corr: # too agressive
@@ -1835,26 +1832,24 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             if verbose:
                 print("*** 19. IFS: Reduce all CEN data cubes ***")
             cen_list_ifs = dico_lists['cen_list_ifs']
-            hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), 
-                   ignore_missing_end=False,
-                   memmap=True)
+            hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), ignore_missing_end=False,
+                                   memmap=True)
         
-            bpmap = hdulist_bp[0].data #vip_hci.fits.open_fits("{}master_badpixelmap.fits".format(outpath_ifs_fits))
+            bpmap = hdulist_bp[0].data
             for ii in range(len(cen_list_ifs)):
                 hdul = fits.open(inpath+cen_list_ifs[ii])
                 cube = hdul[0].data
                 cube = np.array(cube, dtype=np.float)
-                lab_bp=''
                 
                 if sky:
-                    #tmp, head = vip_hci.fits.open_fits(inpath+sci_list_ifs[ii], header=True)
                     tmp_tmp = open_fits("{}master_sky.fits".format(outpath_ifs_fits))
                     for zz in range(cube.shape[0]):
-                        cube[zz] = cube[zz]-tmp_tmp
+                        cube[zz] -= tmp_tmp
                     lab_bp = 'skycorr_cen_'
-                    lab_sci = skysub_lab_IFS
                     hdul[0].data = cube
                     hdul.writeto(inpath+skysub_lab_IFS+lab_bp+cen_list_ifs[ii], output_verify='ignore', overwrite=True)
+                else:
+                    lab_bp = 'cen_'
                 
                 cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, sig=6., protect_mask=0,
                                              verbose=False, half_res_y=False, max_nit=10, full_output=False,
@@ -1867,8 +1862,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 if not isdir(inpath+lab_sci):
                     os.makedirs(inpath+lab_sci)
                 hdul.writeto(inpath+bpcorr_lab_IFS+lab_bp+cen_list_ifs[ii], output_verify='ignore', overwrite=True) 
-                #pdb.set_trace()
-                
+
                 
                 if xtalk_corr: # too agressive
                     ## CROSS-TALK CORR
@@ -1958,26 +1952,24 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             if verbose:
                 print("*** 20. IFS: Reduce all FLUX datacubes ***")
             psf_list_ifs = dico_lists['psf_list_ifs']
-            hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), 
-                   ignore_missing_end=False,
-                   memmap=True)
+            hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), ignore_missing_end=False,
+                                   memmap=True)
         
-            bpmap = hdulist_bp[0].data #vip_hci.fits.open_fits("{}master_badpixelmap.fits".format(outpath_ifs_fits))
+            bpmap = hdulist_bp[0].data
             for ii in range(len(psf_list_ifs)):
                 hdul = fits.open(inpath+psf_list_ifs[ii])
                 cube = hdul[0].data
                 cube = np.array(cube, dtype=np.float)
-                lab_bp=''
-                
+
                 if sky:
-                    #tmp, head = vip_hci.fits.open_fits(inpath+sci_list_ifs[ii], header=True)
                     tmp_tmp = open_fits("{}master_psf_sky.fits".format(outpath_ifs_fits))
                     for zz in range(cube.shape[0]):
-                        cube[zz] = cube[zz]-tmp_tmp
+                        cube[zz] -= tmp_tmp
                     lab_bp = 'skycorr_psf_'
-                    lab_sci = skysub_lab_IFS
                     hdul[0].data = cube
-                    hdul.writeto(inpath+skysub_lab_IFS+lab_bp+psf_list_ifs[ii], output_verify='ignore', overwrite=True)    
+                    hdul.writeto(inpath+skysub_lab_IFS+lab_bp+psf_list_ifs[ii], output_verify='ignore', overwrite=True)
+                else:
+                    lab_bp = 'psf_'
 
                 cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, sig=6., protect_mask=0,
                                              verbose=False, half_res_y=False, max_nit=10, full_output=False, nproc=nproc)
@@ -1988,14 +1980,11 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 if not isdir(inpath+lab_sci):
                     os.makedirs(inpath+lab_sci)
                 hdul.writeto(inpath+bpcorr_lab_IFS+lab_bp+psf_list_ifs[ii], output_verify='ignore', overwrite=True) 
-                #pdb.set_trace()
-                
-                
+
                 if xtalk_corr: # too agressive
                     ## CROSS-TALK CORR
                     for j in range(cube.shape[0]):
-                        cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill', 
-                                                                 fill_value=0)
+                        cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill', fill_value=0)
                     hdul[0].data = cube
                     lab_sci = xtalkcorr_lab_IFS
                     hdul.writeto(inpath+xtalkcorr_lab_IFS+lab_bp+psf_list_ifs[ii], output_verify='ignore', overwrite=True)      
