@@ -1530,17 +1530,17 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         os.makedirs(inpath+lab_wc)
                     hdul.writeto(inpath+skysub_lab_IFS+wave_calib_list_ifs[ii], output_verify='ignore', overwrite=True)
                     
-                    cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3,
-                                                 sig=6., protect_mask=0, verbose=False,
-                                                 half_res_y=False, max_nit=10, full_output=False)
+                    cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, sig=6., protect_mask=0,
+                                                 verbose=False, half_res_y=False, max_nit=10, full_output=False,
+                                                 nproc=nproc)
                     lab_wc = bpcorr_lab_IFS
                     hdul[0].data = cube
                     if not isdir(inpath+lab_wc):
                         os.makedirs(inpath+lab_wc)
                     hdul.writeto(inpath+bpcorr_lab_IFS+'1_'+wave_calib_list_ifs[ii], output_verify='ignore', overwrite=True)
-                    cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3,
-                                                 sig=10., protect_mask=0, verbose=False,
-                                                 half_res_y=False, max_nit=1, full_output=False)
+                    cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, sig=10., protect_mask=0,
+                                                 verbose=False, half_res_y=False, max_nit=1, full_output=False,
+                                                 nproc=nproc)
                     lab_wc = bpcorr_lab_IFS
                     hdul[0].data = cube
                     if not isdir(inpath+lab_wc):
@@ -1854,23 +1854,14 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     lab_bp = 'skycorr_cen_'
                     lab_sci = skysub_lab_IFS
                     hdul[0].data = cube
-                    hdul.writeto(inpath+skysub_lab_IFS+lab_bp+cen_list_ifs[ii], output_verify='ignore', overwrite=True)    
-# ADAPT BELOW IF NECESSARY
-#                if bpix:
-#                    tmp = vip_hci.preproc.cube_fix_badpix_clump(tmp, bpm_mask=None, cy=None, cx=None, fwhm=4., 
-#                          sig=4., protect_psf=True, verbose=True, 
-#                          half_res_y=False, min_thr=None, max_nit=15, 
-#                          full_output=False)
-#                    lab_bp = 'bpcorr_'
-#                    fits.writeto(inpath+'skysub_lab_IFS'+lab_bp+sci_list_ifs[ii], tmp, head, output_verify='ignore', overwrite=True)
-
+                    hdul.writeto(inpath+skysub_lab_IFS+lab_bp+cen_list_ifs[ii], output_verify='ignore', overwrite=True)
                 
-                cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3,
-                                                             sig=6., protect_mask=0, verbose=False,
-                                                             half_res_y=False, max_nit=10, full_output=False)
-                cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3,
-                                                             sig=10., protect_mask=0, verbose=False,
-                                                             half_res_y=False, max_nit=1, full_output=False)
+                cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, sig=6., protect_mask=0,
+                                             verbose=False, half_res_y=False, max_nit=10, full_output=False,
+                                             nproc=nproc)
+                cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, sig=10., protect_mask=0,
+                                             verbose=False, half_res_y=False, max_nit=1, full_output=False,
+                                             nproc=nproc)
                 hdul[0].data = cube
                 lab_sci = bpcorr_lab_IFS
                 if not isdir(inpath+lab_sci):
@@ -1888,7 +1879,6 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     lab_sci = xtalkcorr_lab_IFS
                     hdul.writeto(inpath+xtalkcorr_lab_IFS+lab_bp+cen_list_ifs[ii], output_verify='ignore', overwrite=True)      
                     #pdb.set_trace()
-                        
                 
                     
                 if not isfile(outpath_ifs_sof+"CEN{}{:.0f}.sof".format(lab_distort,ii)) or overwrite_sof:
@@ -1988,16 +1978,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     lab_sci = skysub_lab_IFS
                     hdul[0].data = cube
                     hdul.writeto(inpath+skysub_lab_IFS+lab_bp+psf_list_ifs[ii], output_verify='ignore', overwrite=True)    
-# ADAPT BELOW IF NECESSARY
-#                if bpix:
-#                    tmp = vip_hci.preproc.cube_fix_badpix_clump(tmp, bpm_mask=None, cy=None, cx=None, fwhm=4., 
-#                          sig=4., protect_psf=True, verbose=True, 
-#                          half_res_y=False, min_thr=None, max_nit=15, 
-#                          full_output=False)
-#                    lab_bp = 'bpcorr_'
-#                    fits.writeto(inpath+'skysub_lab_IFS'+lab_bp+sci_list_ifs[ii], tmp, head, output_verify='ignore', overwrite=True)
-                
-                
+
                 cube = cube_fix_badpix_clump(cube, bpm_mask=bpmap, cy=None, cx=None, fwhm=3, sig=6., protect_mask=0,
                                              verbose=False, half_res_y=False, max_nit=10, full_output=False, nproc=nproc)
                 cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=3, sig=10., protect_mask=0,
