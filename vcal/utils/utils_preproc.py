@@ -202,8 +202,7 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
                                   verbose=verbose)
             good_frame = median_sub(algo_params=params)
         else : 
-            good_frame = np.median(cube_derotate(cube[above_thr_idx], 
-                                        derot_angles[above_thr_idx]))
+            good_frame = np.median(cube_derotate(cube[above_thr_idx], derot_angles[above_thr_idx]), nproc=nproc)
 
     med_x, med_y = fit2d_bkg_pos(np.array([good_frame]), 
                                  np.array([approx_xy_bkg[0]]), 
@@ -302,9 +301,8 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         plt.show()
         # plotting derotated positions
         n_fr = cube.shape[0]
-        derot_cube=cube_derotate(cube, derot_angles, imlib='vip-fft', 
-                                 interpolation='lanczos4',
-                                 cxy=None, border_mode='constant')
+        derot_cube=cube_derotate(cube, derot_angles, imlib='vip-fft', interpolation='lanczos4', cxy=None,
+                                 border_mode='constant', nproc=nproc)
         write_fits(path_debug+"TMP_double_check_derot_cube.fits", derot_cube)
         med_x_all = [med_x]*n_fr
         med_y_all = [med_y]*n_fr
@@ -841,7 +839,7 @@ def plot_data_derot(med_x, med_y, derot_x, derot_y, err, zoom=False):
 def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5, 
                          crop_sz=None, fit_type='moff', sigfactor=3, bin_fit=1, 
                          convolve=True, debug=False, path_debug='./', 
-                         full_output=False):
+                         full_output=False, nproc=None):
     
     """
     Note: translation and rotation are not commutative! 
@@ -856,9 +854,8 @@ def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
     cen_y, cen_x = frame_center(array[0])
     derot_arr=np.zeros_like(array)
     
-    derot_arr=cube_derotate(array, derot_angles, imlib='vip-fft', 
-                            interpolation='lanczos4',
-                            cxy=None, border_mode='constant')
+    derot_arr=cube_derotate(array, derot_angles, imlib='vip-fft', interpolation='lanczos4', cxy=None,
+                            border_mode='constant', nproc=nproc)
     if debug:
         write_fits(path_debug+"TMP_derot_cube.fits",derot_arr)
 
