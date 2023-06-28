@@ -35,5 +35,5 @@
     "manual_sky": 1,
     "overwrite_sof": 1,
     "overwrite_fits": 1,
-    "nproc": 8,
+    "nproc": 8
 }
