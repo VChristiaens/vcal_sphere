@@ -37,7 +37,7 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
 
-from vcal.utils import find_nearest, fit2d_bkg_pos
+from vcal.utils import find_nearest
 from vcal import __path__ as vcal_path
 matplotlib.use('Agg')
 
