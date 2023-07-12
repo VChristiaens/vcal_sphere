@@ -1,5 +1,8 @@
 Before running the pipeline, make sure:
 
-1) you only keep in your 'raw' folder raw flats and darks from the same morning! I.e. remove all the other ones in different folders!
-2) you downloaded manually raw IFS darks with matching DITs to the FLATS - they don't come automatically just by ticking the box of downloading data with raw calibs!
-3) first try basic calibration using default parameters - change them only if you know what you're doing.
+1) all raw flats and darks are from the same day in your 'raw' folder! i.e. move all the other ones to a different folder!
+2) raw IFS darks with matching DITs to the FLATS have been manually downloaded - they don't come automatically just by
+ticking the box of downloading data with raw calibs! Search for them with the same date but no object name in the archive
+3) nproc has been set to the number of available processors - this will greatly decrease processing time
+4) first try basic calibration using default parameters - change them only if you know what you're doing
+
