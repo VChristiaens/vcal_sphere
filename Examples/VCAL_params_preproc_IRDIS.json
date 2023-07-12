@@ -1,6 +1,6 @@
 {
     "to_do": [1,2,3,4,5,6,7,8,9,10],
-    "label_test":"_all_cen",
+    "label_test":"",
     "coro": 1,
     "coro_sz": 8,
     "rec_met": "satspots",
@@ -42,5 +42,5 @@
     "nproc": 1,
     "plot_obs_cond":0,
     "verbose": 1,
-    "save_space": 1
+    "save_space": 0
 }

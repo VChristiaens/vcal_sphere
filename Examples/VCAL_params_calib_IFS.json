@@ -12,7 +12,7 @@
     "mode": "YJ",
     "do_irdis": 0,
     "do_ifs": 1,
-    "to_do": [12,13,14,15,16,17,18,19,20],
+    "to_do": [0,10,11,12,13,14,15,16,17,18,19,20],
     "good_sky_list": ["all"],
     "good_psf_sky_list": ["all"],
     "corner_coords": [[39,215],[72,42],[247,78],[216,250]],
@@ -35,5 +35,5 @@
     "manual_sky": 1,
     "overwrite_sof": 1,
     "overwrite_fits": 1,
-    "nproc": 8
+    "nproc": 1
 }
