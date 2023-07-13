@@ -726,18 +726,22 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             final_y_shifts_std.append(np.std(y_shifts))
                             final_x_shifts_std.append(np.std(x_shifts))                                          
                     if plot:
-                        f, (ax1) = plt.subplots(1,1, figsize=(15,10))
-                        if fi == 0:
-                            ax1.errorbar(all_mjd,final_y_shifts,final_y_shifts_std,fmt='bo',label='y')
-                            ax1.errorbar(all_mjd,final_x_shifts,final_x_shifts_std,fmt='ro',label='x')
-                        if "satspot" in rec_met_tmp:
-                            ax1.errorbar(unique_mjd_cen,np.median(y_shifts_cen,axis=1),np.std(y_shifts_cen,axis=1),
-                                         fmt='co',label='y cen')
-                            ax1.errorbar(unique_mjd_cen,np.median(x_shifts_cen,axis=1),np.std(x_shifts_cen,axis=1),
-                                         fmt='mo',label='x cen')
-                        plt.legend(loc='best')
-                        plt.savefig(outpath+"Shifts_xy{}_{}.pdf".format(labels[fi],rec_met_tmp),bbox_inches='tight', format='pdf')
-                        plt.clf()  
+                        try:
+                            f, (ax1) = plt.subplots(1,1, figsize=(15,10))
+                            if fi == 0:
+                                ax1.errorbar(all_mjd,final_y_shifts,final_y_shifts_std,fmt='bo',label='y')
+                                ax1.errorbar(all_mjd,final_x_shifts,final_x_shifts_std,fmt='ro',label='x')
+                            if "satspot" in rec_met_tmp:
+                                ax1.errorbar(unique_mjd_cen,np.median(y_shifts_cen,axis=1),np.std(y_shifts_cen,axis=1),
+                                             fmt='co',label='y cen')
+                                ax1.errorbar(unique_mjd_cen,np.median(x_shifts_cen,axis=1),np.std(x_shifts_cen,axis=1),
+                                             fmt='mo',label='x cen')
+                            plt.legend(loc='best')
+                            plt.savefig(outpath+"Shifts_xy{}_{}.pdf".format(labels[fi],rec_met_tmp),bbox_inches='tight', format='pdf')
+                            plt.clf()
+                        except:
+                            print('Could not produce shifts vs. time plot.', flush=True)
+                            plt.close('all')
                     
             if save_space:
                 system("rm {}*0distort.fits".format(outpath))
