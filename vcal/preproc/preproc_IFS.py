@@ -839,9 +839,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 elif fi == 2 and not use_cen_only: # no need for CEN, except if no OBJ
                     break
 
-                cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), verbose=debug)
-                ntot = cube.shape[1]
-
                 if not coro:
                     fi_tmp = fi
                 else:
@@ -849,12 +846,15 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 # Determine fwhm
                 if not isfile(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp])):
                     cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi_tmp]), verbose=debug)
-                    ntot = cube.shape[1]
                     fwhm = np.zeros(n_z)
-                    fluxes = np.zeros([n_z,ntot])
+                    # if a list of crops are given, use the last odd one
+                    if isinstance(final_crop_sz_psf, list):
+                        final_crop_sz_psf_tmp = final_crop_sz_psf[[i for i in range(len(final_crop_sz_psf)) if i % 2 == 0][-1]]
+                    else:
+                        final_crop_sz_psf_tmp = final_crop_sz_psf
                     # first fit on median
                     for zz in range(n_z):
-                        _, _, fwhm[zz] = normalize_psf(np.median(cube[zz],axis=0), fwhm='fit', size=final_crop_sz_psf,
+                        _, _, fwhm[zz] = normalize_psf(np.median(cube[zz], axis=0), fwhm='fit', size=final_crop_sz_psf_tmp,
                                                        threshold=None, mask_core=None, model=psf_model, imlib='opencv',
                                                        interpolation='lanczos4', force_odd=True, full_output=True,
                                                        verbose=debug, debug=False)
@@ -862,7 +862,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 else:
                     fwhm = open_fits(outpath+"TMP_fwhm{}.fits".format(labels[fi_tmp]), verbose=debug)
                 fwhm_med = np.median(fwhm)
-    
+
                 cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), verbose=debug)
 
                 if fi != 1:
