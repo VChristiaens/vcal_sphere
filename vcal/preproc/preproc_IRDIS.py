@@ -285,7 +285,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     resel = lbdas*0.206265/(plsc*diam)
     print("Resel:")
     for i in range(len(resel)):
-         print("{:.2f} px ({})".format(resel[i],filters[i]))
+         print("{:.2f} px ({})".format(resel[i],filters[i]), flush=True)
     max_resel = np.amax(resel)   
     
     if bool(to_do):
@@ -327,7 +327,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         file_list_K1.sort()
         file_list_K2.sort()
         ncubes = len(file_list_K1)
-        print("File list ({} cubes total): ".format(ncubes), file_list_K1)    
+        print("File list ({} cubes total): ".format(ncubes), file_list_K1, flush=True)
         file_lists = [file_list_K1,file_list_K2]
             
         
@@ -381,6 +381,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         
         #********************************* BPIX CORR ******************************       
         if 1 in to_do:
+            print('************* 1. BPIX CORRECTION (this may take some time) *************', flush=True)
             ## OBJECT + PSF
             for fi, file_list in enumerate(file_lists):
                 if fi==0:
@@ -425,6 +426,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             obj_psf_list[0] = obj_psf_list[-1]
             OBJ_IRDIS_list = CEN_IRDIS_list
         if 2 in to_do:
+            print('************* 2. RECENTERING *************', flush=True)
             for fi, file_list in enumerate(obj_psf_list): ## OBJECT, then possibly PSF (but not CEN)
                 if fi == 0:
                     negative=coro
@@ -621,7 +623,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 rec_met = rec_met_tmp[idx_min_shift] 
                                 
                             print("Best centering method for {}{}: {}".format(labels[fi],filt,rec_met_tmp))
-                            print("Press c if satisfied. q otherwise")                   
+                            print("Press c if satisfied. q otherwise", flush=True)
                           #  pdb.set_trace()
                 
                     if isinstance(rec_met_tmp, str):
@@ -797,7 +799,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     if np.amax(x_shifts_cen_err)>3 or np.amax(y_shifts_cen_err)>3:
                                         msg = "Warning: large std found for calculated shifts (std_x: {:.1f}, std_y: {:.1f}) px." 
                                         msg+= "Make sure CEN cubes and sat spots fits look good."
-                                        print(msg)
+                                        print(msg, flush=True)
                                         pdb.set_trace()
                                         
                                 if not use_cen_only:
@@ -826,7 +828,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                          pa_sci_ini[fn],
                                                          pa_sci_fin[fn])
                                     if verbose:
-                                        print(pos_xy)
+                                        print(pos_xy, flush=True)
                                     x_shifts = cx - pos_xy[0]
                                     y_shifts = cy - pos_xy[1]
                                     
@@ -837,7 +839,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         colors = ['k','r','b','y','c','m','g']
                                         # y
                                         plt.plot(range(n_fr),y_shifts,colors[0]+'-', label = 'shifts y (first cube)')
-                                        print("True number of CENTER cubes:", true_ncen)
+                                        print("True number of CENTER cubes:", true_ncen, flush=True)
                                         plt.errorbar(range(true_ncen), y_shifts_cen, 
                                                      yerr=y_shifts_cen_err, fmt=colors[cc+1]+'o',
                                                      label='y cen shifts')
@@ -906,6 +908,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     
         #******************************* MASTER CUBES ******************************
         if 3 in to_do:
+            print('************* 3. MASTER CUBES *************', flush=True)
             for ff, filt in enumerate(filters_lab):
                 for fi,file_list in enumerate(obj_psf_list):
                     if fi == 0 and use_cen_only:
@@ -913,9 +916,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     elif fi == 2 and not "satspots" in rec_met:
                         msg = "Are you sure you do not want to use the satellite spots for centering?"
                         # msg += "(If so press 'c' to continue, else 'q' to abort then re-run step 2 after changing the value of 'rec_met' in parameter file)"
-                        print(msg)
+                        print(msg, flush=True)
                         # pdb.set_trace()
-                        print("Will proceed with {}".format(rec_met))
+                        print("Will proceed with {}".format(rec_met), flush=True)
                         break
                     elif not file_list : break # If file_list is empty, which append when there is no psf/cen then we break.
                    
@@ -945,7 +948,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         master_cube = np.array(master_cube)
                         master_cube = master_cube/interp_trans  
                         if debug:
-                            print("transmission correction: ",interp_trans)
+                            print("transmission correction: ",interp_trans, flush=True)
                         
                     
                         # IMPORTANT WE DO NOT NORMALIZE BY DIT (any more!)
@@ -989,6 +992,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         else:
             dist_lab = ""
         if 4 in to_do:
+            print('************* 4. DISTORTION (ANAMORPHISM) *************', flush=True)
             for fi,file_list in enumerate(obj_psf_list):
                 if fi == 0 and use_cen_only:
                     continue
@@ -1064,6 +1068,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         else:
             label_cen = 'bkg_cen'
         if 5 in to_do and not use_cen_only:
+            print('************* 5. FINE RECENTERING BASED ON BKG STAR *************', flush=True)
             for ff, filt in enumerate(filters_lab):
                 if not isfile(outpath+"2{}_master{}_cube_{}{}.fits".format(label_cen,labels[0],filters[ff],dist_lab)) or overwrite[4]:
                     if approx_xy_bkg != 0:
@@ -1142,7 +1147,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 msg = "Shift uncertainties calculated from 1) distortion uncertainty "
                                 msg+= "(here ~{:.2f} px given separation of BKG); ".format(approx_r_bkg*2e-4)
                                 msg+= "2) uncertainty on centroid of BKG star"
-                                print(msg)
+                                print(msg, flush=True)
                             fig, (ax1,ax2,ax3) = plt.subplots(1,3,figsize=(13,3))
                             for i in range(n_fr):
                                 if abs(shifts[0,i]) < thr:
@@ -1187,7 +1192,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 
         #********************* PLOTS + TRIM BAD FRAMES OUT ********************
         if 6 in to_do:
-            if plot_obs_cond: # PLOT BEFORE  
+            print('************* 6. PLOTS + TRIM BAD FRAMES OUT *************', flush=True)
+            if plot_obs_cond: # PLOT BEFORE
                 # observing conditions
                 alphas = [0.3,1] # before and after trimming
                 markers_1 = ['o','.','o']
@@ -1345,7 +1351,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
                                 if 100*len(bad_index_list)/cube.shape[0] > perc:
                                     perc = 100*len(bad_index_list)/cube.shape[0]
-                                    print("Percentile updated to {:.1f} based on stat".format(perc))
+                                    print("Percentile updated to {:.1f} based on stat".format(perc), flush=True)
                                 if plot_obs_cond:
                                     val = counter + (2*(ff%2)-1)*0.2
                                     if fi != 1 :
@@ -1378,7 +1384,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                                                 plot=plot, verbose=debug)
                                 if 100*len(bad_index_list)/cube.shape[0] > perc:
                                     perc = 100*len(bad_index_list)/cube.shape[0]
-                                    print("Percentile updated to {:.1f} based on ell".format(perc))                                                                                        
+                                    print("Percentile updated to {:.1f} based on ell".format(perc), flush=True)
                                 final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
                                 if plot_obs_cond:
                                     val = counter + (2*(ff%2)-1)*0.2
@@ -1470,7 +1476,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
                                 if 100*len(bad_index_list)/cube.shape[0] > perc:
                                     perc = 100*len(bad_index_list)/cube.shape[0]
-                                    print("Percentile updated to {:.1f} based on bkg".format(perc))
+                                    print("Percentile updated to {:.1f} based on bkg".format(perc), flush=True)
                                 if plot_obs_cond:
                                     val = counter + (2*(ff%2)-1)*0.2
                                     if fi!= 1:
@@ -1549,7 +1555,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 final_good_index_list = [idx for idx in good_index_list if idx in final_good_index_list]
                                 if 100*len(bad_index_list)/cube.shape[0] > perc:
                                     perc = 100*len(bad_index_list)/cube.shape[0]
-                                    print("Percentile updated to {:.1f} based on shifts > {:.1f} px".format(perc,thr))
+                                    print("Percentile updated to {:.1f} based on shifts > {:.1f} px".format(perc,thr), flush=True)
                                 if plot_obs_cond:
                                     val = counter + (2*(ff%2)-1)*0.2
                                     if fi != 1:
@@ -1683,7 +1689,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     cube_ori = open_fits(outpath+"2{}_master{}_cube_{}{}.fits".format(label_cen_tmp,labels[fi],filt,dist_lab_tmp))
                     cube = open_fits(outpath+"3_master{}_cube_clean_{}{}{}.fits".format(labels[fi],filt,dist_lab_tmp,bad_str))
                     frac_good = cube.shape[0]/cube_ori.shape[0]
-                    print("In total we keep {:.1f}% of all frames for {} {} \n".format(100*frac_good,filt,labels[fi]))
+                    print("In total we keep {:.1f}% of all frames for {} {} \n".format(100*frac_good,filt,labels[fi]), flush=True)
 
             if plot_obs_cond:
                 ax1.legend(loc='upper left')
@@ -1704,6 +1710,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
 
         #************** 7. FINAL PSF + FLUX + FWHM (incl. CROP) ***************              
         if 7 in to_do:
+            print('************* 7. FINAL PSF + FLUX + FWHM *************', flush=True)
             if len(obj_psf_list)>1:
                 idx_psf=1
             else:
@@ -1759,6 +1766,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 
         #********** 8. SUBTRACT SAT SPOTS IF CEN cubes USED as OBJ cubes *********
         if 8 in to_do and use_cen_only:
+            print('************* 8. SUBTRACT SAT SPOTS IF CEN cubes USED as OBJ cubes *************', flush=True)
             diff = int((ori_sz-bp_crop_sz)/2)
             for ff, filt in enumerate(filters):
                 fwhm = open_fits(outpath+final_fwhmname+"{}.fits".format(filt))[0]
@@ -1821,6 +1829,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         
         #******************** 9. FINAL OBJ CUBE (BIN & CROP IF NECESSARY) ******************
         if 9 in to_do:
+            print('************* 9. FINAL OBJ CUBE (BIN & CROP IF NECESSARY) *************', flush=True)
             if isinstance(final_crop_szs[0], (float,int)):
                 crop_sz_list = [int(final_crop_szs[0])]
             elif isinstance(final_crop_szs[0], list):
@@ -1912,14 +1921,13 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 os.system("rm {}3_*.fits".format(outpath))
                 
         #******************* 10. SCALE FACTOR CALCULATION *********************
-
-                
         if 10 in to_do and len(filters)>1 and not separate_trim:
-            nfp = 2 # number of free parameters for simplex search
+            print("************* 10. FINDING SCALING FACTORS ***************", flush=True)
+            nfp = 2  # number of free parameters for simplex search
             n_ch = len(filters)
             fluxes = np.zeros(n_ch)
             lbdas_tmp = np.zeros_like(fluxes)
-            print("************* 10. FINDING SCALING FACTORS ***************")
+
             for ff, filt in enumerate(filters):
                 fluxes[ff] = open_fits(outpath+final_fluxname+"{}.fits".format(filt))
                 lbdas_tmp[ff] = open_fits(outpath+final_fwhmname+"{}.fits".format(filt))
@@ -2000,7 +2008,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             print("final scal result: ",final_scal_vector)
             print("final flux fac result ({:.0f}): ".format(nfp),final_flux_fac)
             print("std scal (from cube to cube): ",std_scal_vector)
-            print("std flux fac (from cube to cube): ",std_flux_fac_vector)
+            print("std flux fac (from cube to cube): ",std_flux_fac_vector, flush=True)
             write_fits(outpath+final_scalefac_name, final_scal_vector)
             write_fits(outpath+"final_flux_fac.fits", final_flux_fac)
             write_fits(outpath+"final_scale_fac_std.fits", std_scal_vector)

@@ -353,7 +353,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             obj_psf_list[0] = obj_psf_list[-1]
             OBJ_IFS_list = CEN_IFS_list
         if 2 in to_do:
-            print('************* 2. RECENTERING *************')
+            print('************* 2. RECENTERING *************', flush=True)
             for fi, file_list in enumerate(obj_psf_list): ## OBJECT, then PSF (but not CEN)
                 if fi != 1:
                     negative=coro
@@ -527,8 +527,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         std_shift = np.array(std_shift)
                         idx_min_shift = np.nanargmin(std_shift)
                         rec_met_tmp = rec_met_tmp[idx_min_shift]          
-                        print("Best centering method for {}: {}".format(labels[fi],rec_met_tmp))
-                        print("Press c if satisfied. q otherwise")                
+                        print("Best centering method for {}: {}".format(labels[fi],rec_met_tmp), flush=True)
+                        print("Press c if satisfied. q otherwise", flush=True)
 
                     if isinstance(rec_met_tmp, str):
                         final_y_shifts = []
@@ -574,7 +574,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
                                     cube_tmp[0] = np.median(cube,axis=0)
                                     if debug:
-                                        print("rough xy position: ",xy)
+                                        print("rough xy position: ",xy, flush=True)
                                     _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
                                                                                 nproc=nproc, imlib='opencv', interpolation='lanczos4',
                                                                                 offset=None, negative=negative, threshold=False,
@@ -792,7 +792,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     # VERY IMPORTANT WE CORRECT FOR SPECTRAL IMPRINT OF ND FILTER
                     interp_trans = np.interp(lbdas*1000, nd_wavelen, nd_trans[fi]) # file lbdas are in nm
                     if debug:
-                        print("transmission correction: ",interp_trans)
+                        print("transmission correction: ",interp_trans, flush=True)
                     for zz in range(n_z):
                         master_cube[zz] = master_cube[zz]/interp_trans[zz]     
                 
@@ -824,7 +824,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         #********************* PLOTS + TRIM BAD FRAMES OUT ************************
                         
         if 4 in to_do:
-            print('************* 4. PLOTS + TRIM BAD FRAMES OUT *************')
+            print('************* 4. PLOTS + TRIM BAD FRAMES OUT *************', flush=True)
             for fi,file_list in enumerate(obj_psf_list):
 #                    if fi == 1:
 #                        dist_lab_tmp = "" # no need for PSF
@@ -896,7 +896,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             debug_tmp = debug
                         else:
                             debug_tmp = False
-                        print("********** Trimming bad frames from channel {:.0f} ***********\n".format(zz+1))
+                        print("********** Trimming bad frames from channel {:.0f} ***********\n".format(zz+1), flush=True)
                         ngood_fr_ch = len(final_good_index_list)
                         #counter = 0
                         if "stat" in badfr_critn_tmp:
@@ -1144,7 +1144,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             if plot_tmp:
                                 plt.savefig(outpath+"badfr_corr_plot{}_ch{:.0f}.pdf".format(labels[fi],zz),bbox_inches='tight')                                                               
                             #counter+=1
-                        print("At the end of channel {:.0f}, we keep {:.0f}/{:.0f} ({:.0f}%) frames\n".format(zz+1,len(final_good_index_list),ngood_fr_ch,100*(len(final_good_index_list)/ngood_fr_ch)))
+                        print("At the end of channel {:.0f}, we keep {:.0f}/{:.0f} ({:.0f}%) frames\n".format(zz+1,len(final_good_index_list),ngood_fr_ch,100*(len(final_good_index_list)/ngood_fr_ch)), flush=True)
                                                      
                     cube = cube[:,final_good_index_list]
                     write_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi],bad_str), cube, verbose=debug)
@@ -1163,7 +1163,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 cube_ori = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), verbose=debug)
                 cube = open_fits(outpath+"2_master{}_ASDIcube_clean_{}.fits".format(labels[fi],bad_str), verbose=debug)
                 frac_good = cube.shape[1]/cube_ori.shape[1]
-                print("In total we keep {:.1f}% of all frames of the {} cube \n".format(100*frac_good,labels[fi]))
+                print("In total we keep {:.1f}% of all frames of the {} cube \n".format(100*frac_good,labels[fi]), flush=True)
     
             if save_space:
                 system("rm {}*1bpcorr.fits".format(outpath))
@@ -1525,6 +1525,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             print("original scal guess: ",fwhm[-1]/fwhm[:])
             print("original flux fac guess: ",fluxes[-1]/fluxes[:])
             print("final scal result: ",scal_vector)
-            print("final flux fac result ({:.0f}): ".format(nfp),flux_fac_vec)
+            print("final flux fac result ({:.0f}): ".format(nfp),flux_fac_vec, flush=True)
             write_fits(outpath+final_scalefac_name, scal_vector, verbose=debug)
             write_fits(outpath+"final_flux_fac.fits", flux_fac_vec, verbose=debug)
