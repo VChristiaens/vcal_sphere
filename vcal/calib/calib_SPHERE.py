@@ -1433,7 +1433,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     
             if not isfile(outpath_ifs_fits+"spectra_pos.fits") or overwrite_sof or overwrite_fits:
                 command = "esorex sph_ifs_spectra_positions"
-                if mode == "YJH":
+                if True: #mode == "YJH":
                     command += " --ifs.spectra_positions.hmode=TRUE"
                 else:
                     command += " --ifs.spectra_positions.hmode=FALSE"
