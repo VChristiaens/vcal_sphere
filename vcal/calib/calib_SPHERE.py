@@ -1513,7 +1513,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     hdul = fits.open(inpath+wave_calib_list_ifs[ii])
                     wc_head = hdul[0].header
                     cube = hdul[0].data
-                    cube = np.array(cube, dtype=np.float)
+                    cube = np.array(cube, dtype=float)
                     ## MANUAL DARK SUBTRACTION
                     dit_wc = wc_head['HIERARCH ESO DET SEQ1 DIT']
                     for nn, fdit in enumerate(dit_ifs_flat_list):
@@ -1721,7 +1721,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             for ii in range(len(sci_list_ifs)):
                 hdul = fits.open(inpath+sci_list_ifs[ii])
                 cube = hdul[0].data
-                cube = np.array(cube, dtype=np.float)
+                cube = np.array(cube, dtype=float)
                 
                 if sky:
                     tmp_tmp = open_fits("{}master_sky.fits".format(outpath_ifs_fits))
@@ -1839,7 +1839,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             for ii in range(len(cen_list_ifs)):
                 hdul = fits.open(inpath+cen_list_ifs[ii])
                 cube = hdul[0].data
-                cube = np.array(cube, dtype=np.float)
+                cube = np.array(cube, dtype=float)
                 
                 if sky:
                     tmp_tmp = open_fits("{}master_sky.fits".format(outpath_ifs_fits))
@@ -1959,7 +1959,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             for ii in range(len(psf_list_ifs)):
                 hdul = fits.open(inpath+psf_list_ifs[ii])
                 cube = hdul[0].data
-                cube = np.array(cube, dtype=np.float)
+                cube = np.array(cube, dtype=float)
 
                 if sky:
                     tmp_tmp = open_fits("{}master_psf_sky.fits".format(outpath_ifs_fits))
