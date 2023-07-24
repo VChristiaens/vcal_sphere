@@ -192,8 +192,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     npc_psf = params_calib.get('npc_psf',npc)
     dark_ifs = params_calib.get('dark_ifs',[None]) # list containing either False or any combination of 'OBJ', 'PSF', 'CEN' and 'FLAT'. Tells whether to subtract the MASTER dark, and if so for which type of files. Recommended: either [False] or ['FLAT'] (in most cases a SKY is available for OBJ, CEN or PSF which already includes a DARK). If ['FLAT'] just provide a DARK file with the min DIT among FLATs in the raw folder (and remove the DARK of the OBJ!).
     indiv_fdark = params_calib.get('indiv_fdark',1)  # whether subtract individual dark to each flat
-    poly_order_wc = params_calib.get('poly_order_wc',1) # used to find wavelength model
-    wc_win_sz = params_calib.get('wc_win_sz',2)# default: 4
+    poly_order_wc = params_calib.get('poly_order_wc', 2) # used to find wavelength model
+    wc_win_sz = params_calib.get('wc_win_sz', 4)# default: 4
     sky=params_calib.get('sky',1) # for IFS only, will subtract the sky before the science_dr recipe (corrects also for dark, incl. bias, and vast majority of bad pixels!!)
     verbose=params_calib.get('verbose',1)
     nproc = params_calib.get('nproc', int(cpu_count() / 2))  # number of processors to use, default cpu_count()/2 for efficiency
@@ -1082,19 +1082,14 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             if verbose:
                 print("*** 10. IFS: Compiling DARKs ***", flush=True)
             dark_list_ifs = dico_lists['dark_list_ifs']
-            if len(dark_list_ifs)<1:
+            if len(dark_list_ifs) < 1:
                 raise ValueError("There should be at least one dark! Double-check archive?")
-            ## OBJECT
-            #if not isfile(outpath_ifs_sof+"master_dark.sof") or overwrite_sof:
-            dark_list_ifs = dico_lists['dark_list_ifs']
-            #nd = len(dark_list_ifs)
-            #nd_fr = dark_cube.shape[0]
-            #counter = 0
-            #nmd_fr = int(nd_fr*nd)
-            master_dark_cube = [] #] np.zeros([nmd_fr,dark_cube.shape[1],dark_cube.shape[2]])
+
+            # ALL DARKS
+            master_dark_cube = []
             with open(outpath_ifs_sof+"master_dark.sof", 'w+') as f:
                 for ii in range(len(dark_list_ifs)):
-                    dark_cube, dark_head = open_fits(inpath+dark_list_ifs[ii], header=True)
+                    dark_cube, dark_head = open_fits(inpath+dark_list_ifs[ii], header=True, verbose=False)
                     f.write(inpath+dark_list_ifs[ii]+'\t'+'IFS_DARK_RAW\n')
                     if dark_cube.ndim == 3:
                         if ii == 0:
@@ -1103,10 +1098,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             tmp = [dark_cube[i] for i in range(dark_cube.shape[0])]
                             master_dark_cube.extend(tmp)
 
-                    #master_dark_cube[counter:counter+dark_cube.shape[0]] = dark_cube
-                    #counter+=dark_cube.shape[0]
             master_dark_cube = np.array(master_dark_cube)
-            write_fits(outpath_ifs_fits+"master_dark_cube.fits", master_dark_cube)
+            write_fits(outpath_ifs_fits+"master_dark_cube.fits", master_dark_cube, verbose=False)  # saves cube of all darks
             if not isfile(outpath_ifs_fits+"master_dark.fits") or overwrite_sof or overwrite_fits:
                 command = "esorex sph_ifs_master_dark"
                 command+= " --ifs.master_dark.sigma_clip=10.0"
@@ -1118,12 +1111,11 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 
             ## FLAT DARKS
             ### subtract manually the MASTER DARK CREATED FOR EACH FLAT DIT!
-            ### Save with label "_ds" in raw folder - add it to FLAT part
-            if indiv_fdark and len(dico_lists['dit_ifs_flat'])>1:
+            ### Save with label "_darksub_flats" in raw folder - add it to FLAT part
+            if indiv_fdark and len(dico_lists['dit_ifs_flat']) > 1:
                 dit_ifs_flat_list = dico_lists['dit_ifs_flat']
-                nfdits = len(dit_ifs_flat_list)
                 fdark_list_ifs = dico_lists['flat_dark_list_ifs']
-                if len(fdark_list_ifs)<1:
+                if len(fdark_list_ifs) < 1:
                     raise ValueError("There should be at least one flat dark! Double-check archive?")
                 flat_list_ifs = dico_lists['flat_list_ifs']
                 flat_list_ifs_det = dico_lists['flat_list_ifs_det']
@@ -1131,13 +1123,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 all_flat_lists_ifs = [flat_list_ifs,flat_list_ifs_det,flat_list_ifs_det_BB]
                 nfd = len(fdark_list_ifs)
                 fdit_list_nn = []
-                hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), 
-                                       ignore_missing_end=False,
-                                       memmap=True)
-                bpmap = hdulist_bp[0].data #vip_hci.fits.open_fits("{}master_badpixelmap.fits".format(outpath_ifs_fits))
+
                 for nn, fdit in enumerate(dit_ifs_flat_list):
-                    ## first open an example dark
-                    dark_cube = open_fits(inpath+fdark_list_ifs[0], header=False)
+                    dark_cube = open_fits(inpath+fdark_list_ifs[0], verbose=False)  # first open an example dark
                     nd_fr = dark_cube.shape[0]
                     counter = 0
                     nmd_fr = int(nd_fr*nfd)
@@ -1147,7 +1135,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     #if not isfile(outpath_ifs_sof+"master_fdark{:.0f}.sof".format(nn)) or overwrite_sof:
                     with open(outpath_ifs_sof+"master_fdark{:.0f}.sof".format(nn), 'w+') as f:
                         for dd in range(nfd):
-                            dark_cube, fdark_head = open_fits(inpath+fdark_list_ifs[dd], header=True)
+                            dark_cube, fdark_head = open_fits(inpath+fdark_list_ifs[dd], header=True, verbose=False)
                             dit_fdark = fdark_head['HIERARCH ESO DET SEQ1 DIT']
                             if dit_fdark == fdit:
                                 f.write(inpath+fdark_list_ifs[dd]+'\t'+'IFS_DARK_RAW\n')
