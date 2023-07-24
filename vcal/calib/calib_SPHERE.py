@@ -1084,15 +1084,12 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             dark_list_ifs = dico_lists['dark_list_ifs']
             if len(dark_list_ifs)<1:
                 raise ValueError("There should be at least one dark! Double-check archive?")
-            else:
-                ### always read DIT in header
-                dark_cube, dark_head = open_fits(inpath+dark_list_ifs[0], header=True)
             ## OBJECT
             #if not isfile(outpath_ifs_sof+"master_dark.sof") or overwrite_sof:
             dark_list_ifs = dico_lists['dark_list_ifs']
             #nd = len(dark_list_ifs)
             #nd_fr = dark_cube.shape[0]
-            counter = 0
+            #counter = 0
             #nmd_fr = int(nd_fr*nd)
             master_dark_cube = [] #] np.zeros([nmd_fr,dark_cube.shape[1],dark_cube.shape[2]])
             with open(outpath_ifs_sof+"master_dark.sof", 'w+') as f:
@@ -1109,7 +1106,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     #master_dark_cube[counter:counter+dark_cube.shape[0]] = dark_cube
                     #counter+=dark_cube.shape[0]
             master_dark_cube = np.array(master_dark_cube)
-            write_fits(outpath_ifs_fits+"master_dark_cube.fits", master_dark_cube[:counter])
+            write_fits(outpath_ifs_fits+"master_dark_cube.fits", master_dark_cube)
             if not isfile(outpath_ifs_fits+"master_dark.fits") or overwrite_sof or overwrite_fits:
                 command = "esorex sph_ifs_master_dark"
                 command+= " --ifs.master_dark.sigma_clip=10.0"
