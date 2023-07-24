@@ -96,8 +96,8 @@ STEPS:
     "specpos_distort_corr": False, # See sph_ifs_spectra_positions description
     "specpos_nonlin_corr": True, # See sph_ifs_spectra_positions description
     ## wave calib
-    "poly_order_wc":1, # used for wavelength model
-    "wc_win_sz": 2, # default: 4 but worked well with 2 on 2019-2020 datasets
+    "poly_order_wc": 2, # used for wavelength model, default 2 in SPHERE pipeline. The order of the polynomial to use for the wavelength model. For example, if the order is 1, a linear model with constant dispersion is assumed.
+    "wc_win_sz": 4, # default is 4 but worked well with 2 on 2019-2020 datasets. Half the tolerance around the predicted wavelength position to search for the actual maximum. This value should absolutely be smaller than the minimal distance between line wavelengths (in pixels).
     ## sky
     "sky": True, # for IFS only, whether to manually subtract sky before reduction
     "manual_sky": True, # for EITHER IRDIS or IFS, whether to subtract residual bkg level manually *after* reduction (recommended). Note: for IRDIS, the value is irrelevant if pca_subtr is set to True.
