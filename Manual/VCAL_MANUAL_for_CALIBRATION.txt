@@ -41,7 +41,7 @@ STEPS:
     "dit_cen_irdis": float, integration time of CENTER IRDIS observations to be considered
     "instr": str, instrument name in file name
     "comb_iflt": str, optional, value for 'INS.COMB.IFLT' header keyword to be considered for the science cubes of interest. If not provided, will automatically search for the value with the largest occurrence in fits file headers in inpath.
-    "mode": str, IFS mode (used for spectra positions). E.g. "YJH" or "YJ". Does not matter if only IRDIS data are reduced.
+    "mode": str, IFS mode (used for spectra positions). E.g. "YJH" or "YJ". Does not matter if only IRDIS data are reduced. Given by the INS2 COMB IFS keyword. OBS_YJ or OBS_H (YJH).
 
 # TO DO LIST:
     "do_irdis": bool, whether to reduce IRDIS data
