@@ -4,21 +4,22 @@
 Utility routines for calibration and data sorting.
 """
 
-__author__='V. Christiaens'
-__all__=['make_lists',
-         'sph_ifs_correct_spectral_xtalk']
+__author__ = 'V. Christiaens'
+__all__ = ['make_lists',
+           'sph_ifs_correct_spectral_xtalk']
 
-#PURPOSE: create sof files for esorex, for both IFS and IRDIS data
-import numpy as np
-import os
-from astropy.convolution import convolve
-#import pdb
+from os import listdir
 from os.path import isfile, join
+
+import numpy as np
+from astropy.convolution.convolve import convolve
+
 from vip_hci.fits import open_fits
 
 instr = 'SPHER' # instrument name in file name
 
 
+# create sof files for esorex, for both IFS and IRDIS data
 def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None, 
                dit_psf_ifs=None, dit_psf_irdis=None, dit_cen_ifs=None, 
                dit_cen_irdis=None, filt1=None, filt2=None, readonly=False):
@@ -86,7 +87,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
     
     if not readonly:    
     
-        file_list = [f for f in os.listdir(inpath) if isfile(join(inpath, f))] # all files in inpaths
+        file_list = [f for f in listdir(inpath) if isfile(join(inpath, f))] # all files in inpaths
         fits_list = []
         calib_list = []
         ifs_mode = []    
