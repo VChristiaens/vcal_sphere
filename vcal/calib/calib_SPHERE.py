@@ -8,26 +8,31 @@ Module with the calibration routine for SPHERE data.
 __author__ = 'V. Christiaens'
 __all__ = ['calib']
 
-from astropy.io import fits
-from astropy.stats import sigma_clipped_stats
-import ast
-import csv
-import glob
-import json
-import numpy as np
 import os
-import pdb
-from os.path import isfile, isdir
 import pathlib
-import photutils
+from pdb import set_trace
+from ast import literal_eval
+from csv import writer, reader
+from glob import glob
+from json import load
 from multiprocessing import cpu_count
+from os.path import isfile, isdir
+
+from matplotlib import use as mpl_backend
+import numpy as np
+from astropy.io import fits
+from astropy.stats.sigma_clipping import sigma_clipped_stats
+from photutils.aperture import aperture_photometry, CircularAperture, CircularAnnulus
+
+from hciplot import plot_frames
+from vcal import __path__ as vcal_path
 from vip_hci.fits import open_fits, write_fits
-from vip_hci.var import frame_center, create_ringed_spider_mask, mask_circle
-from vip_hci.metrics import peak_coordinates
+from vip_hci.metrics.detection import peak_coordinates
 from vip_hci.preproc import frame_shift, cube_subtract_sky_pca, cube_fix_badpix_clump
+from vip_hci.var import frame_center, create_ringed_spider_mask, mask_circle
 from ..utils import make_lists, sph_ifs_correct_spectral_xtalk, most_common
 
-from vcal import __path__ as vcal_path
+mpl_backend('Agg')
 
 
 def calib(params_calib_name='VCAL_params_calib.json'):
@@ -47,7 +52,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     
     """
     with open(params_calib_name, 'r') as read_file_params_calib:
-        params_calib = json.load(read_file_params_calib)
+        params_calib = load(read_file_params_calib)
 
     path = params_calib['path'] #"/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/" # parent path
     if path[-1] != '/':
@@ -64,7 +69,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
         msg = "comb_iflt not provided => will automatically search most common"
         msg += " observing mode in fits headers..."
         print(msg, flush=True)
-        fitsfiles = glob.glob(inpath+'*.fits')
+        fitsfiles = glob(inpath+'*.fits')
         iflt_list = []
         for ff, ffile in enumerate(fitsfiles):
             _, head = open_fits(ffile, header=True, verbose=False)
@@ -79,7 +84,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
         raise TypeError("vcal does not handle DPI data => use IRDAP")   
     
     with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
-        filt_spec = json.load(filt_spec_file)[comb_iflt]  # Get infos of current filters combinaison
+        filt_spec = load(filt_spec_file)[comb_iflt]  # Get infos of current filters combinaison
     
     
     # subdirectories
@@ -205,17 +210,14 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     xtalkcorr_lab_IFS = "xtalkcorr_IFS/"
     
     ## 0. Create list of dictionaries
-    if verbose:
-        print("*** 0. Creating list of dictionaries with different file types ***", flush=True)
     if 0 in to_do or not isfile(path+"dico_files.csv"):
-        dico_lists = make_lists(inpath, outpath_filenames, dit_ifs=dit_ifs, 
-                                dit_irdis=dit_irdis, dit_psf_ifs=dit_psf_ifs, 
-                                dit_psf_irdis=dit_psf_irdis, 
-                                dit_cen_ifs=dit_cen_ifs, 
-                                dit_cen_irdis=dit_cen_irdis, filt1=filt1, 
-                                filt2=filt2)
+        if verbose:
+            print("*** 0. Creating list of dictionaries with different file types ***", flush=True)
+        dico_lists = make_lists(inpath, outpath_filenames, dit_ifs=dit_ifs, dit_irdis=dit_irdis,
+                                dit_psf_ifs=dit_psf_ifs, dit_psf_irdis=dit_psf_irdis, dit_cen_ifs=dit_cen_ifs,
+                                dit_cen_irdis=dit_cen_irdis, filt1=filt1, filt2=filt2)
         with open(path+"dico_files.csv",'w') as dico_file:
-            w =  csv.writer(dico_file)
+            w = writer(dico_file)
             for key, val in dico_lists.items():
                 w.writerow([key, val])
                 dico_file.flush()
@@ -223,9 +225,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
 
     else:
         dico_lists = {}
-        reader = csv.reader(open(path+'dico_files.csv', 'r'))
-        for row in reader:
-             dico_lists[row[0]] = ast.literal_eval(row[1])
+        csv_file = reader(open(path+'dico_files.csv', 'r'))
+        for row in csv_file:
+             dico_lists[row[0]] = literal_eval(row[1])
         
     ## 1-5 IRDIS
     if do_irdis:
@@ -1040,7 +1042,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                     ap = (int(rad/4),int(rad/4))
                                 else:
                                     ap = (int(rad/4),nx-int(rad/4))                                    
-                                aper = photutils.CircularAperture(ap, r=int(rad/8)) # small r because risk of aberrant values near edges
+                                aper = CircularAperture(ap, r=int(rad/8)) # small r because risk of aberrant values near edges
                                 aper_mask = aper.to_mask(method='center')
                                 aper_data = aper_mask.multiply(tmp[zz])
                                 masked_data = aper_data[aper_mask.data > 0]
@@ -1050,9 +1052,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             else:
                                 r_in = int(min(0.5*rad,edge-25)) # 25px ~ 5-6*lambda/D in most cases
                                 r_out = int(min(0.75*rad,edge-5)) # 5px ~ 1-1.2*lambda/D in most cases
-                                ann_aper = photutils.CircularAnnulus((peak_x,peak_y), 
-                                                                     r_in=r_in, 
-                                                                     r_out=r_out)
+                                ann_aper = CircularAnnulus((peak_x,peak_y), r_in=r_in, r_out=r_out)
                                 ann_mask = ann_aper.to_mask(method='center')
                                 ann_data = ann_mask.multiply(tmp[zz])
                                 masked_data = ann_data[ann_mask.data > 0]
@@ -1063,7 +1063,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         hdul.writeto(prod, output_verify='ignore', overwrite=True)
 
 
-            # MOVE ALL FILES TO OUTPATH                  
+            # MOVE ALL FILES TO OUTPATH
             os.system("mv {}*.fits {}.".format(curr_path,outpath_irdis_fits))
     
     # 10-19 IFS
@@ -1103,7 +1103,6 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             if not isfile(outpath_ifs_fits+"master_dark.fits") or overwrite_sof or overwrite_fits:
                 command = "esorex sph_ifs_master_dark"
                 command+= " --ifs.master_dark.sigma_clip=10.0"
-                #command+= " --ifs.master_dark.save_addprod=TRUE"
                 command+= " --ifs.master_dark.outfilename={}master_dark.fits".format(outpath_ifs_fits)
                 command+= " --ifs.master_dark.badpixfilename={}master_badpixelmap.fits".format(outpath_ifs_fits)
                 command+= " {}master_dark.sof".format(outpath_ifs_sof)
@@ -1123,7 +1122,10 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 all_flat_lists_ifs = [flat_list_ifs,flat_list_ifs_det,flat_list_ifs_det_BB]
                 nfd = len(fdark_list_ifs)
                 fdit_list_nn = []
+                all_median_darks = []
 
+                if verbose:
+                    print('Flat DITs: {} sec, attempting to match with darks of same DIT'.format(dit_ifs_flat_list), flush=True)
                 for nn, fdit in enumerate(dit_ifs_flat_list):
                     dark_cube = open_fits(inpath+fdark_list_ifs[0], verbose=False)  # first open an example dark
                     nd_fr = dark_cube.shape[0]
@@ -1131,62 +1133,66 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     nmd_fr = int(nd_fr*nfd)
                     master_dark_cube = np.zeros([nmd_fr,dark_cube.shape[1],dark_cube.shape[2]])
                     fdit_list_nn.append((nn,fdit))
+
                     # CREATE master DARK for each DIT of raw FLAT
                     #if not isfile(outpath_ifs_sof+"master_fdark{:.0f}.sof".format(nn)) or overwrite_sof:
                     with open(outpath_ifs_sof+"master_fdark{:.0f}.sof".format(nn), 'w+') as f:
                         for dd in range(nfd):
+                            # loop over darks and grab the ones that match the exposure time of the flat
                             dark_cube, fdark_head = open_fits(inpath+fdark_list_ifs[dd], header=True, verbose=False)
                             dit_fdark = fdark_head['HIERARCH ESO DET SEQ1 DIT']
                             if dit_fdark == fdit:
                                 f.write(inpath+fdark_list_ifs[dd]+'\t'+'IFS_DARK_RAW\n')
-                                master_dark_cube[counter:counter+dark_cube.shape[0]]=dark_cube
-                                counter+=dark_cube.shape[0]
-                    write_fits(outpath_ifs_fits+"master_dark_cube{:.0f}.fits".format(nn),master_dark_cube[:counter])
+                                master_dark_cube[counter:counter+dark_cube.shape[0]] = np.copy(dark_cube)
+                                counter += dark_cube.shape[0]
+                    write_fits(outpath_ifs_fits+"master_dark_cube{:.0f}.fits".format(nn),master_dark_cube[:counter], verbose=False)
                     if not isfile(outpath_ifs_fits+"master_dark{:.0f}.fits".format(nn)) or overwrite_sof or overwrite_fits:
                         command = "esorex sph_ifs_master_dark"
-                        command+= " --ifs.master_dark.sigma_clip=10.0"
-                        #command+= " --ifs.master_dark.save_addprod=TRUE"
-                        command+= " --ifs.master_dark.outfilename={}master_dark{:.0f}.fits".format(outpath_ifs_fits,nn)
-                        command+= " --ifs.master_dark.badpixfilename={}master_badpixelmap{:.0f}.fits".format(outpath_ifs_fits,nn)
-                        command+= " {}master_fdark{:.0f}.sof".format(outpath_ifs_sof,nn)
-                        os.system(command)                
-                        # find raw flats with same dit and subtract master dark
-                    
+                        command += " --ifs.master_dark.sigma_clip=10.0"
+                        command += " --ifs.master_dark.outfilename={}master_dark{:.0f}.fits".format(outpath_ifs_fits,nn)
+                        command += " --ifs.master_dark.badpixfilename={}master_badpixelmap{:.0f}.fits".format(outpath_ifs_fits,nn)
+                        command += " {}master_fdark{:.0f}.sof".format(outpath_ifs_sof,nn)
+                        os.system(command)
+                    all_median_darks.append(open_fits(outpath_ifs_fits + "master_dark{:.0f}.fits".format(nn), verbose=False))
+
                     # SUBTRACT DARK
-                    ## just subtract median
-                    master_dark_tmp = open_fits("{}master_dark{:.0f}.fits".format(outpath_ifs_fits,nn))
+                    ## find raw flats with same dit and subtract master dark
+                    master_dark_tmp = open_fits("{}master_dark{:.0f}.fits".format(outpath_ifs_fits,nn), verbose=False)
                     for nf in range(len(all_flat_lists_ifs)):
                         for ff, ff_name in enumerate(all_flat_lists_ifs[nf]):
-                            hdulist = fits.open(inpath+ff_name, 
-                                            ignore_missing_end=False,
-                                            memmap=True)
+                            hdulist = fits.open(inpath+ff_name, ignore_missing_end=False, memmap=True)
                             flat = hdulist[0].data
                             ff_head = hdulist[0].header
-                            #flat, ff_head = vip_hci.fits.open_fits(inpath+ff_name, header=True)
                             dit_flat = ff_head['HIERARCH ESO DET SEQ1 DIT']
                             if dit_flat == fdit:
                                 hdulist[0].data = flat-master_dark_tmp
-                                hdulist.writeto(inpath+label_ds+ff_name, output_verify='ignore', overwrite=True)#, output_verify)
-                                #vip_hci.fits.write_fits(inpath+label_ds+ff_name,flat-master_dark_tmp)
-                                
+                                hdulist.writeto(inpath+label_ds+ff_name, output_verify='ignore', overwrite=True)
+
+                np.save(outpath_ifs_fits + 'flat_dark_dits.npy', fdit_list_nn)  # used later in spec_pos
+                # make vmin, vmax and labels with integration time for plot
+                labels = tuple([s+' sec' for s in [str(dit_ifs_flat_list) for dit_ifs_flat_list in dit_ifs_flat_list]])
+                vmax = tuple(np.percentile(frame, 98) for frame in all_median_darks)
+                vmin = tuple(np.percentile(frame, 2) for frame in all_median_darks)
+                plot_frames(tuple(all_median_darks), vmax=vmax, vmin=vmin, cmap='inferno', dpi=300, label=labels,
+                            save=outpath_ifs_fits + 'all_master_darks.pdf')
+
             # CREATE FAKE MASTER DARK BUT WITH TRUE BAD PIXEL MAP! 
             ## NOTE: BAD PIXEL MAP should always be the one obtained with the DARK with the longest DIT
             if indiv_fdark:
-                lab='{:.0f}'.format(len(dit_ifs_flat_list)-1)
+                # copy bad pixel map of longest DIT dark and rename it
                 os.system("rsync -va {}master_badpixelmap{:.0f}.fits {}master_badpixelmap.fits".format(outpath_ifs_fits,len(dit_ifs_flat_list)-1,outpath_ifs_fits))
                 hdulist = fits.open("{}master_dark{}.fits".format(outpath_ifs_fits,'{:.0f}'.format(len(dit_ifs_flat_list)-1)), 
-                                    ignore_missing_end=False,
-                                    memmap=True)
+                                    ignore_missing_end=False, memmap=True)  # open longest DIT dark
                 dark = hdulist[0].data
                 hdulist[0].data = np.zeros_like(dark)
-                hdulist.writeto("{}{}master_dark.fits".format(outpath_ifs_fits,label_fd), 
-                                output_verify='ignore', overwrite=True)
+                hdulist.writeto("{}{}master_dark.fits".format(outpath_ifs_fits,label_fd), output_verify='ignore',
+                                overwrite=True)
             
         # GAINS
         if 11 in to_do:
             if verbose:
                 print("*** 11. IFS: Calculating gains ***", flush=True)
-            ## OBJECT
+
             if not isfile(outpath_ifs_sof+"master_gain.sof") or overwrite_sof:
                 gain_list_ifs = dico_lists['gain_list_ifs']
                 with open(outpath_ifs_sof+"master_gain.sof", 'w+') as f:
@@ -1194,20 +1200,20 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         f.write(inpath+gain_list_ifs[ii]+'\t'+'IFS_GAIN_RAW\n')
             if not isfile(outpath_ifs_fits+"master_gain.fits") or overwrite_sof or overwrite_fits:
                 command = "esorex sph_ifs_gain"
-                command+= " --ifs.gain.outfilename={}master_gain_map.fits".format(outpath_ifs_fits)
-                command+= " --ifs.gain.nonlin_filename={}nonlin_map.fits".format(outpath_ifs_fits)
-                command+= " --ifs.gain.nonlin_bpixname={}nonlin_badpixelmap.fits".format(outpath_ifs_fits)
-                command+= " --ifs.gain.vacca=TRUE"
-                command+= " {}master_gain.sof".format(outpath_ifs_sof)
+                command += " --ifs.gain.outfilename={}master_gain_map.fits".format(outpath_ifs_fits)
+                command += " --ifs.gain.nonlin_filename={}nonlin_map.fits".format(outpath_ifs_fits)
+                command += " --ifs.gain.nonlin_bpixname={}nonlin_badpixelmap.fits".format(outpath_ifs_fits)
+                command += " --ifs.gain.vacca=TRUE"
+                command += " {}master_gain.sof".format(outpath_ifs_sof)
                 os.system(command)
                 
         # MASTER DETECTOR FLAT (4 steps - see MANUAL)
-        if 12 in to_do: # to check whether it should be set to True
+        if 12 in to_do:
             if verbose:
                 print("*** 12. IFS: Calculating detector FLAT-FIELD ***", flush=True)
             flat_list_ifs_det_BB = dico_lists['flat_list_ifs_det_BB']
-            flat_list_ifs_det = dico_lists['flat_list_ifs_det']         
-            lab_flat = ''     
+            flat_list_ifs_det = dico_lists['flat_list_ifs_det']
+            lab_flat = ''
                
             #0. xtalk corr them all if needed
             if xtalk_corr:
@@ -1216,33 +1222,26 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     cube = hdul[0].data
                     ## CROSS-TALK CORR
                     for j in range(cube.shape[0]):
-                        cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill', 
-                                                                 fill_value=0)
+                        cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill', fill_value=0)
                     hdul[0].data = cube
                     lab_flat = xtalkcorr_lab_IFS
-                    hdul.writeto(inpath+xtalkcorr_lab_IFS+label_ds+flat_list_ifs_det_BB[ii], output_verify='ignore', overwrite=True)      
-                    #pdb.set_trace()
+                    hdul.writeto(inpath+xtalkcorr_lab_IFS+label_ds+flat_list_ifs_det_BB[ii], output_verify='ignore', overwrite=True)
+
                 for ii in range(len(flat_list_ifs_det)):
                     hdul = fits.open(inpath+label_ds+flat_list_ifs_det[ii])
                     cube = hdul[0].data
                     ## CROSS-TALK CORR
                     for j in range(cube.shape[0]):
-                        cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill', 
-                                                                 fill_value=0)
+                        cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill', fill_value=0)
                     hdul[0].data = cube
                     lab_flat = xtalkcorr_lab_IFS
                     hdul.writeto(inpath+xtalkcorr_lab_IFS+label_ds+flat_list_ifs_det[ii], output_verify='ignore', overwrite=True)      
-                    #pdb.set_trace()
+
             
             # 1. White preamp flat field (for stripe correction)
             with open(outpath_ifs_sof+"preamp.sof", 'w+') as f:
-                #max_dit_flat = 0
                 for ii in range(len(flat_list_ifs_det_BB)):
-                    tmp, header = open_fits(inpath+flat_list_ifs_det_BB[ii], header=True)
                     f.write(inpath+lab_flat+label_ds+flat_list_ifs_det_BB[ii]+'\t'+'IFS_DETECTOR_FLAT_FIELD_RAW\n')
-#                        if float(header['EXPTIME'])>max_dit_flat:
-#                            max_dit_flat = float(header['EXPTIME'])
-#                    tmp, header = open_fits("{}master_dark.fits".format(outpath_ifs_fits), header=True)
                 if ('FLAT' in dark_ifs and not indiv_fdark) or indiv_fdark:
                     f.write("{}master_dark.fits".format(outpath_ifs_fits+label_fd)+'\t'+'IFS_MASTER_DARK\n')
                 f.write("{}master_badpixelmap.fits".format(outpath_ifs_fits)+'\t'+'IFS_STATIC_BADPIXELMAP')
@@ -1403,31 +1402,33 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     else:
                         f.write("{}master_flat_det_l5.fits".format(outpath_ifs_fits)+'\t'+'IFS_INSTRUMENT_FLAT_FIELD\n')
                     if indiv_fdark:
-                        tmp, header = open_fits(inpath+specpos_IFS[ii], header=True)
+                        tmp, header = open_fits(inpath+specpos_IFS[ii], header=True, verbose=False)
+                        fdit_list_nn = np.load(outpath_ifs_fits + 'flat_dark_dits.npy')
                         for ff in range(nfdits):
                             if fdit_list_nn[ff][1] == header['EXPTIME']:
                                 nn = fdit_list_nn[ff][0]
                                 break
                             elif ff == nfdits-1:
                                 print("no master dark with appropriate DIT was found for spec_pos", flush=True)
-                                pdb.set_trace()
+                                set_trace()
                         f.write("{}master_dark{:.0f}.fits".format(outpath_ifs_fits,nn)+'\t'+'IFS_MASTER_DARK\n')
                     elif 'SPEC_POS' in dark_ifs:
                         f.write("{}master_dark.fits".format(outpath_ifs_fits)+'\t'+'IFS_MASTER_DARK\n')
-                        
-                    
+                    if mode == 'YJ':
+                        f.write("{}ifs_lenslet_model_Y_J.txt".format(inpath_filt_table)+'\t'+'IFS_LENSLET_MODEL\n')
+
             if not isfile(outpath_ifs_fits+"spectra_pos.fits") or overwrite_sof or overwrite_fits:
                 command = "esorex sph_ifs_spectra_positions"
-                if True: #mode == "YJH":
+                if mode == "YJH":
                     command += " --ifs.spectra_positions.hmode=TRUE"
-                else:
+                elif mode == "YJ":
                     command += " --ifs.spectra_positions.hmode=FALSE"
                 if not specpos_distort_corr:
                     command += " --ifs.spectra_positions.distortion=FALSE"
                 if not specpos_nonlin_corr:
                     command += " --ifs.spectra_positions.correct_nonlin=FALSE"
-                command+= " --ifs.spectra_positions.outfilename={}spectra_pos.fits".format(outpath_ifs_fits)
-                command+= " {}spectra_pos.sof".format(outpath_ifs_sof)
+                command += " --ifs.spectra_positions.outfilename={}spectra_pos.fits".format(outpath_ifs_fits)
+                command += " {}spectra_pos.sof".format(outpath_ifs_sof)
                 os.system(command)
                 
         # TOTAL INSTRUMENT FLAT
@@ -1449,7 +1450,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             if not isfile(lab_sof) and jj==4: # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode) 
                                 continue
                             elif not isfile(lab_sof):
-                                pdb.set_trace() # check what's happening
+                                set_trace() # check what's happening
                             if jj == 5:
                                 lab = "BB"
                             else:
@@ -1591,7 +1592,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             if not isfile(lab_sof) and jj==4: # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode) 
                                 continue
                             elif not isfile(lab_sof):
-                                pdb.set_trace() # check what's happening
+                                set_trace() # check what's happening
                             if jj == 5:
                                 lab = "BB"
                             else:
@@ -1661,7 +1662,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             if len(psf_sky_list_ifs) < 1:
                 psf_sky_list_ifs = dico_lists['psf_ins_bg_list_ifs']
             if len(psf_sky_list_ifs) < 1:
-                master_psf_sky = master_sky.copy() #assume that bkg and DARK current are negligible compared to bias
+                master_psf_sky = np.copy(master_sky) #assume that bkg and DARK current are negligible compared to bias
                 write_fits("{}dit_psf_sky.fits".format(outpath_ifs_fits), np.array([dit_ifs]))
             else:
                 write_fits("{}dit_psf_sky.fits".format(outpath_ifs_fits), np.array([dit_psf_ifs]))
@@ -1750,7 +1751,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             if not isfile(lab_sof) and jj==4: # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode) 
                                 continue
                             elif not isfile(lab_sof):
-                                pdb.set_trace() # check what's happening                                
+                                set_trace() # check what's happening
                             if jj == 5:
                                 lab = "BB"
                             else:
@@ -1800,8 +1801,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         for zz in range(tmp.shape[0]):
                             fluxes = np.zeros(len(corner_coords))
                             for aa, ap in enumerate(corner_coords):
-                                aper = photutils.CircularAperture(ap, r=msky_ap)
-                                flux_tmp = photutils.aperture_photometry(tmp[zz], aper, method='exact')
+                                aper = CircularAperture(ap, r=msky_ap)
+                                flux_tmp = aperture_photometry(tmp[zz], aper, method='exact')
                                 fluxes[aa] = np.array(flux_tmp['aperture_sum'])
                             avg = np.median(fluxes)/(np.pi*msky_ap**2)
                             tmp[zz] = tmp[zz] - avg
@@ -1871,7 +1872,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             if not isfile(lab_sof) and jj==4: # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode) 
                                 continue
                             elif not isfile(lab_sof):
-                                pdb.set_trace() # check what's happening        
+                                set_trace() # check what's happening
                             if jj == 5:
                                 lab = "BB"
                             else:
@@ -1920,8 +1921,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         for zz in range(tmp.shape[0]):
                             fluxes = np.zeros(len(corner_coords))
                             for aa, ap in enumerate(corner_coords):
-                                aper = photutils.CircularAperture(ap, r=msky_ap)
-                                flux_tmp = photutils.aperture_photometry(tmp[zz], aper, method='exact')
+                                aper = CircularAperture(ap, r=msky_ap)
+                                flux_tmp = aperture_photometry(tmp[zz], aper, method='exact')
                                 fluxes[aa] = np.array(flux_tmp['aperture_sum'])
                             avg = np.median(fluxes)/(np.pi*msky_ap**2)
                             tmp[zz] = tmp[zz] - avg
@@ -1987,7 +1988,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             if not isfile(lab_sof) and jj==4: # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode) 
                                 continue
                             elif not isfile(lab_sof):
-                                pdb.set_trace() # check what's happening        
+                                set_trace() # check what's happening
                             if jj == 5:
                                 lab = "BB"
                             else:
@@ -2024,8 +2025,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         for zz in range(tmp.shape[0]):
                             fluxes = np.zeros(len(corner_coords_psf))
                             for aa, ap in enumerate(corner_coords_psf):
-                                aper = photutils.CircularAperture(ap, r=msky_ap_psf)
-                                flux_tmp = photutils.aperture_photometry(tmp[zz], aper, method='exact')
+                                aper = CircularAperture(ap, r=msky_ap_psf)
+                                flux_tmp = aperture_photometry(tmp[zz], aper, method='exact')
                                 fluxes[aa] = np.array(flux_tmp['aperture_sum'])
                             avg = np.median(fluxes)/(np.pi*msky_ap_psf**2)
                             tmp[zz] = tmp[zz] - avg
