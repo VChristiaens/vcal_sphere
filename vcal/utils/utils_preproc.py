@@ -15,18 +15,21 @@ __all__ = ['cube_recenter_bkg',
            'circ_interp'
            ]
 
-import pdb
+from pdb import set_trace
+
 import numpy as np
+from matplotlib import pyplot as plt
 from scipy import optimize
 from scipy.interpolate import interp1d
-from matplotlib import pyplot as plt
+
 from vip_hci.fits import write_fits
-from vip_hci.psfsub import median_sub
 from vip_hci.metrics import snr
 from vip_hci.preproc import (cube_derotate, frame_shift,
                              approx_stellar_position, cube_subsample)
-from vip_hci.var import (get_square, fit_2dgaussian, fit_2dmoffat, dist, 
+from vip_hci.psfsub import median_sub
+from vip_hci.var import (get_square, fit_2dgaussian, fit_2dmoffat, dist,
                          fit_2dairydisk, frame_center, cube_filter_lowpass)
+
 pi = np.pi
 
 
@@ -221,7 +224,7 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         print("Radial uncertainty on position from distortion unc: {:.2f} px".format(unc_r))
         if debug:
             print("Check position match with the blob in TMP_good_frame_for_fine_centering.fits")
-            pdb.set_trace()
+            set_trace()
     #if debug:
     #    write_fits(path_debug+"TMP_med_ADI_fine_recentering.fits", good_frame)
     
@@ -652,7 +655,7 @@ def snr_thresholding(snr_thr, array, fwhm, fin_cen_x, fin_cen_y, verbose=False,
             msg="No match for SNR threshold. It will now be reduced to {:.1f}"
             print(msg.format(snr_thr/2))
             snr_thr/=2
-            pdb.set_trace()
+            set_trace()
     if debug:
         plt.grid()
         plt.show()
@@ -923,7 +926,7 @@ def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
             except:
                 print("WARNING: could not find the centroid position. ")
                 print("Check the results of the fit in the df_fit data frame.")
-                pdb.set_trace()
+                set_trace()
         list_cens.append([df_fit[1],df_fit[0]])
         
     list_cens = np.array(list_cens)
