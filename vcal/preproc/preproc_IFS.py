@@ -8,38 +8,40 @@ Module for pre-processing SPHERE/IFS data using VIP.
 __author__ = 'V. Christiaens'
 __all__ = ['preproc_IFS']
 
-from astropy.io import fits
 from ast import literal_eval
 from csv import reader
 from json import load
-import matplotlib
-import matplotlib.pyplot as plt
 from multiprocessing import cpu_count
-import numpy as np
-from pandas import read_csv
-import pdb
 from os import system, listdir
 from os.path import isfile, isdir
+from pdb import set_trace
+
+import matplotlib.pyplot as plt
+import numpy as np
+from astropy.io import fits
+from matplotlib import use as mpl_backend
+from pandas.io.parsers.readers import read_csv
+
+from vcal import __path__ as vcal_path
+from vcal.utils import find_nearest
 from vip_hci.fits import open_fits, write_fits
-from vip_hci.psfsub import median_sub, MedsubParams
 from vip_hci.fm import normalize_psf
-from vip_hci.metrics import stim_map as compute_stim_map
 from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
-from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit, 
+from vip_hci.metrics import stim_map as compute_stim_map
+from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              cube_recenter_dft_upsampling, cube_shift,
-                             cube_detect_badfr_pxstats, 
-                             cube_detect_badfr_ellipticity, 
+                             cube_detect_badfr_pxstats,
+                             cube_detect_badfr_ellipticity,
                              cube_detect_badfr_correlation,
-                             cube_recenter_satspots, cube_recenter_radon, 
-                             cube_recenter_via_speckles, frame_shift, 
+                             cube_recenter_satspots, cube_recenter_radon,
+                             cube_recenter_via_speckles, frame_shift,
                              cube_crop_frames, frame_crop, cube_derotate,
                              find_scal_vector, cube_subsample)
 from vip_hci.preproc.rescaling import _cube_resc_wave
+from vip_hci.psfsub import median_sub, MedsubParams
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
 
-from vcal.utils import find_nearest
-from vcal import __path__ as vcal_path
-matplotlib.use('Agg')
+mpl_backend('Agg')
 
 
 def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json', 
@@ -782,7 +784,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         try:
                             master_cube[:,nn] = cube
                         except:
-                            pdb.set_trace()
+                            set_trace()
                         if fi!=1:
                             parang_st.append(float(header["HIERARCH ESO TEL PARANG START"]))
                             parang_nd_tmp = float(header["HIERARCH ESO TEL PARANG END"])
