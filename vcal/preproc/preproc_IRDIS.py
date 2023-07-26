@@ -8,39 +8,41 @@ Module with the preprocessing routine for SPHERE/IRDIS data.
 __author__ = 'V. Christiaens, J. Baird'
 __all__ = ['preproc_IRDIS']
 
-import ast
-from astropy.stats import sigma_clipped_stats
-from astropy.io import fits
-import csv
-import json
-import matplotlib
+from ast import literal_eval
+from csv import reader
+from json import load
+from multiprocessing import cpu_count
+from os import system, listdir
+from os.path import isfile, isdir
+from pdb import set_trace
+
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import os
-from multiprocessing import cpu_count
-import pdb
-from os.path import isfile, isdir
+from astropy.io import fits
+from astropy.stats.sigma_clipping import sigma_clipped_stats
+from matplotlib import use as mpl_backend
+from pandas.io.parsers.readers import read_csv
+
+from vcal import __path__ as vcal_path
 from vip_hci.fits import open_fits, write_fits
-from vip_hci.metrics import peak_coordinates
-from vip_hci.psfsub import median_sub, MedsubParams
 from vip_hci.fm import normalize_psf
-from vip_hci.metrics import stim_map as compute_stim_map
 from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
-from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit, cube_recenter_dft_upsampling, 
-                             frame_shift, frame_rotate, cube_detect_badfr_pxstats, 
-                             cube_detect_badfr_ellipticity, cube_detect_badfr_correlation, 
-                             frame_crop, cube_recenter_satspots, cube_recenter_radon, 
+from vip_hci.metrics import peak_coordinates
+from vip_hci.metrics import stim_map as compute_stim_map
+from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit, cube_recenter_dft_upsampling,
+                             frame_shift, frame_rotate, cube_detect_badfr_pxstats,
+                             cube_detect_badfr_ellipticity, cube_detect_badfr_correlation,
+                             frame_crop, cube_recenter_satspots, cube_recenter_radon,
                              cube_recenter_via_speckles, cube_crop_frames, check_pa_vector,
                              cube_shift, find_scal_vector, cube_derotate)
 from vip_hci.preproc.rescaling import _cube_resc_wave
+from vip_hci.psfsub import median_sub, MedsubParams
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle, frame_filter_lowpass)
-from ..utils import (cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos, 
+from ..utils import (cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos,
                      find_rot_cen, circ_interp, find_nearest)
 
-from vcal import __path__ as vcal_path
-matplotlib.use('Agg')
+mpl_backend('Agg')
 
 #**************************** PARAMS TO BE ADAPTED ****************************  
 
@@ -65,14 +67,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     """
     plt.style.use('default')
     with open(params_preproc_name, 'r') as read_file_params_preproc:
-        params_preproc = json.load(read_file_params_preproc)
+        params_preproc = load(read_file_params_preproc)
     with open(params_calib_name, 'r') as read_file_params_calib:
-        params_calib = json.load(read_file_params_calib)
+        params_calib = load(read_file_params_calib)
         
     with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
-        filt_spec = json.load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combinaison
+        filt_spec = load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combinaison
     with open(vcal_path[0] + "/instr_param/sphere.json", 'r') as instr_param_file:
-        instr_cst = json.load(instr_param_file)
+        instr_cst = load(instr_param_file)
     
     path = params_calib['path'] #"/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/" # parent path
     path_irdis = path+"IRDIS_reduction/"
@@ -237,9 +239,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     
     # List of OBJ and PSF files
     dico_lists = {}
-    reader = csv.reader(open(path+'dico_files.csv', 'r'))
-    for row in reader:
-         dico_lists[row[0]] = ast.literal_eval(row[1])
+    dico_files = reader(open(path+'dico_files.csv', 'r'))
+    for row in dico_files:
+         dico_lists[row[0]] = literal_eval(row[1])
         
     # SEPARATE LISTS FOR OBJ AND PSF
     OBJ_IRDIS_list = dico_lists['sci_list_irdis']
@@ -291,7 +293,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     if bool(to_do):
     
         if not isdir(outpath):
-            os.system("mkdir "+outpath)
+            system("mkdir "+outpath)
                 
         # Extract info from example files
         if not use_cen_only:
@@ -321,7 +323,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             #ndits.append(ndit_cen_irdis)
     
         # COMBINED LISTS OF K1 and K2 (i.e. including OBJ AND PSF AND CEN, if any)
-        all_files = os.listdir(inpath)
+        all_files = listdir(inpath)
         file_list_K1 = [name[:-5] for name in all_files if (name.startswith(instr) and name.endswith("left.fits"))]
         file_list_K2 = [name[:-5] for name in all_files if (name.startswith(instr) and name.endswith("right.fits"))]    
         file_list_K1.sort()
@@ -334,7 +336,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         # TRANSMISSION in case of a neutral density filter is used
         nd_filter_SCI = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
         
-        nd_file = pd.read_csv(nd_filename, sep = "   ", comment='#', engine="python",
+        nd_file = read_csv(nd_filename, sep = "   ", comment='#', engine="python",
                               header=None, names=['wavelength', 'ND_0.0', 'ND_1.0','ND_2.0', 'ND_3.5'])
         nd_wavelen = nd_file['wavelength']
         try:
@@ -417,7 +419,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             cube = cube[0]
                         write_fits(outpath+filename+"_1bpcorr.fits", cube, header=header)
             if save_space:
-                os.system("rm {}*total.fits".format(inpath))
+                system("rm {}*total.fits".format(inpath))
                     
     
         #******************************* RECENTERING ******************************
@@ -800,7 +802,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         msg = "Warning: large std found for calculated shifts (std_x: {:.1f}, std_y: {:.1f}) px." 
                                         msg+= "Make sure CEN cubes and sat spots fits look good."
                                         print(msg, flush=True)
-                                        pdb.set_trace()
+                                        set_trace()
                                         
                                 if not use_cen_only:
                                     # APPLY THEM TO OBJ CUBES
@@ -936,7 +938,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     master_cube.append(cube[jj])
                                 #master_cube[int(nn*ndits[fi]):int((nn+1)*ndits[fi])] = cube
                             except:
-                               pdb.set_trace()
+                               set_trace()
                             if fi!=1 and ff==0:
                                 parang_st.append(float(header["HIERARCH ESO TEL PARANG START"]))
                                 parang_nd_tmp=float(header["HIERARCH ESO TEL PARANG END"])
@@ -1706,7 +1708,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 plt.clf()
                                       
             if save_space:
-                os.system("rm {}*1bpcorr.fits".format(outpath))                                    
+                system("rm {}*1bpcorr.fits".format(outpath))
 
         #************** 7. FINAL PSF + FLUX + FWHM (incl. CROP) ***************              
         if 7 in to_do:
@@ -1760,7 +1762,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         write_fits(outpath+"4_final_psf_fluxes_{}_{}.fits".format(filt,psf_model), fluxes)            
 
             if save_space:
-                os.system("rm {}*2cen.fits".format(outpath))
+                system("rm {}*2cen.fits".format(outpath))
                                       
                 
                 
@@ -1918,7 +1920,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 write_fits(outpath+"4_final_obj_fluxes_bin{:.0f}{}_{}.fits".format(bin_fac,dist_lab,filt), fluxes)
 
             if save_space:
-                os.system("rm {}3_*.fits".format(outpath))
+                system("rm {}3_*.fits".format(outpath))
                 
         #******************* 10. SCALE FACTOR CALCULATION *********************
         if 10 in to_do and len(filters)>1 and not separate_trim:
