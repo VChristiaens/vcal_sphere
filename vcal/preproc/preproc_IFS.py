@@ -861,8 +861,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 fwhm_med = np.median(fwhm)
     
                 cube = open_fits(outpath+"1_master_ASDIcube{}.fits".format(labels[fi]), verbose=debug)
-    
-                perc = 0 #perc_min[fi]
+
                 if fi != 1:
                     badfr_critn_tmp = badfr_criteria
                     badfr_crit_tmp = badfr_crit
@@ -952,7 +951,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 roundlo = badfr_crit_tmp[idx_ell]["roundlo"]
                             if "crop_sz" in badfr_crit_tmp[idx_ell].keys():
                                 crop_sz = badfr_crit_tmp[idx_ell]["crop_sz"]
-                            crop_size = int(crop_sz*fwhm)
+                            crop_size = int(crop_sz*fwhm[zz])
                             if not crop_sz%2:
                                 crop_size+=1
                             crop_sz = min(cube[zz].shape[1]-2,crop_sz)
@@ -1099,7 +1098,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         if "corr" in badfr_critn_tmp:
                             idx_corr = badfr_critn_tmp.index("corr")
                             # default params
-                            thr = 0.8
+                            thr = None
                             perc = 0
                             ref = "median"
                             crop_sz = 10
@@ -1112,17 +1111,15 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 perc = max(perc, badfr_crit_tmp[idx_corr]["perc"])
                             if "thr" in badfr_crit_tmp[idx_corr].keys():
                                 thr = badfr_crit_tmp[idx_corr]["thr"]
-                            else:
-                                thr = None
                             if "ref" in badfr_crit_tmp[idx_corr].keys():
                                 ref = badfr_crit_tmp[idx_corr]["ref"]
-                            if ref== "median":
+                            if ref == "median":
                                 good_frame = np.median(cube[zz][final_good_index_list], axis=0)
                             else:
                                 good_frame = cube[zz,badfr_crit_tmp[idx_corr]["ref"]]
                             if "crop_sz" in badfr_crit_tmp[idx_corr].keys():
                                 crop_sz = badfr_crit_tmp[idx_corr]["crop_sz"]
-                            crop_size = int(crop_sz*fwhm)
+                            crop_size = int(crop_sz*fwhm[zz])
                             if not crop_size%2:
                                 crop_size+=1
                             if "dist" in badfr_crit_tmp[idx_corr].keys(): 
@@ -1130,15 +1127,15 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             if "mode" in badfr_crit_tmp[idx_corr].keys():
                                 mode = badfr_crit_tmp[idx_corr]["mode"]
                             if "inradius" in badfr_crit_tmp[idx_corr].keys():
-                                mode = badfr_crit_tmp[idx_corr]["inradius"]
+                                inradius = badfr_crit_tmp[idx_corr]["inradius"]
                             if "width" in badfr_crit_tmp[idx_corr].keys():
-                                mode = badfr_crit_tmp[idx_corr]["width"]
+                                width = badfr_crit_tmp[idx_corr]["width"]
                                     
                             crop_size = min(cube[zz].shape[1]-2,crop_size)
                             plot_tmp=False
                             if zz == 0 or zz == n_z-1:
                                 plot_tmp = plot
-                            good_index_list, bad_index_list = cube_detect_badfr_correlation(cube[zz], good_frame, 
+                            good_index_list, bad_index_list = cube_detect_badfr_correlation(cube[zz], good_frame,
                                                                                             crop_size=crop_size,
                                                                                             threshold=thr, dist=dist,
                                                                                             percentile=perc, mode=mode,
@@ -1276,7 +1273,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     flux = open_fits(outpath+final_fluxname+".fits", verbose=debug)
                     # only save final with VIP conventions, for use in postproc.
                     cube_norm = np.zeros_like(cube)
-                    cube_notrim_norm = np.zeros_like(cube)
+                    cube_notrim_norm = np.zeros_like(cube_notrim)
                     for zz in range(cube.shape[0]):
                         cube_norm[zz] = cube[zz]/flux[0,zz]
                         cube_notrim_norm[zz] = cube_notrim[zz]/flux[0,zz]
