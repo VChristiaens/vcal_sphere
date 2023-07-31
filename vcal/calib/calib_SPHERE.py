@@ -197,7 +197,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     npc_psf = params_calib.get('npc_psf',npc)
     dark_ifs = params_calib.get('dark_ifs',[None]) # list containing either False or any combination of 'OBJ', 'PSF', 'CEN' and 'FLAT'. Tells whether to subtract the MASTER dark, and if so for which type of files. Recommended: either [False] or ['FLAT'] (in most cases a SKY is available for OBJ, CEN or PSF which already includes a DARK). If ['FLAT'] just provide a DARK file with the min DIT among FLATs in the raw folder (and remove the DARK of the OBJ!).
     indiv_fdark = params_calib.get('indiv_fdark',1)  # whether subtract individual dark to each flat
-    poly_order_wc = params_calib.get('poly_order_wc', 2) # used to find wavelength model
+    poly_order_wc = params_calib.get('poly_order_wc', 2) # used to find wavelength model ADD CHECK
     wc_win_sz = params_calib.get('wc_win_sz', 4)# default: 4
     sky=params_calib.get('sky',1) # for IFS only, will subtract the sky before the science_dr recipe (corrects also for dark, incl. bias, and vast majority of bad pixels!!)
     verbose=params_calib.get('verbose',1)
@@ -1117,6 +1117,12 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 if len(fdark_list_ifs) < 1:
                     raise ValueError("There should be at least one flat dark! Double-check archive?")
                 flat_list_ifs = dico_lists['flat_list_ifs']
+                if len(flat_list_ifs) > 1:
+                    msg = ("More than one detector FLAT is present in the raw directory! \n"
+                           "Make sure these are close in time and have not shifted. \n"
+                           "Do you want to continue? c - continue, q - quit")
+                    print(msg, flush=True)
+                    set_trace()
                 flat_list_ifs_det = dico_lists['flat_list_ifs_det']
                 flat_list_ifs_det_BB = dico_lists['flat_list_ifs_det_BB']
                 all_flat_lists_ifs = [flat_list_ifs,flat_list_ifs_det,flat_list_ifs_det_BB]
@@ -1171,8 +1177,8 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 np.save(outpath_ifs_fits + 'flat_dark_dits.npy', fdit_list_nn)  # used later in spec_pos
                 # make vmin, vmax and labels with integration time for plot
                 labels = tuple([s+' sec' for s in [str(dit_ifs_flat_list) for dit_ifs_flat_list in dit_ifs_flat_list]])
-                vmax = tuple(np.percentile(frame, 98) for frame in all_median_darks)
-                vmin = tuple(np.percentile(frame, 2) for frame in all_median_darks)
+                vmax = tuple(np.percentile(frame, q=98) for frame in all_median_darks)
+                vmin = tuple(np.percentile(frame, q=2) for frame in all_median_darks)
                 plot_frames(tuple(all_median_darks), vmax=vmax, vmin=vmin, cmap='inferno', dpi=300, label=labels,
                             save=outpath_ifs_fits + 'all_master_darks.pdf')
 
@@ -1190,22 +1196,32 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             
         # GAINS
         if 11 in to_do:
-            if verbose:
-                print("*** 11. IFS: Calculating gains ***", flush=True)
+            gain_list_ifs = dico_lists['gain_list_ifs']
+            if len(gain_list_ifs) > 0:
+                if verbose:
+                    print("*** 11. IFS: Calculating gains ***", flush=True)
 
-            if not isfile(outpath_ifs_sof+"master_gain.sof") or overwrite_sof:
-                gain_list_ifs = dico_lists['gain_list_ifs']
-                with open(outpath_ifs_sof+"master_gain.sof", 'w+') as f:
-                    for ii in range(len(gain_list_ifs)):
-                        f.write(inpath+gain_list_ifs[ii]+'\t'+'IFS_GAIN_RAW\n')
-            if not isfile(outpath_ifs_fits+"master_gain.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ifs_gain"
-                command += " --ifs.gain.outfilename={}master_gain_map.fits".format(outpath_ifs_fits)
-                command += " --ifs.gain.nonlin_filename={}nonlin_map.fits".format(outpath_ifs_fits)
-                command += " --ifs.gain.nonlin_bpixname={}nonlin_badpixelmap.fits".format(outpath_ifs_fits)
-                command += " --ifs.gain.vacca=TRUE"
-                command += " {}master_gain.sof".format(outpath_ifs_sof)
-                os.system(command)
+                if not isfile(outpath_ifs_sof+"master_gain.sof") or overwrite_sof:
+                    with open(outpath_ifs_sof+"master_gain.sof", 'w+') as f:
+                        for ii in range(len(gain_list_ifs)):
+                            f.write(inpath+gain_list_ifs[ii]+'\t'+'IFS_GAIN_RAW\n')
+                if not isfile(outpath_ifs_fits+"master_gain.fits") or overwrite_sof or overwrite_fits:
+                    command = "esorex sph_ifs_gain"
+                    command += " --ifs.gain.outfilename={}master_gain_map.fits".format(outpath_ifs_fits)
+                    command += " --ifs.gain.nonlin_filename={}nonlin_map.fits".format(outpath_ifs_fits)
+                    command += " --ifs.gain.nonlin_bpixname={}nonlin_badpixelmap.fits".format(outpath_ifs_fits)
+                    command += " --ifs.gain.vacca=TRUE"
+                    command += " {}master_gain.sof".format(outpath_ifs_sof)
+                    os.system(command)
+
+                if not isfile(outpath_ifs_fits + "master_gain.pdf") or overwrite_fits:
+                    gain = open_fits(outpath_ifs_fits+"master_gain.fits", verbose=False)
+                    plot_frames(gain, vmax=np.percentile(gain, q=99.9), vmin=np.percentile(gain, q=0.1), cmap='inferno',
+                                dpi=300, save=outpath_ifs_fits + "master_gain.pdf")
+
+            elif len(gain_list_ifs) == 0:
+                if verbose:
+                    print("*** 11. IFS: No GAIN files found, this optional step will be skipped", flush=True)
                 
         # MASTER DETECTOR FLAT (4 steps - see MANUAL)
         if 12 in to_do:
@@ -1235,8 +1251,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill', fill_value=0)
                     hdul[0].data = cube
                     lab_flat = xtalkcorr_lab_IFS
-                    hdul.writeto(inpath+xtalkcorr_lab_IFS+label_ds+flat_list_ifs_det[ii], output_verify='ignore', overwrite=True)      
-
+                    hdul.writeto(inpath+xtalkcorr_lab_IFS+label_ds+flat_list_ifs_det[ii], output_verify='ignore', overwrite=True)
             
             # 1. White preamp flat field (for stripe correction)
             with open(outpath_ifs_sof+"preamp.sof", 'w+') as f:
@@ -1570,7 +1585,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 print("*** 16. IFS: Calibrating final IFU flat-fields ***", flush=True)
             if not isfile(outpath_ifs_fits+"master_flat_ifu.fits") or overwrite_sof or overwrite_fits:
                 if not isfile(outpath_ifs_sof+"master_flat_ifu.sof") or overwrite_sof:
-                    flat_list_ifs = dico_lists['flat_list_ifs_det'] # v1
+                    # flat_list_ifs = dico_lists['flat_list_ifs_det'] # v1
                     flat_list_ifs = dico_lists['flat_list_ifs'] # v2 (as manual?)
                     #flat_list_ifs_BB = dico_lists['flat_list_ifs_det_BB']
                     with open(outpath_ifs_sof+"master_flat_ifu.sof", 'w+') as f:
@@ -1615,7 +1630,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         command+= " --ifs.instrument_flat.badpix_lowtolerance=0.2"
                         command+= " --ifs.instrument_flat.badpix_uptolerance=5.0"
                     command+= " --ifs.instrument_flat.ifu_filename={}master_flat_ifu.fits".format(outpath_ifs_fits)
-                    if flat_fit: #and len(flat_list_ifs) > 4:      
+                    # providing the instrument_flat.iff path, or else esorex saves it to the current working directory
+                    command += " --ifs.instrument_flat.iff_filename={}master_flat_tot.fits".format(outpath_ifs_fits)
+                    if flat_fit: #and len(flat_list_ifs) > 4:
                         command+= " --ifs.instrument_flat.robust_fit=TRUE"
                     else:
                         command+= " --ifs.instrument_flat.nofit=TRUE"
@@ -1623,8 +1640,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         command+= " --ifs.instrument_flat.use_illumination=TRUE"
                     command+= " {}master_flat_ifu.sof".format(outpath_ifs_sof)
                     os.system(command)
-                    
-            
+
         # PRODUCE SKY CUBES
         if 17 in to_do and sky:
             if verbose:
