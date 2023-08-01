@@ -1842,7 +1842,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                 print("*** 16. IFS: Calibrating final IFU flat-fields ***")
             if not isfile(outpath_ifs_fits+"master_flat_ifu.fits") or overwrite_sof or overwrite_fits:
                 if not isfile(outpath_ifs_sof+"master_flat_ifu.sof") or overwrite_sof:
-                    flat_list_ifs = dico_lists['flat_list_ifs_det']  # v1
+                    # flat_list_ifs = dico_lists['flat_list_ifs_det']  # v1
                     # v2 (as manual?)
                     flat_list_ifs = dico_lists['flat_list_ifs']
                     #flat_list_ifs_BB = dico_lists['flat_list_ifs_det_BB']
