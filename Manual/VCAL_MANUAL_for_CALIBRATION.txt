@@ -29,7 +29,7 @@ STEPS:
 # PATHS
     "path": str, parent path -- subdirectories with products will be created in there
     "inpath": str, where raw downloaded files should be placed
-    "inpath_filt_table": str, # path to SPHERE filter curves
+    "inpath_filt_table": str, # path to the vcal_sphere/Static/ folder
    
 # OBSERVATION
 ## First run  dfits *.fits |fitsort DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT INS.COMB.IFLT in the 'raw' directory to fill the appropriate values.
@@ -41,7 +41,7 @@ STEPS:
     "dit_cen_irdis": float, integration time of CENTER IRDIS observations to be considered
     "instr": str, instrument name in file name
     "comb_iflt": str, optional, value for 'INS.COMB.IFLT' header keyword to be considered for the science cubes of interest. If not provided, will automatically search for the value with the largest occurrence in fits file headers in inpath.
-    "mode": str, IFS mode (used for spectra positions). E.g. "YJH" or "YJ". Does not matter if only IRDIS data are reduced. Given by the INS2 COMB IFS keyword. OBS_YJ or OBS_H (YJH).
+    "mode": str, IFS mode (used for spectra positions). E.g. "YJH" or "YJ". Does not matter if only IRDIS data are reduced. Given by the INS2 COMB IFS keyword. OBS_YJ (YJ) or OBS_H (YJH).
 
 # TO DO LIST:
     "do_irdis": bool, whether to reduce IRDIS data
@@ -83,21 +83,26 @@ STEPS:
 
 # REDUCTION params (unlikely to be changed based on tests on a few datasets)
     "xtalk_corr": False, # whether cross talk should be corrected for IFS data. EDIT: Don't? It looks too aggressive.
+
     ## darks
-    "indiv_fdark": True,  # whether to subtract individual dark to each flat for IFS (bug in the sph recipes, so this is done manually)
+    "indiv_fdark": True,  # whether to subtract individual dark to each flat for IFS (not included in esorex recipes or esoreflex, so this is done manually and leads to less artefacts)
     "dark_ifs": [0] # list containing either 0 (False) or any combination of 'OBJ', 'PSF', 'CEN' and 'FLAT'. Tells whether to subtract the MASTER dark, and if so for which type of files. Note: only relevant for FLAT, since in most cases a SKY is available for OBJ, CEN or PSF which already includes a DARK. If ['FLAT'] instead of [0] just provide a DARK file with the min DIT among FLATs in the raw folder. Recommended: [0] combined with indiv_fdark = True.
+
     ## flats:
-    "illum_pattern_corr": True, # whether illum flat pattern to be corrected (recommended)
-    "flat_fit": True # whether to fit flat with polynomial
-    "large_scale_flat": "some", # choice between 'all' (as recommended in v1.38 manual), 'some' (as recommended in v1.40 manual - cf. dr recipe description), False (not used, as recommended in v1.40 manual - cf. flat recipe description)
-    "flat_smooth_method_idx": 1, # default 1 in esorex recipe (0: CPL filter, 1: FFT filter). See sph_ifs_master_detector_flat description.
-    "flat_smooth_length": 5, # See sph_ifs_master_detector_flat description.
+    "illum_pattern_corr": True, # whether the illumination pattern of lenslets is to be taken into account. A low level wave-like structure can appear in the result if it is not applied.
+    "flat_fit": True # If fitting method is to be a robust linear fit. This will reduce the effect of cosmic rays and other temporary bad pixels.
+    "large_scale_flat": 0, # Recommended 0 (deprecated, not used) in v1.47 2023-05-10 manual -> see sph_ifs_science_dr description. Choice between "all" (as recommended in v1.38 manual), "some" (as recommended in v1.40 manual -> sph_ifs_science_dr recipe description) or 0.
+    "flat_smooth_method_idx": 1, # The smoothing method to use for large_scale_flat. Default 1 in sph_ifs_master_detector_flat recipe (0: CPL filter, 1: FFT filter).
+    "flat_smooth_length": 10, # The smoothing length for the large_scale_flat. Default 10 in sph_ifs_master_detector_flat description.
+
     ## spectra position
-    "specpos_distort_corr": False, # See sph_ifs_spectra_positions description
+    "specpos_distort_corr": True, # See sph_ifs_spectra_positions description
     "specpos_nonlin_corr": True, # See sph_ifs_spectra_positions description
-    ## wave calib
-    "poly_order_wc": 2, # used for wavelength model, default 2 in SPHERE pipeline. The order of the polynomial to use for the wavelength model. For example, if the order is 1, a linear model with constant dispersion is assumed.
-    "wc_win_sz": 4, # default is 4 but worked well with 2 on 2019-2020 datasets. Half the tolerance around the predicted wavelength position to search for the actual maximum. This value should absolutely be smaller than the minimal distance between line wavelengths (in pixels).
+
+    ## wavelength calibration
+    "poly_order_wc": 0, # The order of the polynomial to use for the wavelength model -> 1, 2, 3, or 0 for automatic. Default 2 in sph_ifs_wave_calib. If the order is 1, a linear model with constant dispersion is assumed. Recommended: 2 for a quadratic fit to the three lasers in YJ mode, and 3 for a cubic fit to the four lasers in YJH mode. Also see Samland+2022 Section 3.5. There is no calibration laser at 1.54µm, so the wavelength solution in these long wavelengths is an extrapolation.
+    "wc_win_sz": 4, # default is 4 in sph_ifs_wave_calib (but worked well with 2 on 2019-2020 datasets). Half the tolerance around the predicted wavelength position to search for the actual maximum. This value should absolutely be smaller than the minimal distance between line wavelengths (in pixels).
+
     ## sky
     "sky": True, # for IFS only, whether to manually subtract sky before reduction
     "manual_sky": True, # for EITHER IRDIS or IFS, whether to subtract residual bkg level manually *after* reduction (recommended). Note: for IRDIS, the value is irrelevant if pca_subtr is set to True.
@@ -113,7 +118,7 @@ STEPS:
     "overwrite_fits": True
 
 # Processing
-    "nproc": 1, adapt for multiprocessing
+    "nproc": 4
 
 
 ************************ 0. CLASSIFICATION ***************************
