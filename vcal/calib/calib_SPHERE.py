@@ -54,13 +54,14 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     with open(params_calib_name, 'r') as read_file_params_calib:
         params_calib = load(read_file_params_calib)
 
-    path = params_calib['path'] #"/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/" # parent path
+    path = params_calib['path']
     if path[-1] != '/':
         path += '/'
     inpath = path+"raw/"
-    inpath_filt_table = params_calib.get('inpath_filt_table','~/') #"/Applications/ESO/spher-calib-0.38.0/cal/"
-        
-    
+    inpath_filt_table = params_calib.get('inpath_filt_table', vcal_path[0][:-4] + "Static/")
+    if inpath_filt_table[-1] != '/':
+        inpath_filt_table += '/'
+
     # if not provided, automatically infer observing mode from fits files in data path (most common is chosen)
     if 'comb_iflt' in params_calib:
         comb_iflt = params_calib['comb_iflt']
@@ -84,7 +85,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
         raise TypeError("vcal does not handle DPI data => use IRDAP")   
     
     with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
-        filt_spec = load(filt_spec_file)[comb_iflt]  # Get infos of current filters combinaison
+        filt_spec = load(filt_spec_file)[comb_iflt]  # Get infos of current filters combination
     
     
     # subdirectories
@@ -186,9 +187,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     
     illum_pattern_corr = params_calib.get('illum_pattern_corr',1)
     flat_fit = params_calib.get('flat_fit',1) # whether to fit flat with polynomial
-    large_scale_flat = params_calib.get('large_scale_flat',"some") # choice between 'all' (v1.38 manual), 'some' (v1.40? cf. dr recipe), False (not used, v1.40? cf. flat recipe)
+    large_scale_flat = params_calib.get('large_scale_flat', 0) # choice between 'all' (v1.38 manual), 'some' (v1.40? cf. dr recipe), False (not used, v1.40? cf. flat recipe)
     flat_smooth_method_idx = params_calib.get('flat_smooth_method_idx',1)# default 1 in esorex recipe (0: CPL filter, 1: FFT filter)
-    flat_smooth_length = params_calib.get('flat_smooth_length',5)
+    flat_smooth_length = params_calib.get('flat_smooth_length',10)
     specpos_distort_corr = params_calib.get('specpos_distort_corr',1) # default is True
     specpos_nonlin_corr = params_calib.get('specpos_nonlin_corr',1) # default is True (cfr. D. Mesa 2015)
     xtalk_corr = params_calib.get('xtalk_corr',0) # whether cross talk should be corrected
@@ -197,10 +198,15 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     npc_psf = params_calib.get('npc_psf',npc)
     dark_ifs = params_calib.get('dark_ifs',[None]) # list containing either False or any combination of 'OBJ', 'PSF', 'CEN' and 'FLAT'. Tells whether to subtract the MASTER dark, and if so for which type of files. Recommended: either [False] or ['FLAT'] (in most cases a SKY is available for OBJ, CEN or PSF which already includes a DARK). If ['FLAT'] just provide a DARK file with the min DIT among FLATs in the raw folder (and remove the DARK of the OBJ!).
     indiv_fdark = params_calib.get('indiv_fdark',1)  # whether subtract individual dark to each flat
-    poly_order_wc = params_calib.get('poly_order_wc', 2) # used to find wavelength model ADD CHECK
+    poly_order_wc = params_calib.get('poly_order_wc', 0)  # used to find wavelength model
+    if poly_order_wc == 0:
+        if mode == "YJ":
+            poly_order_wc = 2
+        elif mode == "YJH":
+            poly_order_wc = 3
     wc_win_sz = params_calib.get('wc_win_sz', 4)# default: 4
-    sky=params_calib.get('sky',1) # for IFS only, will subtract the sky before the science_dr recipe (corrects also for dark, incl. bias, and vast majority of bad pixels!!)
-    verbose=params_calib.get('verbose',1)
+    sky = params_calib.get('sky',1) # for IFS only, will subtract the sky before the science_dr recipe (corrects also for dark, incl. bias, and vast majority of bad pixels!!)
+    verbose = params_calib.get('verbose',1)
     nproc = params_calib.get('nproc', int(cpu_count() / 2))  # number of processors to use, default cpu_count()/2 for efficiency
     
     ### Formatting
@@ -1429,7 +1435,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         f.write("{}master_dark{:.0f}.fits".format(outpath_ifs_fits,nn)+'\t'+'IFS_MASTER_DARK\n')
                     elif 'SPEC_POS' in dark_ifs:
                         f.write("{}master_dark.fits".format(outpath_ifs_fits)+'\t'+'IFS_MASTER_DARK\n')
-                    if mode == 'YJ':
+                    if mode == "YJ":
                         f.write("{}ifs_lenslet_model_Y_J.txt".format(inpath_filt_table)+'\t'+'IFS_LENSLET_MODEL\n')
 
             if not isfile(outpath_ifs_fits+"spectra_pos.fits") or overwrite_sof or overwrite_fits:
