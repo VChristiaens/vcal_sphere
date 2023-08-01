@@ -4,7 +4,7 @@ Before running the pipeline, make sure:
 2) IFS: raw IFS darks with matching DITs to the FLATS have been manually downloaded - they don't come automatically just by
 ticking the box of downloading data with raw calibs! Search for them with the same date but no object name in the archive
 3) IFS: the files sorted into flat_list_ifs are from approximately the same day that the science data was taken. If more
-than one is present, only keep the one closest in time to the observation.
+than one is present, only keep the one closest in time or from the morning after the observation.
 4) nproc has been set to the number of available processors - this will greatly decrease processing time
 5) first try basic calibration using default parameters - change them only if you know what you're doing
 
