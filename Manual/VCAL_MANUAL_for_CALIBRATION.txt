@@ -85,7 +85,8 @@ STEPS:
     "xtalk_corr": False, # whether cross talk should be corrected for IFS data. EDIT: Don't? It looks too aggressive.
 
     ## darks
-    "indiv_fdark": True,  # whether to subtract individual dark to each flat for IFS (not included in esorex recipes or esoreflex, so this is done manually and leads to less artefacts)
+    "indiv_fdark": True,  # whether to subtract individual dark to each flat for IFS (not included in esorex recipes or esoreflex, so this is done manually and leads to fewer artefacts).
+    The darks associated to the flats do not come with the raw calibration data from the ESO archive and need to be selected and downloaded manually. They are usually taken the morning after.
     "dark_ifs": [0] # list containing either 0 (False) or any combination of 'OBJ', 'PSF', 'CEN' and 'FLAT'. Tells whether to subtract the MASTER dark, and if so for which type of files. Note: only relevant for FLAT, since in most cases a SKY is available for OBJ, CEN or PSF which already includes a DARK. If ['FLAT'] instead of [0] just provide a DARK file with the min DIT among FLATs in the raw folder. Recommended: [0] combined with indiv_fdark = True.
 
     ## flats:
