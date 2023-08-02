@@ -265,10 +265,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             system("mkdir "+outpath)
                 
         # Extract info from example files
-        if use_cen_only:  # case there are no OBJ files
-            cube, header = open_fits(inpath + CEN_IFS_list[0] + '.fits', header=True, verbose=debug)
-        else:
-            cube, header = open_fits(inpath+OBJ_IFS_list[0]+'.fits', header=True, verbose=debug)
+        if not use_cen_only:
+            cube, header = open_fits(inpath+OBJ_IFS_list[0]+".fits", header=True, verbose=debug)
+        else:  # case there are only CEN files
+            cube, header = open_fits(inpath+CEN_IFS_list[0]+".fits", header=True, verbose=debug)
         dit_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
         ndit_ifs = float(header['HIERARCH ESO DET NDIT'])
         #filt1 = header['HIERARCH ESO INS1 FILT NAME']
