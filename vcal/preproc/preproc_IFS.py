@@ -45,7 +45,7 @@ mpl_backend('Agg')
 
 
 def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json', 
-                params_calib_name='VCAL_params_calib.json'):
+                params_calib_name='VCAL_params_calib.json')  -> None :
     """
     Preprocessing of SPHERE/IFS data using preproc parameters provided in 
     json file.
@@ -1537,3 +1537,4 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             print("final flux fac result ({:.0f}): ".format(nfp),flux_fac_vec, flush=True)
             write_fits(outpath+final_scalefac_name, scal_vector, verbose=debug)
             write_fits(outpath+"final_flux_fac.fits", flux_fac_vec, verbose=debug)
+    return None

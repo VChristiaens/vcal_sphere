@@ -66,7 +66,7 @@ matplotlib.use('Agg')
 def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                  params_preproc_name='VCAL_params_preproc_IFS.json', 
                  params_calib_name='VCAL_params_calib.json',
-                 planet_parameter = None):
+                 planet_parameter = None)  -> None :
     """
     Postprocessing of SPHERE/IFS data using preproc parameters provided in 
     json file.
@@ -1644,4 +1644,4 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         datafr = datafr.join(datafr14).join(datafr16)
                     DF.to_csv(datafr, path_or_buf=outpath+'Final_contrast_curves_comparison'+label_test+'.csv', 
                               sep=',', na_rep='', float_format=None)
-    
+    return None

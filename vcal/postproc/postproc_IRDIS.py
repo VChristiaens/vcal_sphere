@@ -48,7 +48,7 @@ matplotlib.use('Agg')
 def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                    params_preproc_name='VCAL_params_preproc_IRDIS.json', 
                    params_calib_name='VCAL_params_calib.json',
-                   planet_parameter=None):
+                   planet_parameter=None)  -> None :
     """
     Postprocessing of SPHERE/IRDIS data using preproc parameters provided in 
     json file.
@@ -1819,7 +1819,4 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             # norm_cc = ccorr_coeff/np.sum(ccorr_coeff)
                             # wmean_imgs[pp] = cube_collapse(res_der,mode='wmean',w=norm_cc)
                             #write_fits(outpath_3.format(data_folder)+"final_PCA-RDI_it{:.0f}_thr{:.1f}_{:.0f}-{:.0f}_{}_wmean.fits".format(label_stg,n_it,thr,test_npcs[0], test_npcs[-1],filt), wmean_imgs)
-                            
-
-
-  
+    return None

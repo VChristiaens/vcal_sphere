@@ -35,7 +35,7 @@ from ..utils import make_lists, sph_ifs_correct_spectral_xtalk, most_common
 mpl_backend('Agg')
 
 
-def calib(params_calib_name='VCAL_params_calib.json'):
+def calib(params_calib_name='VCAL_params_calib.json') -> None:
     """
     Basic calibration of SPHERE data using calibration parameters provided in 
     json file.

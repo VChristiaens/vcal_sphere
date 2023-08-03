@@ -47,7 +47,7 @@ mpl_backend('Agg')
 #**************************** PARAMS TO BE ADAPTED ****************************  
 
 def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json', 
-                  params_calib_name='VCAL_params_calib.json'):
+                  params_calib_name='VCAL_params_calib.json')  -> None :
     """
     Preprocessing of SPHERE/IRDIS data using preproc parameters provided in 
     json file.
