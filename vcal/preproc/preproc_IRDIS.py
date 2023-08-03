@@ -24,7 +24,7 @@ from matplotlib import use as mpl_backend
 from pandas.io.parsers.readers import read_csv
 
 from vcal import __path__ as vcal_path
-from vip_hci.fits import open_fits, write_fits
+from vip_hci.fits import open_fits, open_header, write_fits
 from vip_hci.fm import normalize_psf
 from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
 from vip_hci.metrics import peak_coordinates
@@ -301,22 +301,17 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         else:
             tmp, header = open_fits(inpath+CEN_IRDIS_list[0]+'_left.fits', header=True)
         ori_sz = tmp.shape[-1]
-        ori_cy, ori_cx = frame_center(tmp[0])
         dit_irdis = float(header['EXPTIME'])
-        #ndit_irdis = float(header['HIERARCH ESO DET NDIT'])
-        #filt1 = header['HIERARCH ESO INS1 FILT NAME']
-        #filt2 = header['HIERARCH ESO INS1 OPTI2 NAME']
         dits = [dit_irdis]
-        #ndits = [ndit_irdis]
         
         if npsf > 0:
-            _, header = open_fits(inpath+PSF_IRDIS_list[0]+'_left.fits', header=True)
+            header = open_header(inpath+PSF_IRDIS_list[0]+'_left.fits')
             dit_psf_irdis = float(header['EXPTIME'])
             #ndit_psf_irdis = float(header['HIERARCH ESO DET NDIT'])
             dits.append(dit_psf_irdis)
             #ndits.append(ndit_psf_irdis)       
         if ncen > 0:
-            _, header = open_fits(inpath+CEN_IRDIS_list[0]+'_left.fits', header=True)
+            header = open_header(inpath+CEN_IRDIS_list[0]+'_left.fits')
             dit_cen_irdis = float(header['EXPTIME'])
             #ndit_cen_irdis = float(header['HIERARCH ESO DET NDIT'])
             dits.append(dit_cen_irdis)
@@ -345,7 +340,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             nd_transmission_SCI = [1]*len(nd_wavelen)
     
         if PSF_IRDIS_list :
-            _, header = open_fits(inpath+PSF_IRDIS_list[0]+'_left.fits', header=True)
+            header = open_header(inpath+PSF_IRDIS_list[0]+'_left.fits')
             #dit_psf_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
             #ndit_psf_ifs = float(header['HIERARCH ESO DET NDIT'])
             nd_filter_PSF = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
@@ -552,10 +547,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             if true_ncen > ncen:
                                                 raise ValueError("Code not compatible with true_ncen > ncen")
                                             if true_ncen>2:
-                                                _, header_fin = open_fits(inpath+OBJ_IRDIS_list[-1]+'_left.fits', header=True)
+                                                header_fin = open_header(inpath+OBJ_IRDIS_list[-1]+'_left.fits')
                                                 mjd_fin = float(header_fin['MJD-OBS'])
                                             elif true_ncen>3:
-                                                _, header_mid = open_fits(inpath+OBJ_IRDIS_list[int(nobj/2)]+'_left.fits', header=True)
+                                                header_mid = open_header(inpath+OBJ_IRDIS_list[int(nobj/2)]+'_left.fits')
                                                 mjd_mid = float(header_mid['MJD-OBS'])
                                                                     
                                             unique_mjd_cen = np.zeros(true_ncen)  
@@ -767,10 +762,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         if true_ncen > ncen:
                                             raise ValueError("Code not compatible with true_ncen > ncen")
                                         if true_ncen > 2:
-                                            _, header_fin = open_fits(inpath+OBJ_IRDIS_list[-1]+'_left.fits', header=True)
+                                            header_fin = open_header(inpath+OBJ_IRDIS_list[-1]+'_left.fits')
                                             mjd_fin = float(header_fin['MJD-OBS'])
                                         if true_ncen > 3:
-                                            _, header_mid = open_fits(inpath+OBJ_IRDIS_list[int(nobj/2)]+'_left.fits', header=True)
+                                            header_mid = open_header(inpath+OBJ_IRDIS_list[int(nobj/2)]+'_left.fits')
                                             mjd_mid = float(header_mid['MJD-OBS'])
                                                                 
                                         unique_mjd_cen = np.zeros(true_ncen)  
@@ -1233,12 +1228,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         UTC = np.zeros(ntot)
                         counter = 0
                         for nn, filename in enumerate(file_list):
-                            cube, header  = open_fits(outpath+filename+filt+"_2cen", header=True)
-                            nfr_tmp =cube.shape[0]
+                            cube = open_fits(outpath+filename+filt+"_2cen")
+                            nfr_tmp = cube.shape[0]
                             ### Strehl (different header)
-                            _, header = open_fits(inpath+template_strehl[fi].format(filt,nn), header=True)
+                            header = open_header(inpath+template_strehl[fi].format(filt,nn))
                             strehl[counter:counter+nfr_tmp] = 100*float(header['HIERARCH ESO QC STREHL {}'.format(filters_lab[ff][1:].upper())])
-                            _, header = open_fits(outpath+filename+filters_lab[ff]+"_2cen.fits", header=True)
+                            header = open_fits(outpath+filename+filters_lab[ff]+"_2cen.fits")
                             seeing[counter:counter+nfr_tmp] = float(header['HIERARCH ESO TEL IA FWHM'])       
                             tau0[counter:counter+nfr_tmp] = 1000*float(header['HIERARCH ESO TEL AMBI TAU0'])
                             UTC[counter:counter+nfr_tmp] = np.linspace(float(header['UTC'])+0.5*dits[fi],float(header['UTC'])+((nfr_tmp+0.5)*dits[fi]),nfr_tmp,endpoint=False)

@@ -26,7 +26,7 @@ from photutils.aperture import aperture_photometry, CircularAperture, CircularAn
 
 from hciplot import plot_frames
 from vcal import __path__ as vcal_path
-from vip_hci.fits import open_fits, write_fits
+from vip_hci.fits import open_fits, open_header, write_fits
 from vip_hci.metrics.detection import peak_coordinates
 from vip_hci.preproc import frame_shift, cube_subtract_sky_pca, cube_fix_badpix_clump
 from vip_hci.var import frame_center, create_ringed_spider_mask, mask_circle
@@ -73,7 +73,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
         fitsfiles = glob(inpath+'*.fits')
         iflt_list = []
         for ff, ffile in enumerate(fitsfiles):
-            _, head = open_fits(ffile, header=True, verbose=False)
+            head = open_header(ffile)
             if 'HIERARCH ESO INS COMB IFLT' in head:
                 iflt_list.append(head['HIERARCH ESO INS COMB IFLT'])
         msg = "Most common observed mode ({}/{}): {}"
@@ -1289,7 +1289,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         run_rec = False
                         counter = 0
                         for ii in range(len(flat_list_ifs_det)):
-                            tmp, header = open_fits(inpath+flat_list_ifs_det[ii], header=True)
+                            header = open_header(inpath+flat_list_ifs_det[ii])
                             if 'HL{:.0f}'.format(kk) in header['HIERARCH ESO INS2 CAL']:
                                 f.write(inpath+lab_flat+label_ds+flat_list_ifs_det[ii]+'\t'+'IFS_DETECTOR_FLAT_FIELD_RAW\n')
                                 counter+=1
@@ -1349,7 +1349,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         run_rec = False
                         counter = 0
                         for ii in range(len(flat_list_ifs_det)):
-                            tmp, header = open_fits(inpath+flat_list_ifs_det[ii], header=True)
+                            header = open_header(inpath+flat_list_ifs_det[ii])
                             if 'HL{:.0f}'.format(kk) in header['HIERARCH ESO INS2 CAL']:
                                 f.write(inpath+lab_flat+label_ds+flat_list_ifs_det[ii]+'\t'+'IFS_DETECTOR_FLAT_FIELD_RAW\n')
                                 counter+=1
@@ -1423,7 +1423,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     else:
                         f.write("{}master_flat_det_l5.fits".format(outpath_ifs_fits)+'\t'+'IFS_INSTRUMENT_FLAT_FIELD\n')
                     if indiv_fdark:
-                        tmp, header = open_fits(inpath+specpos_IFS[ii], header=True, verbose=False)
+                        header = open_header(inpath+specpos_IFS[ii])
                         fdit_list_nn = np.load(outpath_ifs_fits + 'flat_dark_dits.npy')
                         for ff in range(nfdits):
                             if fdit_list_nn[ff][1] == header['EXPTIME']:

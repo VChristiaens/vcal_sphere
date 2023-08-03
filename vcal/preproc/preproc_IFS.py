@@ -24,7 +24,7 @@ from pandas.io.parsers.readers import read_csv
 
 from vcal import __path__ as vcal_path
 from vcal.utils import find_nearest
-from vip_hci.fits import open_fits, write_fits
+from vip_hci.fits import open_fits, open_header, write_fits
 from vip_hci.fm import normalize_psf
 from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
 from vip_hci.metrics import stim_map as compute_stim_map
@@ -293,7 +293,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         ndits = [ndit_ifs]
     
         if npsf > 0:
-            _, header = open_fits(inpath+PSF_IFS_list[0]+'.fits', header=True, verbose=debug)
+            header = open_header(inpath+PSF_IFS_list[0]+'.fits')
             dit_psf_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
             ndit_psf_ifs = float(header['HIERARCH ESO DET NDIT'])
             nd_filter_PSF = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
@@ -308,7 +308,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             
         # Check that transmission is correct
         if ncen > 0:
-            _, header = open_fits(inpath+CEN_IFS_list[0]+'.fits', header=True, verbose=debug)
+            header = open_header(inpath+CEN_IFS_list[0]+'.fits')
             dit_cen_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
             ndit_cen_ifs = float(header['HIERARCH ESO DET NDIT'])
             nd_filter_CEN = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
@@ -441,7 +441,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 y_shifts_cen_tmp = np.zeros([ncen,n_z])
                                 x_shifts_cen_tmp = np.zeros([ncen,n_z])
                                 for cc in range(ncen):
-                                    _, head_cc = open_fits(inpath+cen_cube_names[cc], header=True, verbose=debug)
+                                    head_cc = open_header(inpath+cen_cube_names[cc])
                                     cube_cen = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits", verbose=debug)
                                     mjd_cen[cc] = float(head_cc['MJD-OBS'])
                                     
@@ -465,10 +465,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     if true_ncen > ncen or true_ncen > 4:
                                         raise ValueError("Code not compatible with true_ncen > ncen or true_ncen > 4")
                                     if true_ncen>2:
-                                        _, header_fin = open_fits(inpath+OBJ_IFS_list[-1]+'.fits', header=True, verbose=debug)
+                                        header_fin = open_header(inpath+OBJ_IFS_list[-1]+'.fits')
                                         mjd_fin = float(header_fin['MJD-OBS'])
                                     elif true_ncen>3:
-                                        _, header_mid = open_fits(inpath+OBJ_IFS_list[int(nobj/2)]+'.fits', header=True, verbose=debug)
+                                        header_mid = open_header(inpath+OBJ_IFS_list[int(nobj/2)]+'.fits')
                                         mjd_mid = float(header_mid['MJD-OBS'])
                                                             
                                     unique_mjd_cen = np.zeros(true_ncen)  
@@ -609,7 +609,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         else:
                                             debug_tmp = False
                                         ### first get the MJD time of each cube
-                                        _, head_cc = open_fits(inpath+cen_cube_names[cc], header=True, verbose=debug)
+                                        head_cc = open_header(inpath+cen_cube_names[cc])
                                         cube_cen = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits", verbose=debug)
                                         mjd_cen[cc] = float(head_cc['MJD-OBS'])
                                         # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots)
@@ -619,7 +619,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                             pa_sci_ini = []
                                             pa_sci_fin = []
                                             for fn_tmp, filename_tmp in enumerate(file_list):
-                                                _, head_tmp = open_fits(inpath+OBJ_IFS_list[fn_tmp], header=True, verbose=debug)
+                                                head_tmp = open_header(inpath+OBJ_IFS_list[fn_tmp])
                                                 mjd_tmp = float(head_tmp['MJD-OBS'])
                                                 mjd_mean.append(mjd_tmp)
                                                 pa_sci_ini.append(float(head_tmp["HIERARCH ESO TEL PARANG START"]))
@@ -640,16 +640,16 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                      full_output=True)
                                         _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], _, _ = res
                                     # median combine results for all MJD CEN bef and all after SCI obs
-                                    _, header_ini = open_fits(inpath+OBJ_IFS_list[0]+'.fits', header=True, verbose=debug)
+                                    header_ini = open_header(inpath+OBJ_IFS_list[0]+'.fits')
                                     mjd = float(header_ini['MJD-OBS']) # mjd of first obs 
                                     mjd_fin = mjd
                                     if true_ncen > ncen or true_ncen > 4:
                                         raise ValueError("Code not compatible with true_ncen > ncen or true_ncen > 4")
                                     if true_ncen>2:
-                                        _, header_fin = open_fits(inpath+OBJ_IFS_list[-1]+'.fits', header=True, verbose=debug)
+                                        header_fin = open_header(inpath+OBJ_IFS_list[-1]+'.fits')
                                         mjd_fin = float(header_fin['MJD-OBS'])
                                     elif true_ncen>3:
-                                        _, header_mid = open_fits(inpath+OBJ_IFS_list[int(nobj/2)]+'.fits', header=True, verbose=debug)
+                                        header_mid = open_header(inpath+OBJ_IFS_list[int(nobj/2)]+'.fits')
                                         mjd_mid = float(header_mid['MJD-OBS'])
                                         
                                     unique_mjd_cen = np.zeros(true_ncen)  
