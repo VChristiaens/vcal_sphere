@@ -48,7 +48,7 @@ matplotlib.use('Agg')
 def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                    params_preproc_name='VCAL_params_preproc_IRDIS.json', 
                    params_calib_name='VCAL_params_calib.json',
-                   planet_parameter=None)  -> None :
+                   planet_parameter=None) -> None:
     """
     Postprocessing of SPHERE/IRDIS data using preproc parameters provided in 
     json file.

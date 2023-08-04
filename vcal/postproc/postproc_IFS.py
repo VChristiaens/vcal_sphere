@@ -66,7 +66,7 @@ matplotlib.use('Agg')
 def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                  params_preproc_name='VCAL_params_preproc_IFS.json', 
                  params_calib_name='VCAL_params_calib.json',
-                 planet_parameter = None)  -> None :
+                 planet_parameter=None) -> None:
     """
     Postprocessing of SPHERE/IFS data using preproc parameters provided in 
     json file.
