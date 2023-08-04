@@ -1185,8 +1185,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 labels = tuple([s+' sec' for s in [str(dit_ifs_flat_list) for dit_ifs_flat_list in dit_ifs_flat_list]])
                 vmax = tuple(np.percentile(frame, q=98) for frame in all_median_darks)
                 vmin = tuple(np.percentile(frame, q=2) for frame in all_median_darks)
-                plot_frames(tuple(all_median_darks), vmax=vmax, vmin=vmin, cmap='inferno', dpi=300, label=labels,
-                            save=outpath_ifs_fits + 'all_master_darks.pdf')
+                plot_frames(tuple(all_median_darks), vmax=vmax, vmin=vmin, cmap="inferno", dpi=300, label=labels,
+                            save=outpath_ifs_fits + "all_master_darks.pdf")
 
             # CREATE FAKE MASTER DARK BUT WITH TRUE BAD PIXEL MAP! 
             ## NOTE: BAD PIXEL MAP should always be the one obtained with the DARK with the longest DIT
@@ -1223,7 +1223,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 if not isfile(outpath_ifs_fits + "master_gain_map.pdf") or overwrite_fits:
                     gain = open_fits(outpath_ifs_fits+"master_gain_map.fits", verbose=False)
                     plot_frames(gain, vmax=np.percentile(gain, q=99.5), vmin=np.percentile(gain, q=0.5), cmap="inferno",
-                                dpi=300, save=outpath_ifs_fits + "master_gain_map.pdf")
+                                dpi=300, label="master_gain_map.fits", save=outpath_ifs_fits + "master_gain_map.pdf")
 
             elif len(gain_list_ifs) == 0:
                 if verbose:
