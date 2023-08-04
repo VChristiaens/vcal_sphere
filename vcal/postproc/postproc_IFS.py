@@ -642,8 +642,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         plt.legend(loc='best')
                         plt.savefig(outpath_fig+'SNR_'+source+'_PCA-ADI-full_npc{:.0f}'.format(npc)+'.pdf', format='pdf')
                         write_fits(outpath+'PCA-ADI_full_SNR_npc{:.0f}'.format(npc)+label_test+'.fits', snr_tmp)
-                    write_fits(outpath+'PCA-ADI_full_npc{:.0f}'.format(npc)+label_test+'.fits', tmp)  
-                tmp_tmp = np.median(tmp, axis=1)
+                    write_fits(outpath+'PCA-ADI_full_npc{:.0f}'.format(npc)+label_test+'.fits', tmp[pp])  # all channels
+                    tmp_tmp[pp] = np.median(tmp[pp], axis=0)  # axis zero because we sliced the pcs axis
                 
                 if planet:
                     opt_pp = np.argmax(snr_tmp,axis=0)
@@ -776,9 +776,9 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                       scale_list=None, min_frames_lib=max(npc,10),
                                                       max_frames_lib=max(max_fr,npc+1), collapse='median',
                                                       full_output=False, verbose=verbose, nproc=nproc)
-                            tmp[pp,zz] = pca_annular(algo_params=params_ann)
+                            tmp[pp, zz] = pca_annular(algo_params=params_ann)
                             if planet:
-                                snr_tmp[pp,zz] = snr(tmp[pp,zz], (xx_comp,yy_comp), fwhm[zz], plot=False,
+                                snr_tmp[pp, zz] = snr(tmp[pp,zz], (xx_comp,yy_comp), fwhm[zz], plot=False,
                                                      exclude_negative_lobes=exclude_negative_lobes, verbose=False)
                                 if zz ==0:
                                     label='npc adi = {:.0f}'.format(npc)
@@ -789,8 +789,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             plt.legend(loc='best')
                             plt.savefig(outpath_fig+'SNR_'+source+'_PCA-ADI-ann_npc{:.0f}'.format(npc)+'.pdf', format='pdf')
                             write_fits(outpath+'PCA-ADI_ann_SNR_npc{:.0f}'.format(npc)+label_test_ann+'.fits', snr_tmp)
-                        write_fits(outpath+'PCA-ADI_ann_npc{:.0f}'.format(npc)+label_test_ann+'.fits', tmp[pp])
-                tmp_tmp = np.median(tmp[:,start_nz:], axis=1)
+                        write_fits(outpath+'PCA-ADI_ann_npc{:.0f}'.format(npc)+label_test_ann+'.fits', tmp[pp])  # all channels
+                        tmp_tmp[pp] = np.median(tmp[pp, start_nz:], axis=0)  # axis zero because we sliced the pcs axis
                 
                 if planet:
                     opt_pp = np.argmax(snr_tmp,axis=0)
