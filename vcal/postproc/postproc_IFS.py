@@ -251,15 +251,13 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     colors = ['k','g','b','m','r','c','y'] # for plotting of ADI full, ADI ann and SADI ann
     all_markers= ['ro','yo','bo','go','ko','co','mo']*nspi # for plotting the snr of the fcps (should contain at least as many elements as fcps)
 
-        
     if coro:
         transmission_name = vcal_path[0] + "/../Static/" + "SPHERE_IRDIS_ALC_transmission_px.fits"
         transmission = open_fits(transmission_name)
         transmission = (transmission[1],transmission[0])
     else:
         transmission = None
-        
-    
+
     if isinstance(final_crop_sz,list):
         ncrop = len(final_crop_sz)
         for i in range(ncrop):
@@ -311,9 +309,15 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     starphot = open_fits(inpath+fluxes_name)[0]
     
     if final_scalefacname is not None:
-        scale_list = open_fits(inpath+final_scalefacname)
+        scale_list = open_fits(inpath+final_scalefacname, verbose=debug)
+        msg = ("\nUsing scaling factors from pre-processing step 8. \n"
+               "It is recommended these are checked to ensure that they make sense.\n")
+        print(msg, flush=True)
     else:
         scale_list = np.amax(lbdas)/lbdas
+        if verbose:
+            msg = "\nUsing theoretical scaling factors.\n"
+            print(msg, flush=True)
 
     #mask_IWA_px = int(mask_IWA*fwhm_med)
     mask_IWA = mask_IWA_px/fwhm_med
@@ -654,11 +658,11 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     snr_tmp = np.zeros(ntest_pcs)
                     plt.close() 
                     plt.figure()
-                    plt.title('SNR for '+sourcename+' b'+details+ '(PCA-ADI full - specctral channels collapsed)')
+                    plt.title('SNR for '+sourcename+' b'+details+ '(PCA-ADI full - spectral channels collapsed)')
                     plt.ylabel('SNR')
                     plt.xlabel('npc')
                     for pp, npc in enumerate(test_pcs_adi_full):
-                        snr_tmp[pp] = snr(tmp_tmp[pp], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=exclude_negative_lobes,
+                        snr_tmp[pp] = snr(tmp_tmp[pp], source_xy=(xx_comp,yy_comp), fwhm_med=fwhm_med, plot=False, exclude_negative_lobes=exclude_negative_lobes,
                                                       verbose=False)
                         if snr_tmp[pp] > 5:
                             marker = 'go'
