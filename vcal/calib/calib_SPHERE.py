@@ -1211,7 +1211,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     with open(outpath_ifs_sof+"master_gain.sof", 'w+') as f:
                         for ii in range(len(gain_list_ifs)):
                             f.write(inpath+gain_list_ifs[ii]+'\t'+'IFS_GAIN_RAW\n')
-                if not isfile(outpath_ifs_fits+"master_gain.fits") or overwrite_sof or overwrite_fits:
+                if not isfile(outpath_ifs_fits+"master_gain_map.fits") or overwrite_sof or overwrite_fits:
                     command = "esorex sph_ifs_gain"
                     command += " --ifs.gain.outfilename={}master_gain_map.fits".format(outpath_ifs_fits)
                     command += " --ifs.gain.nonlin_filename={}nonlin_map.fits".format(outpath_ifs_fits)
@@ -1220,10 +1220,10 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     command += " {}master_gain.sof".format(outpath_ifs_sof)
                     os.system(command)
 
-                if not isfile(outpath_ifs_fits + "master_gain.pdf") or overwrite_fits:
-                    gain = open_fits(outpath_ifs_fits+"master_gain.fits", verbose=False)
-                    plot_frames(gain, vmax=np.percentile(gain, q=99.9), vmin=np.percentile(gain, q=0.1), cmap='inferno',
-                                dpi=300, save=outpath_ifs_fits + "master_gain.pdf")
+                if not isfile(outpath_ifs_fits + "master_gain_map.pdf") or overwrite_fits:
+                    gain = open_fits(outpath_ifs_fits+"master_gain_map.fits", verbose=False)
+                    plot_frames(gain, vmax=np.percentile(gain, q=99.5), vmin=np.percentile(gain, q=0.5), cmap="inferno",
+                                dpi=300, save=outpath_ifs_fits + "master_gain_map.pdf")
 
             elif len(gain_list_ifs) == 0:
                 if verbose:
