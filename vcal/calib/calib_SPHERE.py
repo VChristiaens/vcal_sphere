@@ -1123,12 +1123,12 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 if len(fdark_list_ifs) < 1:
                     raise ValueError("There should be at least one flat dark! Double-check archive?")
                 flat_list_ifs = dico_lists['flat_list_ifs']
-                if len(flat_list_ifs) > 1:
-                    msg = ("More than one detector FLAT is present in the raw directory! \n"
-                           "Make sure these are close in time and have not shifted. \n"
-                           "Do you want to continue? c - continue, q - quit")
-                    print(msg, flush=True)
-                    set_trace()
+                # if len(flat_list_ifs) > 1:
+                #     msg = ("More than one detector FLAT is present in the raw directory! \n"
+                #            "Make sure these are close in time and have not shifted. \n"
+                #            "Do you want to continue? c - continue, q - quit")
+                #     print(msg, flush=True)
+                #     set_trace()
                 flat_list_ifs_det = dico_lists['flat_list_ifs_det']
                 flat_list_ifs_det_BB = dico_lists['flat_list_ifs_det_BB']
                 all_flat_lists_ifs = [flat_list_ifs,flat_list_ifs_det,flat_list_ifs_det_BB]
@@ -1573,7 +1573,6 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     f.write("{}spectra_pos.fits".format(outpath_ifs_fits)+'\t'+'IFS_SPECPOS\n')
                     f.write("{}{}.fits".format(outpath_ifs_fits,master_flatname)+'\t'+'IFS_INSTRUMENT_FLAT_FIELD\n')
 
-         
             if not isfile(outpath_ifs_fits+"wave_calib.fits") or overwrite_sof or overwrite_fits:
                 command = "esorex sph_ifs_wave_calib"
                 command+= " --ifs.wave_calib.number_lines=0"
@@ -1583,8 +1582,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 command+= " --ifs.wave_calib.outfilename={}wave_calib.fits".format(outpath_ifs_fits)
                 command+= " {}wave_calib.sof".format(outpath_ifs_sof)
                 os.system(command)
-                
-    
+
+
         # IFU FLAT
         if 16 in to_do:
             if verbose:
