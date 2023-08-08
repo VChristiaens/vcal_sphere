@@ -36,7 +36,7 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit, cube_re
                              cube_recenter_via_speckles, cube_crop_frames, check_pa_vector,
                              cube_shift, find_scal_vector, cube_derotate)
 from vip_hci.preproc.rescaling import _cube_resc_wave
-from vip_hci.psfsub import median_sub, MedsubParams
+from vip_hci.psfsub import median_sub, MEDIAN_SUB_Params
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle, frame_filter_lowpass)
 from ..utils import (cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos,
@@ -975,7 +975,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             # median-ADI
                             master_cube = open_fits(outpath+"1_master{}_cube_{}.fits".format(labels[fi],filters[ff]))
                             final_derot_angles = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]))
-                            params = MedsubParams(cube=master_cube, angle_list=final_derot_angles, radius_int=10,
+                            params = MEDIAN_SUB_Params(cube=master_cube, angle_list=final_derot_angles, radius_int=10,
                                                   nproc=nproc)
                             ADI_frame = median_sub(algo_params=params)
                             write_fits(outpath+"median_ADI1_{}{}.fits".format(labels[fi],filters[ff]), ADI_frame)
@@ -1017,7 +1017,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         # median-ADI
                         master_cube = open_fits(outpath+"2_master{}_cube_{}{}.fits".format(labels[fi],filters[ff],dist_lab_tmp))
                         final_derot_angles = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]))
-                        params = MedsubParams(cube=master_cube, angle_list=final_derot_angles, radius_int=10,
+                        params = MEDIAN_SUB_Params(cube=master_cube, angle_list=final_derot_angles, radius_int=10,
                                               nproc=nproc)
                         ADI_frame = median_sub(algo_params=params)
                         write_fits(outpath+"median_ADI2_{}{}{}.fits".format(labels[fi],filters[ff],dist_lab_tmp), ADI_frame)

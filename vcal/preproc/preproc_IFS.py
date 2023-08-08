@@ -38,7 +38,7 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              cube_crop_frames, frame_crop, cube_derotate,
                              find_scal_vector, cube_subsample)
 from vip_hci.preproc.rescaling import _cube_resc_wave
-from vip_hci.psfsub import median_sub, MedsubParams
+from vip_hci.psfsub import median_sub, MEDIAN_SUB_Params
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
 
 mpl_backend('Agg')
@@ -824,7 +824,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         # median-ADI
                         ADI_frame = np.zeros([n_z,master_cube.shape[-2],master_cube.shape[-1]])
                         for zz in range(n_z):
-                            params = MedsubParams(cube=master_cube[zz], angle_list=final_derot_angles, radius_int=10,
+                            params = MEDIAN_SUB_Params(cube=master_cube[zz], angle_list=final_derot_angles, radius_int=10,
                                                   nproc=nproc)
                             ADI_frame[zz] = median_sub(algo_params=params)
                         write_fits(outpath+"median_ADI1_{}.fits".format(labels[fi]), ADI_frame, verbose=debug)
