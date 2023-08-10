@@ -1520,12 +1520,12 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     hdul = fits.open(inpath+wave_calib_list_ifs[ii])
                     wc_head = hdul[0].header
                     cube = hdul[0].data
-                    cube = np.array(cube, dtype=np.float64)
+                    cube = np.array(cube, dtype=float)
                     ## MANUAL DARK SUBTRACTION
                     dit_wc = wc_head['HIERARCH ESO DET SEQ1 DIT']
                     for nn, fdit in enumerate(dit_ifs_flat_list):
                         ## subtract with PCA
-                        master_dark_cube = open_fits(outpath_ifs_fits+"master_dark_cube{:.0f}.fits".format(nn))
+                        master_dark_cube = open_fits(outpath_ifs_fits+f"master_dark_cube{nn}.fits", verbose=False)
                         if fdit == dit_wc:
                             dark_tmp = np.median(master_dark_cube,axis=0)
                             for j in range(cube.shape[0]):
