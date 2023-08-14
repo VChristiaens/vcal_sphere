@@ -343,9 +343,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             header["NAXIS1"] = cube.shape[1]
                             header["NAXIS2"] = cube.shape[2]
                         if 0 < bp_crop_sz < cube.shape[1]:
-                            cube = cube_crop_frames(cube,bp_crop_sz)
+                            cube = cube_crop_frames(cube, bp_crop_sz, verbose=debug)
                         cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resels,
-                                                     sig=6., protect_mask=0, verbose=full_output,
+                                                     sig=6, protect_mask=0, verbose=full_output,
                                                      half_res_y=False, max_nit=max_bpix_nit, full_output=full_output,
                                                      nproc=nproc)
                         if full_output:
