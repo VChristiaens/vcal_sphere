@@ -40,7 +40,6 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.psfsub import median_sub, MEDIAN_SUB_Params
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
-from vip_hci.config.utils_conf import sep
 
 mpl_backend('Agg')
 
@@ -1013,6 +1012,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             plot_tmp = False
                             if zz == 0 or zz == n_z-1:
                                 plot_tmp = plot
+                                good_frame_tmp = frame_crop(good_frame, size=crop_sz, verbose=debug)
+                                write_fits(outpath+f"badfr_corr_reference_frame{labels[fi]}_ch{zz}.fits", good_frame_tmp, verbose=debug)
                             good_index_list, bad_index_list = cube_detect_badfr_correlation(cube[zz], good_frame,
                                                                                             crop_size=crop_size,
                                                                                             threshold=thr, dist=dist,
@@ -1022,9 +1023,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
                             if plot_tmp:
                                 plt.savefig(outpath+f"badfr_corr_plot{labels[fi]}_ch{zz}.pdf", bbox_inches="tight")
-                            if zz == n_z-1:  # write the good frame
-                                good_frame = frame_crop(good_frame, size=crop_sz, verbose=debug)
-                                write_fits(outpath+f"badfr_corr_reference_frame_{labels[fi]}.fits", good_frame, verbose=debug)
                         print(f"At the end of channel {zz+1}, we kept {len(final_good_index_list)}/{ngood_fr_ch} ({100*(len(final_good_index_list)/ngood_fr_ch)}%) frames\n", flush=True)
 
                     cube = cube[:, final_good_index_list]
