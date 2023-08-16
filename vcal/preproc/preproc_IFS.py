@@ -1012,7 +1012,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             plot_tmp = False
                             if zz == 0 or zz == n_z-1:
                                 plot_tmp = plot
-                                good_frame_tmp = frame_crop(good_frame, size=crop_sz, verbose=debug)
+                                good_frame_tmp = frame_crop(good_frame, size=crop_size, verbose=debug)
                                 write_fits(outpath+f"badfr_corr_reference_frame{labels[fi]}_ch{zz}.fits", good_frame_tmp, verbose=debug)
                             good_index_list, bad_index_list = cube_detect_badfr_correlation(cube[zz], good_frame,
                                                                                             crop_size=crop_size,
