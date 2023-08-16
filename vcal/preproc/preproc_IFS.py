@@ -898,7 +898,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         derot_angles_tmp = None
 
                     final_good_index_list = list(range(cube.shape[1]))
-                    reference_frames = np.zeros(cube.shape[1], cube.shape[-2], cube.shape[-1], dtype=np.float32)
+
                     for zz in range(n_z):
                         print(f"********** Trimming bad frames from channel {zz+1} ***********\n", flush=True)
                         ngood_fr_ch = len(final_good_index_list)
@@ -1016,23 +1016,23 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             if plot_tmp:
                                 plt.savefig(outpath+f"badfr_corr_plot{labels[fi]}_ch{zz}.pdf", bbox_inches="tight")
                             final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
-                            reference_frames[zz] = frame_crop(good_frame, size=crop_size, verbose=debug)
 
                         print(f"At the end of channel {zz+1}, we kept {len(final_good_index_list)}/{ngood_fr_ch} ({100*(len(final_good_index_list)/ngood_fr_ch):.0f}%) frames\n", flush=True)
 
-                    cube = cube[:, final_good_index_list]
-                    write_fits(outpath+f"2_master{labels[fi]}_ASDIcube_clean_{bad_str}.fits", cube, verbose=debug)
-                    if fi != 1:
-                        derot_angles = derot_angles[final_good_index_list]
-                        write_fits(outpath+f"2_master_derot_angles_clean_{bad_str}.fits", derot_angles, verbose=debug)
-
                     if "corr" in badfr_critn_tmp:  # save plots of all reference frames in the case of correlation
+                        reference_frames = cube_crop_frames(np.median(cube, axis=1), size=crop_size, verbose=debug)
                         labels = tuple(["Channel " + str(x) for x in range(1, 40)])
                         log = False
                         if not coro or fi == 1:  # if no coronagraph the image needs to be log scale
                             log = True
                         plot_frames(tuple(reference_frames), rows=8, cmap="inferno", dpi=300, log=log,
                                     label=labels, save=outpath+f"badfr_corr_all_ref_frames{labels[fi]}.pdf")
+
+                    cube = cube[:, final_good_index_list]
+                    write_fits(outpath+f"2_master{labels[fi]}_ASDIcube_clean_{bad_str}.fits", cube, verbose=debug)
+                    if fi != 1:
+                        derot_angles = derot_angles[final_good_index_list]
+                        write_fits(outpath+f"2_master_derot_angles_clean_{bad_str}.fits", derot_angles, verbose=debug)
 
             for fi, file_list in enumerate(obj_psf_list):
                 if fi > 1 and not use_cen_only:
