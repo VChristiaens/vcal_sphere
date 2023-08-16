@@ -22,6 +22,7 @@ from astropy.io import fits
 from matplotlib import use as mpl_backend
 from pandas.io.parsers.readers import read_csv
 
+from hciplot import plot_frames
 from vcal import __path__ as vcal_path
 from vcal.utils import find_nearest
 from vip_hci.fits import open_fits, open_header, write_fits
@@ -890,23 +891,23 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             if nn not in badfr_idx[fi]:
                                 cube_tmp[:,counter] = cube[:,nn]
                                 derot_angles_tmp[counter] = derot_angles[nn]
-                                counter+=1
-                        cube = cube_tmp.copy()
-                        derot_angles = derot_angles_tmp.copy()
+                                counter += 1
+                        cube = np.copy(cube_tmp)
+                        derot_angles = np.copy(derot_angles_tmp)
                         cube_tmp = None
                         derot_angles_tmp = None
 
                     final_good_index_list = list(range(cube.shape[1]))
-
-                    # Rejection based on pixel statistics
+                    reference_frames = np.zeros(cube.shape[1], cube.shape[-2], cube.shape[-1], dtype=np.float32)
                     for zz in range(n_z):
-                        if zz == 0:
-                            debug_tmp = debug
-                        else:
-                            debug_tmp = False
                         print(f"********** Trimming bad frames from channel {zz+1} ***********\n", flush=True)
                         ngood_fr_ch = len(final_good_index_list)
-                        #counter = 0
+
+                        plot_tmp = False
+                        if zz == 0 or zz == n_z - 1 or debug:  # only plot for channel 1&39 or when debug is on
+                            plot_tmp = plot
+
+                        # Rejection based on pixel statistics
                         if "stat" in badfr_critn_tmp:
                             idx_stat = badfr_critn_tmp.index("stat")
                             # Default parameters
@@ -920,7 +921,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 width = int(fwhm_med*2)
                                 window = int(len(cube[zz])/10)
                             top_sigma = 1.0
-                            low_sigma=1.0
+                            low_sigma = 1.0
                             # Update if provided
                             if "mode" in badfr_crit_tmp[idx_stat].keys():
                                 mode = badfr_crit_tmp[idx_stat]["mode"]
@@ -937,14 +938,12 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             good_index_list, bad_index_list = cube_detect_badfr_pxstats(cube[zz], mode=mode, in_radius=rad,
                                                                                         width=width, top_sigma=top_sigma,
                                                                                         low_sigma=low_sigma, window=window,
-                                                                                        plot=debug_tmp, verbose=debug)
-                            if debug_tmp:
-                                plt.show()
+                                                                                        plot=plot_tmp, verbose=debug)
+                            if plot_tmp:
+                                plt.savefig(outpath+f"badfr_stat_plot{labels[fi]}_ch{zz}.pdf", bbox_inches="tight")
                             final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
-    #                            if 100*len(bad_index_list)/cube.shape[1] > perc:
-    #                                perc = 100*len(bad_index_list)/cube.shape[1]
-    #                                print("Percentile updated to {:.1f} based on stat".format(perc))
-                            #counter+=1
+
+                        # Rejection based on ellipticity
                         if "ell" in badfr_critn_tmp:
                             idx_ell = badfr_critn_tmp.index("ell")
                             # default params
@@ -959,19 +958,18 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             if "crop_sz" in badfr_crit_tmp[idx_ell].keys():
                                 crop_sz = badfr_crit_tmp[idx_ell]["crop_sz"]
                             crop_size = int(crop_sz*fwhm[zz])
-                            if not crop_sz%2:
-                                crop_size+=1
-                            crop_sz = min(cube[zz].shape[1]-2,crop_sz)
+                            if not crop_sz % 2:
+                                crop_size += 1
+                            crop_sz = min(cube[zz].shape[1]-2, crop_sz)
                             good_index_list, bad_index_list = cube_detect_badfr_ellipticity(cube[zz], fwhm=fwhm[zz],
                                                                                             crop_size=crop_sz,
                                                                                             roundlo=roundlo, roundhi=roundhi,
-                                                                                            plot=False, verbose=debug)
-    #                            if 100*len(bad_index_list)/cube.shape[1] > perc:
-    #                                perc = 100*len(bad_index_list)/cube.shape[1]
-    #                                print("Percentile updated to {:.1f} based on ell".format(perc))
+                                                                                            plot=plot_tmp, verbose=debug)
+                            if plot_tmp:
+                                plt.savefig(outpath+f"badfr_ell_plot{labels[fi]}_ch{zz}.pdf", bbox_inches="tight")
                             final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
-                            #counter+=1
 
+                        # Rejection based on correlation to the median
                         if "corr" in badfr_critn_tmp:
                             idx_corr = badfr_critn_tmp.index("corr")
                             # default params
@@ -1009,29 +1007,32 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 width = badfr_crit_tmp[idx_corr]["width"]
 
                             crop_size = min(cube[zz].shape[1]-2, crop_size)
-                            plot_tmp = False
-                            if zz == 0 or zz == n_z-1:
-                                plot_tmp = plot
-                                good_frame_tmp = frame_crop(good_frame, size=crop_size, verbose=debug)
-                                cube_tmp = cube_crop_frames(cube[zz], size=crop_size, verbose=debug)
-                                write_fits(outpath+f"badfr_corr_reference_frame{labels[fi]}_ch{zz}.fits", good_frame_tmp, verbose=debug)
-                                write_fits(outpath+f"badfr_corr_input_frame{labels[fi]}_ch{zz}.fits", cube_tmp, verbose=debug)
                             good_index_list, bad_index_list = cube_detect_badfr_correlation(cube[zz], good_frame,
                                                                                             crop_size=crop_size,
                                                                                             threshold=thr, dist=dist,
                                                                                             percentile=perc, mode=mode,
                                                                                             inradius=inradius, width=width,
                                                                                             plot=plot_tmp, verbose=debug)
-                            final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
                             if plot_tmp:
                                 plt.savefig(outpath+f"badfr_corr_plot{labels[fi]}_ch{zz}.pdf", bbox_inches="tight")
-                        print(f"At the end of channel {zz+1}, we kept {len(final_good_index_list)}/{ngood_fr_ch} ({100*(len(final_good_index_list)/ngood_fr_ch)}%) frames\n", flush=True)
+                            final_good_index_list = [idx for idx in list(good_index_list) if idx in final_good_index_list]
+                            reference_frames[zz] = frame_crop(good_frame, size=crop_size, verbose=debug)
+
+                        print(f"At the end of channel {zz+1}, we kept {len(final_good_index_list)}/{ngood_fr_ch} ({100*(len(final_good_index_list)/ngood_fr_ch):.0f}%) frames\n", flush=True)
 
                     cube = cube[:, final_good_index_list]
                     write_fits(outpath+f"2_master{labels[fi]}_ASDIcube_clean_{bad_str}.fits", cube, verbose=debug)
                     if fi != 1:
                         derot_angles = derot_angles[final_good_index_list]
                         write_fits(outpath+f"2_master_derot_angles_clean_{bad_str}.fits", derot_angles, verbose=debug)
+
+                    if "corr" in badfr_critn_tmp:  # save plots of all reference frames in the case of correlation
+                        labels = tuple(["Channel " + str(x) for x in range(1, 40)])
+                        log = False
+                        if not coro or fi == 1:  # if no coronagraph the image needs to be log scale
+                            log = True
+                        plot_frames(tuple(reference_frames), rows=8, cmap="inferno", dpi=300, log=log,
+                                    label=labels, save=outpath+f"badfr_corr_all_ref_frames{labels[fi]}.pdf")
 
             for fi, file_list in enumerate(obj_psf_list):
                 if fi > 1 and not use_cen_only:
