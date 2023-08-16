@@ -935,10 +935,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 low_sigma = badfr_crit_tmp[idx_stat]["thr_low"]
                             if "window" in badfr_crit_tmp[idx_stat].keys():
                                 window = badfr_crit_tmp[idx_stat]["window"]
-                            if zz == 0 and debug:
-                                print(f"Running bad frame detection with mode={mode}, in_radius={rad},width={width},"
-                                      f"top_sigma={top_sigma},low_sigma={low_sigma},window={window}, plot={plot_tmp}, "
-                                      f"verbose={debug}")
                             good_index_list, bad_index_list = cube_detect_badfr_pxstats(cube[zz], mode=mode, in_radius=rad,
                                                                                         width=width, top_sigma=top_sigma,
                                                                                         low_sigma=low_sigma, window=window,
