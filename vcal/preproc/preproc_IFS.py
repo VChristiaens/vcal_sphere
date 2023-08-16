@@ -1021,12 +1021,12 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
                     if "corr" in badfr_critn_tmp:  # save plots of all reference frames in the case of correlation
                         reference_frames = cube_crop_frames(np.median(cube, axis=1), size=crop_size, verbose=debug)
-                        labels = tuple(["Channel " + str(x) for x in range(1, 40)])
                         log = False
                         if not coro or fi == 1:  # if no coronagraph the image needs to be log scale
                             log = True
                         plot_frames(tuple(reference_frames), rows=8, cmap="inferno", dpi=300, log=log,
-                                    label=labels, save=outpath+f"badfr_corr_all_ref_frames{labels[fi]}.pdf")
+                                    label=tuple(["Channel " + str(x) for x in range(1, 40)]),
+                                    save=outpath+f"badfr_corr_all_ref_frames{labels[fi]}.pdf")
 
                     cube = cube[:, final_good_index_list]
                     write_fits(outpath+f"2_master{labels[fi]}_ASDIcube_clean_{bad_str}.fits", cube, verbose=debug)
