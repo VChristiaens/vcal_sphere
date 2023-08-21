@@ -58,9 +58,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
     if path[-1] != '/':
         path += '/'
     inpath = path+"raw/"
-    inpath_filt_table = params_calib.get('inpath_filt_table', vcal_path[0][:-4] + "Static/")
-    if inpath_filt_table[-1] != '/':
-        inpath_filt_table += '/'
+    inpath_filt_table = vcal_path[0][:-4] + "Static/"
 
     # if not provided, automatically infer observing mode from fits files in data path (most common is chosen)
     if 'comb_iflt' in params_calib:
@@ -1436,7 +1434,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     elif 'SPEC_POS' in dark_ifs:
                         f.write("{}master_dark.fits".format(outpath_ifs_fits)+'\t'+'IFS_MASTER_DARK\n')
                     if mode == "YJ":
-                        f.write("{}ifs_lenslet_model_Y_J.txt".format(inpath_filt_table)+'\t'+'IFS_LENSLET_MODEL\n')
+                        f.write(f"{inpath_filt_table}ifs_lenslet_model_Y_J.txt"+'\t'+'IFS_LENSLET_MODEL\n')
 
             if not isfile(outpath_ifs_fits+"spectra_pos.fits") or overwrite_sof or overwrite_fits:
                 command = "esorex sph_ifs_spectra_positions"

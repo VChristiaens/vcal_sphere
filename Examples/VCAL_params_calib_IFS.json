@@ -1,6 +1,5 @@
 {
     "path": "/parent-path-to-data/",
-    "inpath_filt_table": "/path-to-code/vcal_sphere/Static/",
     "dit_ifs": 96,
     "dit_irdis": 96,
     "dit_psf_ifs": 2,

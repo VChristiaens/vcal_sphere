@@ -28,8 +28,7 @@ STEPS:
 
 # PATHS
     "path": str, parent path -- subdirectories with products will be created in there
-    "inpath": str, where raw downloaded files should be placed
-    "inpath_filt_table": str, # path to the vcal_sphere/Static/ folder
+    "inpath": str, where raw downloaded files should be placed. Set as path+"raw/" by default
    
 # OBSERVATION
 ## First run  dfits *.fits |fitsort DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT INS.COMB.IFLT in the 'raw' directory to fill the appropriate values.

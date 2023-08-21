@@ -80,7 +80,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     inpath = path+"IFS_reduction/1_calib_esorex/calib/"
     label_test = params_preproc.get('label_test', '')
     outpath = path+"IFS_reduction/2_preproc_vip{}/".format(label_test)
-    nd_filename = vcal_path[0] + "/../Static/SPHERE_CPI_ND.dat" # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
+    nd_filename = vcal_path[0][:-4]+"Static/SPHERE_CPI_ND.dat"  # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
     use_cen_only = params_preproc.get('use_cen_only', 0)
 
     sky = params_calib['sky']
@@ -360,20 +360,20 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             OBJ_IFS_list = CEN_IFS_list
         if 2 in to_do:
             print("\n************* 2. RECENTERING *************\n", flush=True)
-            for fi, file_list in enumerate(obj_psf_list): ## OBJECT, then PSF (but not CEN)
+            for fi, file_list in enumerate(obj_psf_list):  # OBJECT, then PSF (but not CEN)
                 if fi != 1:
-                    negative=coro
+                    negative = coro
                     rec_met_tmp = rec_met
                     if fi == 0:
-                        all_mjd=[]
+                        all_mjd = []
                         print("\nRecentering OBJ files\n", flush=True)
                 elif fi == 1:
-                    negative=False
+                    negative = False
                     rec_met_tmp = rec_met_psf
                     print("\nRecentering PSF files\n", flush=True)
                 else:  # CEN
                     break
-                if not isfile(outpath+"{}_2cen.fits".format(file_list[-1])) or overwrite[1]:
+                if not isfile(outpath+f"{file_list[-1]}_2cen.fits") or overwrite[1]:
                     if isinstance(rec_met, list):
                         # PROCEED ONLY ON TEST CUBE
                         cube, head = open_fits(outpath+file_list[idx_test_cube[fi]]+"_1bpcorr.fits", header=True, verbose=debug)
@@ -536,7 +536,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         print("Best centering method for {}: {}".format(labels[fi],rec_met_tmp), flush=True)
                         print("Press c if satisfied. q otherwise", flush=True)
 
-                    if isinstance(rec_met_tmp, str):
+                    if isinstance(rec_met_tmp, str):  # perform only one centering method as requested by the user
                         final_y_shifts = []
                         final_x_shifts = []
                         final_y_shifts_std = []
