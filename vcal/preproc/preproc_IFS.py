@@ -695,7 +695,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     cube = cube_shift(cube, shift_y=y_shifts, shift_x=x_shifts, nproc=nproc)
 
                                     if plot and fn == 0:  # plot shifts now they have been found
-                                        fig, axs = plt.subplots(2)
+                                        fig, axs = plt.subplots(2, sharex=True)
                                         fig.suptitle("Shifts inferred from satellite spots")
                                         colors = ["r", "b", "y", "c", "m", "g", "k"]  # different colours for each CEN
                                         # y
@@ -706,9 +706,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         for cc in range(true_ncen):
                                             axs[1].errorbar(range(n_z), x_shifts_cen[cc], yerr=x_shifts_cen_err[cc],
                                                             fmt=colors[cc+1]+"x", label=f"x-shifts cube {cc+1}")
-                                        fig.xlabel("Cube")
+                                        fig.supxlabel("Cube")
                                         axs[0].set_ylabel("y shift [px]")
-                                        axs[1].set_xlabel("x shift [px]")
+                                        axs[1].set_ylabel("x shift [px]")
                                         axs[0].legend(loc="best")
                                         axs[1].legend(loc="best")
                                         fig.minorticks_on()
