@@ -700,6 +700,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         x_shifts[zz] = np.interp(x=[mjd], xp=unique_mjd_cen, fp=x_shifts_cen[:, zz])
                                     cube = cube_shift(cube, shift_y=y_shifts, shift_x=x_shifts, nproc=nproc)
                                     if plot and fn == 0:  # plot shifts now they have been found
+                                        plt.close("all")
                                         colors = ["k", "r", "b", "y", "c", "m","g"]  # different colours for each CEN
                                         # y
                                         plt.plot(range(n_z), y_shifts, colors[0]+"-", label="shifts y")
