@@ -693,19 +693,26 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         y_shifts[zz] = np.interp(x=[mjd], xp=unique_mjd_cen, fp=y_shifts_cen[:, zz])
                                         x_shifts[zz] = np.interp(x=[mjd], xp=unique_mjd_cen, fp=x_shifts_cen[:, zz])
                                     cube = cube_shift(cube, shift_y=y_shifts, shift_x=x_shifts, nproc=nproc)
+
                                     if plot and fn == 0:  # plot shifts now they have been found
-                                        colors = ["k", "r", "b", "y", "c", "m","g"]  # different colours for each CEN
+                                        fig, axs = plt.subplots(2)
+                                        fig.suptitle("Shifts inferred from satellite spots")
+                                        colors = ["r", "b", "y", "c", "m", "g", "k"]  # different colours for each CEN
                                         # y
-                                        plt.plot(range(n_z), y_shifts, colors[0]+"-", label="shifts y")
                                         for cc in range(true_ncen):
-                                            plt.errorbar(range(n_z), y_shifts_cen[cc], yerr=y_shifts_cen_err[cc],
-                                                         fmt=colors[cc+1]+"o", label="y cen shifts")
+                                            axs[0].errorbar(range(n_z), y_shifts_cen[cc], yerr=y_shifts_cen_err[cc],
+                                                            fmt=colors[cc+1]+"v", label=f"y-shifts cube {cc+1}")
                                         # x
-                                        plt.plot(range(n_z), x_shifts, colors[0]+"-", label="shifts x")
                                         for cc in range(true_ncen):
-                                            plt.errorbar(range(n_z), x_shifts_cen[cc], yerr=x_shifts_cen_err[cc],
-                                                         fmt=colors[cc+1]+"o", label="x cen shifts")
-                                        plt.savefig(outpath+"Satspot_shifts_applied_to_OBJ.pdf", bbox_inches="tight")
+                                            axs[1].errorbar(range(n_z), x_shifts_cen[cc], yerr=x_shifts_cen_err[cc],
+                                                            fmt=colors[cc+1]+"x", label=f"x-shifts cube {cc+1}")
+                                        fig.xlabel("Cube")
+                                        axs[0].ylabel("y shift [px]")
+                                        axs[1].xlabel("x shift [px]")
+                                        axs[0].legend(loc="best")
+                                        axs[1].legend(loc="best")
+                                        fig.minorticks_on()
+                                        fig.savefig(outpath+"Satspot_shifts_all.pdf", bbox_inches="tight")
                                         plt.close("all")
 
                             elif "radon" in rec_met_tmp:
