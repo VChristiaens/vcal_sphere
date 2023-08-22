@@ -588,10 +588,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                 debug=False, plot=plot)
 
                                     if debug:
-                                        print('dft{} + 2dfit centering: xshift: {} px, yshift: {} px for cube {}_1bpcorr.fits'
-                                              .format(int(rec_met_tmp[4:]), x_shifts[0], y_shifts[0], filename), flush=True)
-                                    for zz in range(cube.shape[0]):
-                                        cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])
+                                        print(f"dft{int(rec_met_tmp[4:])} + 2dfit centering: xshift: {x_shifts[0]} px, "
+                                              f"yshift: {y_shifts[0]} px for cube {filename}_1bpcorr.fits", flush=True)
+                                    cube = cube_shift(cube, shift_y=y_shifts[0], shift_x=x_shifts[0], nproc=nproc)
                                 except:
                                     y_shifts, x_shifts = np.zeros(cube.shape[0]), np.zeros(cube.shape[0])
 
