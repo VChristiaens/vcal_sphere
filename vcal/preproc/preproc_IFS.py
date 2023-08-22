@@ -529,7 +529,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             else:
                                 raise ValueError("Centering method not recognized")
 
-                        #infer best method from min(stddev of shifts)
+                        # infer the best method from min(stddev of shifts)
                         std_shift = np.array(std_shift)
                         idx_min_shift = np.nanargmin(std_shift)
                         rec_met_tmp = rec_met_tmp[idx_min_shift]
@@ -605,6 +605,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     mjd_cen = np.zeros(ncen)
                                     y_shifts_cen_tmp = np.zeros([ncen, n_z])
                                     x_shifts_cen_tmp = np.zeros([ncen, n_z])
+
+                                    # loop over all CEN files and retrieve the located of the satellite spots
                                     for cc in range(ncen):
                                         if cc == idx_test_cube[fi]:
                                             debug_tmp = True
@@ -689,34 +691,29 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     #     print(msg)
                                     #     pdb.set_trace()
 
-                                if not use_cen_only:
-                                    # APPLY THEM TO OBJ CUBES           
-                                    ## interpolate based on cen shifts
+                                if not use_cen_only:  # APPLY THEM TO OBJ CUBES
                                     y_shifts = np.zeros(n_z)
                                     x_shifts = np.zeros(n_z)
                                     mjd = float(header['MJD-OBS'])
-                                    if fi == 0:
-                                        all_mjd.append(mjd)
-                                    for zz in range(n_z):
-                                        y_shifts[zz] = np.interp([mjd],unique_mjd_cen,y_shifts_cen[:,zz])
-                                        x_shifts[zz] = np.interp([mjd],unique_mjd_cen,x_shifts_cen[:,zz])
-                                        cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz])
-                                    if debug and fn == 0:
-                                        plt.show() # show whichever previous plot is in memory
-                                        colors = ['k','r','b','y','c','m','g']
+                                    all_mjd.append(mjd)
+                                    for zz in range(n_z):  # interpolate based on cen shifts
+                                        y_shifts[zz] = np.interp(x=[mjd], xp=unique_mjd_cen, fp=y_shifts_cen[:, zz])
+                                        x_shifts[zz] = np.interp(x=[mjd], xp=unique_mjd_cen, fp=x_shifts_cen[:, zz])
+                                    cube = cube_shift(cube, shift_y=y_shifts, shift_x=x_shifts, nproc=nproc)
+                                    if plot and fn == 0:  # plot shifts now they have been found
+                                        colors = ["k", "r", "b", "y", "c", "m","g"]  # different colours for each CEN
                                         # y
-                                        plt.plot(range(n_z),y_shifts,colors[0]+'-', label = 'shifts y')
+                                        plt.plot(range(n_z), y_shifts, colors[0]+"-", label="shifts y")
                                         for cc in range(true_ncen):
-                                            plt.errorbar(range(n_z),y_shifts_cen[cc],
-                                                         yerr=y_shifts_cen_err[cc], fmt=colors[cc+1]+'o',label='y cen shifts')
-                                        plt.show()
+                                            plt.errorbar(range(n_z), y_shifts_cen[cc], yerr=y_shifts_cen_err[cc],
+                                                         fmt=colors[cc+1]+"o", label="y cen shifts")
                                         # x
-                                        plt.plot(range(n_z),x_shifts,colors[0]+'-', label = 'shifts x')
+                                        plt.plot(range(n_z), x_shifts, colors[0]+"-", label="shifts x")
                                         for cc in range(true_ncen):
-                                            plt.errorbar(range(n_z),x_shifts_cen[cc],
-                                                         yerr=x_shifts_cen_err[cc], fmt=colors[cc+1]+'o',label='x cen shifts')
-                                        plt.show()
-                                        write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp), cube, verbose=debug)
+                                            plt.errorbar(range(n_z), x_shifts_cen[cc], yerr=x_shifts_cen_err[cc],
+                                                         fmt=colors[cc+1]+"o", label="x cen shifts")
+                                        plt.savefig(outpath+"Satspot_shifts_applied_to_OBJ.pdf", bbox_inches="tight")
+                                        plt.close("all")
 
                             elif "radon" in rec_met_tmp:
                                 cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
@@ -750,13 +747,13 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                              fmt='mo',label='x cen')
                             plt.legend(loc='best')
                             plt.savefig(outpath+"Shifts_xy{}_{}.pdf".format(labels[fi],rec_met_tmp),bbox_inches='tight', format='pdf')
-                            plt.clf()
+                            plt.close('all')
                         except:
                             print('Could not produce shifts vs. time plot.', flush=True)
                             plt.close('all')
 
             if save_space:
-                system("rm {}*0distort.fits".format(outpath))
+                system(f"rm -f {outpath}*1bpcorr*.fits")
 
 
 #            #******************************* FINAL CROP *******************************
