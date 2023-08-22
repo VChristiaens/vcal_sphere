@@ -607,10 +607,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
                                     # loop over all CEN files and retrieve the located of the satellite spots
                                     for cc in range(ncen):
-                                        if cc == idx_test_cube[fi]:
-                                            debug_tmp = True
-                                        else:
-                                            debug_tmp = False
                                         # first get the MJD time of each cube
                                         cube_cen, head_cc = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits", verbose=debug, header=True)
                                         mjd_cen[cc] = float(head_cc['MJD-OBS'])
@@ -638,10 +634,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         xy_spots_tmp = tuple([(xy_spots[i][0]-diff, xy_spots[i][1]-diff) for i in range(len(xy_spots))])
                                         # find center location
                                         res = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[fi],
-                                                                     sigfactor=sigfactor, plot=False,
-                                                                     fit_type='moff', lbda=lbdas,
-                                                                     debug=debug_tmp, verbose=True,
-                                                                     full_output=True)
+                                                                     sigfactor=sigfactor, plot=False, fit_type="moff",
+                                                                     lbda=lbdas, verbose=True, full_output=True)
                                         _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], _, _ = res
                                         if plot and not use_cen_only:  # cen only can make too many plots
                                             plot_frames(tuple(cube_cen_sub), rows=8, dpi=300, cmap="inferno",
@@ -700,7 +694,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         x_shifts[zz] = np.interp(x=[mjd], xp=unique_mjd_cen, fp=x_shifts_cen[:, zz])
                                     cube = cube_shift(cube, shift_y=y_shifts, shift_x=x_shifts, nproc=nproc)
                                     if plot and fn == 0:  # plot shifts now they have been found
-                                        plt.close("all")
                                         colors = ["k", "r", "b", "y", "c", "m","g"]  # different colours for each CEN
                                         # y
                                         plt.plot(range(n_z), y_shifts, colors[0]+"-", label="shifts y")
