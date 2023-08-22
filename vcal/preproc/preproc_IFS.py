@@ -711,8 +711,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         axs[1].set_ylabel("x shift [px]")
                                         axs[0].legend(loc="best")
                                         axs[1].legend(loc="best")
-                                        fig.minorticks_on()
-                                        fig.savefig(outpath+"Satspot_shifts_all.pdf", bbox_inches="tight")
+                                        axs.minorticks_on()
+                                        plt.savefig(outpath+"Satspot_shifts_all.pdf", bbox_inches="tight")
                                         plt.close("all")
 
                             elif "radon" in rec_met_tmp:
