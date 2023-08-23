@@ -720,7 +720,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
                                         fig, ax = plt.subplots()
                                         for cc in range(true_ncen):
-                                            ax.scatter(sat_x[cc], sat_y[cc], label=f"Cube {cc+1}")
+                                            ax.scatter(sat_x[cc], sat_y[cc], label=f"Cube {cc+1}", s=5, alpha=0.7)
                                         ax.scatter(cube_cen.shape[-1]/2, cube_cen.shape[-1]/2, color="black", marker="x")
                                         ax.axhline(cube_cen.shape[-1]/2, color="black", ls=":", alpha=0.5)
                                         ax.axvline(cube_cen.shape[-1]/2, color="black", ls=":", alpha=0.5)
