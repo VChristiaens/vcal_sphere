@@ -769,23 +769,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             if save_space:
                 system(f"rm -f {outpath}*1bpcorr*.fits")
 
-
-#            #******************************* FINAL CROP *******************************
-#            if 3 in to_do:
-#                for fi, file_list in enumerate(obj_psf_list):
-#                    if fi == 0 and use_cen_only:
-#                        continue
-#                    crop_sz_tmp = final_crop_szs[fi]
-#                    if not isfile(outpath+file_list[-1]+"_3crop.fits") or overwrite[3]:
-#                        for fn, filename in enumerate(file_list):
-#                            cube, header = open_fits(outpath+filename+"_2cen.fits", header=True)
-#                            if cube.shape[1] > crop_sz_tmp or cube.shape[2] > crop_sz_tmp:
-#                                cube = cube_crop_frames(cube,crop_sz_tmp,verbose=debug)
-#                                header["NAXIS1"] = cube.shape[1]
-#                                header["NAXIS2"] = cube.shape[2]
-#                            write_fits(outpath+filename+"_3crop.fits", cube, header=header)
-
-
         #******************************* MASTER CUBES ******************************
         if 3 in to_do:
             print("\n************* 3. MASTER CUBES *************\n", flush=True)
