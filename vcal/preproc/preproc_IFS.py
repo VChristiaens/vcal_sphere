@@ -791,7 +791,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     for nn, filename in enumerate(file_list):
                         cube, header = open_fits(outpath+filename+"_2cen.fits", header=True, verbose=debug)
                         if nn == 0:
-                            master_cube = np.zeros([n_z,len(file_list),cube.shape[-2],cube.shape[-1]])
+                            master_cube = np.zeros([n_z,len(file_list),cube.shape[-2],cube.shape[-1]], dtype=np.float32)
                         try:
                             master_cube[:,nn] = cube
                         except:
@@ -807,7 +807,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             parang_nd.append(parang_nd_tmp)
 
                     # VERY IMPORTANT WE CORRECT FOR SPECTRAL IMPRINT OF ND FILTER
-                    interp_trans = np.interp(lbdas*1000, nd_wavelen, nd_trans[fi]) # file lbdas are in nm
+                    interp_trans = np.interp(lbdas*1000, nd_wavelen, nd_trans[fi])  # file lbdas are in nm
                     if debug:
                         print("transmission correction: ",interp_trans, flush=True)
                     for zz in range(n_z):
@@ -830,7 +830,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         write_fits(outpath+"1_master_par_angles{}.fits".format(labels[fi]), final_par_angles, verbose=debug)
 
                         # median-ADI
-                        ADI_frame = np.zeros([n_z,master_cube.shape[-2],master_cube.shape[-1]])
+                        ADI_frame = np.zeros([n_z,master_cube.shape[-2],master_cube.shape[-1]], dtype=np.float32)
                         for zz in range(n_z):
                             params = MEDIAN_SUB_Params(cube=master_cube[zz], angle_list=final_derot_angles, radius_int=10,
                                                   nproc=nproc)
