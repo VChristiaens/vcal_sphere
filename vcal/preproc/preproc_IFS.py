@@ -727,7 +727,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         ax.minorticks_on()
                                         ax.legend(loc="best")
                                         plt.savefig(outpath+"Satspot_coordinates.pdf", bbox_inches="tight")
-                                        plt.cloes("all")
+                                        plt.close("all")
 
                             elif "radon" in rec_met_tmp:
                                 cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
