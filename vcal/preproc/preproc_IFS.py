@@ -722,8 +722,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         for cc in range(true_ncen):
                                             ax.scatter(sat_x[cc], sat_y[cc], label=f"Cube {cc+1}")
                                         ax.scatter(0, 0, color="black", marker="x")
-                                        ax.hline(0, color="black", ls="-", alpha=0.8)
-                                        ax.vline(0, color="black", ls="-", alpha=0.8)
+                                        ax.axhline(0, color="black", ls=":", alpha=0.8)
+                                        ax.axvline(0, color="black", ls=":", alpha=0.8)
                                         ax.minorticks_on()
                                         ax.legend(loc="best")
                                         plt.savefig(outpath+"Satspot_coordinates.pdf", bbox_inches="tight")
