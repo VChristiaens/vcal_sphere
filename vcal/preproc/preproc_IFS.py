@@ -657,10 +657,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         mjd_mid = float(header_mid['MJD-OBS'])
 
                                     unique_mjd_cen = np.zeros(true_ncen)
-                                    y_shifts_cen = np.zeros([true_ncen,n_z])
-                                    x_shifts_cen = np.zeros([true_ncen,n_z])
-                                    y_shifts_cen_err = np.zeros([true_ncen,n_z])
-                                    x_shifts_cen_err = np.zeros([true_ncen,n_z])
+                                    y_shifts_cen = np.zeros([true_ncen, n_z])
+                                    x_shifts_cen = np.zeros([true_ncen, n_z])
+                                    y_shifts_cen_err = np.zeros([true_ncen, n_z, 4])  # four spots per channel
+                                    x_shifts_cen_err = np.zeros([true_ncen, n_z, 4])
                                     for cc in range(true_ncen):
                                         if cc == 0:
                                             cond = mjd_cen < mjd
@@ -720,6 +720,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
                                         fig, ax = plt.subplots()
                                         ax.scatter(sat_x, sat_y)
+                                        ax.scatter(0, 0, color="black", marker="x")
+                                        ax.minorticks_on()
+
                                         plt.savefig(outpath+"Satspot_coordinates.pdf", bbox_inches="tight")
 
                             elif "radon" in rec_met_tmp:
