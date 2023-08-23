@@ -725,7 +725,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         for cc in range(true_ncen):
                                             ax.scatter(sat_x[cc], sat_y[cc], label=f"Cube {cc+1}", s=6, alpha=0.7)
                                         ax.scatter(cube_cen.shape[-1]/2, cube_cen.shape[-1]/2, color="black", marker="x")
-                                        ax.annotate("(Frame Center)", cube_cen.shape[-1]/2+5, cube_cen.shape[-1]/2+5,
+                                        ax.annotate("(Frame Center)", xy=(cube_cen.shape[-1]/2+5, cube_cen.shape[-1]/2+5),
                                                     fontsize=8)
                                         ax.axhline(cube_cen.shape[-1]/2, color="black", ls=":", alpha=0.5)
                                         ax.axvline(cube_cen.shape[-1]/2, color="black", ls=":", alpha=0.5)
