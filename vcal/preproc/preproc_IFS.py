@@ -604,6 +604,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     mjd_cen = np.zeros(ncen)
                                     y_shifts_cen_tmp = np.zeros([ncen, n_z])
                                     x_shifts_cen_tmp = np.zeros([ncen, n_z])
+                                    sat_y = np.zeros([ncen, n_z])
+                                    sat_x = np.zeros([ncen, n_z])
 
                                     # loop over all CEN files and retrieve the located of the satellite spots
                                     for cc in range(ncen):
@@ -636,7 +638,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         res = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[fi],
                                                                      sigfactor=sigfactor, plot=False, fit_type="moff",
                                                                      lbda=lbdas, verbose=True, full_output=True)
-                                        _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], _, _ = res
+                                        _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], sat_y[cc], sat_x[cc] = res
                                         if plot and not use_cen_only:  # cen only can make too many plots
                                             plot_frames(tuple(cube_cen_sub), rows=8, dpi=300, cmap="inferno",
                                                         label=tuple(["Channel " + str(x) for x in range(1, 40)]),
@@ -715,6 +717,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         axs[1].minorticks_on()
                                         plt.savefig(outpath+"Satspot_shifts_per_channel.pdf", bbox_inches="tight")
                                         plt.close("all")
+
+                                        fig, ax = plt.subplots()
+                                        ax.scatter(sat_x, sat_y)
+                                        plt.savefig(outpath+"Satspot_coordinates.pdf", bbox_inches="tight")
 
                             elif "radon" in rec_met_tmp:
                                 cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
