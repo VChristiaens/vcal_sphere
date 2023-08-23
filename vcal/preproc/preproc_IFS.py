@@ -604,8 +604,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     mjd_cen = np.zeros(ncen)
                                     y_shifts_cen_tmp = np.zeros([ncen, n_z])
                                     x_shifts_cen_tmp = np.zeros([ncen, n_z])
-                                    sat_y = np.zeros([ncen, n_z])
-                                    sat_x = np.zeros([ncen, n_z])
+                                    sat_y = np.zeros([ncen, n_z, 4])    # four spots per channel
+                                    sat_x = np.zeros([ncen, n_z, 4])
 
                                     # loop over all CEN files and retrieve the located of the satellite spots
                                     for cc in range(ncen):
@@ -659,8 +659,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     unique_mjd_cen = np.zeros(true_ncen)
                                     y_shifts_cen = np.zeros([true_ncen, n_z])
                                     x_shifts_cen = np.zeros([true_ncen, n_z])
-                                    y_shifts_cen_err = np.zeros([true_ncen, n_z, 4])  # four spots per channel
-                                    x_shifts_cen_err = np.zeros([true_ncen, n_z, 4])
+                                    y_shifts_cen_err = np.zeros([true_ncen, n_z])
+                                    x_shifts_cen_err = np.zeros([true_ncen, n_z])
                                     for cc in range(true_ncen):
                                         if cc == 0:
                                             cond = mjd_cen < mjd
@@ -719,11 +719,15 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         plt.close("all")
 
                                         fig, ax = plt.subplots()
-                                        ax.scatter(sat_x, sat_y)
+                                        for cc in range(true_ncen):
+                                            ax.scatter(sat_x[cc], sat_y[cc], label=f"Cube {cc+1}")
                                         ax.scatter(0, 0, color="black", marker="x")
+                                        ax.hline(0, color="black", ls="-", alpha=0.8)
+                                        ax.vline(0, color="black", ls="-", alpha=0.8)
                                         ax.minorticks_on()
-
+                                        ax.legend(loc="best")
                                         plt.savefig(outpath+"Satspot_coordinates.pdf", bbox_inches="tight")
+                                        plt.cloes("all")
 
                             elif "radon" in rec_met_tmp:
                                 cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
