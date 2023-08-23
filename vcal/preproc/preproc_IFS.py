@@ -630,7 +630,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                 cube_cen_sub -= np.median(cube_near, axis=0)
                                             else:
                                                 cube_cen_sub -= cube_near
-                                            print(f"\nSubtracted OBJ cube {file_list[m_idx]}_1bpcorr.fits from CEN cube"
+                                            print(f"\nSubtracted OBJ cube {file_list[m_idx]}_1bpcorr.fits from CEN cube "
                                                   f"{cen_cube_names[cc]}_1bpcorr.fits\n")
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[i][0]-diff, xy_spots[i][1]-diff) for i in range(len(xy_spots))])
