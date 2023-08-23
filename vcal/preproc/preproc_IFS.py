@@ -726,6 +726,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         ax.axvline(cube_cen.shape[-1]/2, color="black", ls=":", alpha=0.5)
                                         ax.minorticks_on()
                                         ax.legend(loc="best")
+                                        ax.set_xlabel("Image x-coordinate [px]")
+                                        ax.set_ylabel("Image y-coordinate [px]")
                                         plt.savefig(outpath+"Satspot_coordinates.pdf", bbox_inches="tight")
                                         plt.close("all")
 
