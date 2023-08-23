@@ -696,7 +696,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         x_shifts[zz] = np.interp(x=[mjd], xp=unique_mjd_cen, fp=x_shifts_cen[:, zz])
                                     cube = cube_shift(cube, shift_y=y_shifts, shift_x=x_shifts, nproc=nproc)
 
-                                    if plot and fn == 0:  # plot shifts now they have been found
+                                    if plot and fn == 0:
+                                        # two plots are made here, first shows x-y shifts in each channel, the second
+                                        # shows the coordinates of all satellite spots found in each cube and each
+                                        # channel
                                         fig, axs = plt.subplots(nrows=2, sharex=True)
                                         fig.suptitle("Shifts inferred from satellite spots")
                                         colors = ["r", "b", "m", "c", "y", "g", "k"]  # different colours for each CEN
@@ -720,8 +723,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
                                         fig, ax = plt.subplots()
                                         for cc in range(true_ncen):
-                                            ax.scatter(sat_x[cc], sat_y[cc], label=f"Cube {cc+1}", s=5, alpha=0.7)
+                                            ax.scatter(sat_x[cc], sat_y[cc], label=f"Cube {cc+1}", s=6, alpha=0.7)
                                         ax.scatter(cube_cen.shape[-1]/2, cube_cen.shape[-1]/2, color="black", marker="x")
+                                        ax.annotate("(Frame Center)", cube_cen.shape[-1]/2+5, cube_cen.shape[-1]/2+5,
+                                                    fontsize=8)
                                         ax.axhline(cube_cen.shape[-1]/2, color="black", ls=":", alpha=0.5)
                                         ax.axvline(cube_cen.shape[-1]/2, color="black", ls=":", alpha=0.5)
                                         ax.minorticks_on()
