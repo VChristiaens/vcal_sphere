@@ -133,9 +133,9 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
     good_sky_list = params_calib.get('good_sky_list',["all"]) #which skies to use for IFS? If [-1]: just uses the first frame of the first sky, if a list of good skies: uses all frames from all those cubes, if ['all']: uses them all.
     good_psf_sky_list = params_calib.get('good_psf_sky_list',["all"])
     good_psf_sky_irdis = params_calib.get('good_psf_sky_irdis',["all"])
-    manual_sky = params_calib.get('manual_sky',1) # the sky evolves quickly with time, in case of poor sky sampling during sequence the background level after sky subtraction can be anywhere between -15 and +15 instead of 0
+    manual_sky = params_calib.get('manual_sky', 1)  # the sky evolves quickly with time, in case of poor sky sampling during sequence the background level after sky subtraction can be anywhere between -15 and +15 instead of 0
     mask_pca_sky_sub = params_calib.get('mask_pca_sky_sub',[250,420,0,0,0])
-    # => First try with manual_sky set to False (no need to change params below then). If average background level different than 0 => re-run by setting it to True (possibly adaot values below -- in partciular for the psf): this will subtract manually the average pixel values measured at the provided coords (ideally corners far from star)
+    # => First try with manual_sky set to False (no need to change params below then). If average background level different than 0 => re-run by setting it to True (possibly adapt values below -- in partciular for the psf): this will subtract manually the average pixel values measured at the provided coords (ideally corners far from star)
     corner_coords = params_calib.get('corner_coords',[[39,215],[72,42],[247,78],[216,250]]) # x,y coords where the sky will be manually estimated # !!! CAREFUL IF STAR NOT CENTERED => adapt
     msky_ap = params_calib.get('msky_ap',15) #aperture for manual sky level estimation
     corner_coords_psf = params_calib.get('corner_coords_psf',[[98,88]]) # x,y coords where the sky will be manually estimated # !!! CAREFUL IF STAR NOT CENTERED => adapt
@@ -1710,7 +1710,34 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         counter+=tmp.shape[0]
                     master_psf_sky = np.median(master_psf_sky,axis=0)
             write_fits("{}master_psf_sky.fits".format(outpath_ifs_fits), master_psf_sky) # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
-    
+
+        def manual_sky_subtract(lab_bp: str, instr: str, corner_coords: list, msky_ap: int, outpath_ifs_fits:str,
+                                filetype: str) -> None:
+            """
+            Function for manually subtracting the sky, if the user requests it.
+            Plots the first file with the location of the apertures used to estimate the sky.
+            """
+
+            curr_path = pathlib.Path().absolute()
+            file_list = os.listdir(curr_path)
+            products_list = [x for x in file_list if (x.startswith(lab_bp + instr) and x.endswith(".fits"))]
+            for pp, prod in enumerate(products_list):
+                hdul = fits.open(prod)
+                tmp = hdul[0].data
+                for zz in range(tmp.shape[0]):
+                    fluxes = np.zeros(len(corner_coords))
+                    for aa, ap in enumerate(corner_coords):
+                        aper = CircularAperture(ap, r=msky_ap)
+                        flux_tmp = aperture_photometry(tmp[zz], aper, method="exact")
+                        fluxes[aa] = np.array(flux_tmp["aperture_sum"])
+                    avg = np.median(fluxes) / (np.pi * msky_ap ** 2)
+                    tmp[zz] -= avg
+                hdul[0].data = tmp
+                hdul.writeto(prod, output_verify="ignore", overwrite=True)
+                if pp==0:
+                    im = np.median(hdul[0].data, axis=0)
+                    plot_frames(im, cmap="inferno", dpi=300, circle=tuple(corner_coords), circle_radius=msky_ap,
+                                log=True, save=outpath_ifs_fits+f"Manual_sky_{filetype}.pdf")
         
         # REDUCE OBJECT
         lab_distort="" # no distortion correction possible for ifs in pipeline
@@ -1810,26 +1837,10 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         command+= " --ifs.science_dr.use_illumination=TRUE"
                     command+= " {}OBJECT{}{:.0f}.sof".format(outpath_ifs_sof,lab_distort,ii)
                     os.system(command)
-                    
-                if manual_sky: # subtract residual sky level
-                    curr_path = pathlib.Path().absolute()
-                    file_list = os.listdir(curr_path)
-                    products_list = [x for x in file_list if (x.startswith(lab_bp+instr) and x.endswith(".fits"))]
-                    for pp, prod in enumerate(products_list):
-                        hdul = fits.open(prod)
-                        tmp = hdul[0].data
-                        for zz in range(tmp.shape[0]):
-                            fluxes = np.zeros(len(corner_coords))
-                            for aa, ap in enumerate(corner_coords):
-                                aper = CircularAperture(ap, r=msky_ap)
-                                flux_tmp = aperture_photometry(tmp[zz], aper, method='exact')
-                                fluxes[aa] = np.array(flux_tmp['aperture_sum'])
-                            avg = np.median(fluxes)/(np.pi*msky_ap**2)
-                            tmp[zz] = tmp[zz] - avg
-                        hdul[0].data = tmp                                            
-                        hdul.writeto(prod, output_verify='ignore', overwrite=True)
-                        
-                    
+
+                if manual_sky:  # perform manual sky subtraction
+                    manual_sky_subtract(lab_bp, instr, corner_coords, msky_ap, outpath_ifs_fits, filetype="sci")
+
                 os.system("mv {} {}.".format(lab_bp+instr+'*.fits',outpath_ifs_calib))
                 os.system("rm {}{}".format(outpath_ifs_fits,"tmp*.fits"))
 
@@ -1879,8 +1890,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     lab_sci = xtalkcorr_lab_IFS
                     hdul.writeto(inpath+xtalkcorr_lab_IFS+lab_bp+cen_list_ifs[ii], output_verify='ignore', overwrite=True)      
                     #pdb.set_trace()
-                
-                    
+
                 if not isfile(outpath_ifs_sof+"CEN{}{:.0f}.sof".format(lab_distort,ii)) or overwrite_sof:
                     with open(outpath_ifs_sof+"CEN{}{:.0f}.sof".format(lab_distort,ii), 'w') as f:
                         f.write(inpath+lab_sci+lab_bp+cen_list_ifs[ii]+'\t'+'IFS_SCIENCE_DR_RAW\n')
@@ -1931,23 +1941,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     command+= " {}CEN{}{:.0f}.sof".format(outpath_ifs_sof,lab_distort,ii)
                     os.system(command)
     
-                if manual_sky: # subtract residual sky level
-                    curr_path = pathlib.Path().absolute()
-                    file_list = os.listdir(curr_path)
-                    products_list = [x for x in file_list if (x.startswith(lab_bp+instr) and x.endswith(".fits"))]
-                    for pp, prod in enumerate(products_list):
-                        hdul = fits.open(prod)
-                        tmp = hdul[0].data
-                        for zz in range(tmp.shape[0]):
-                            fluxes = np.zeros(len(corner_coords))
-                            for aa, ap in enumerate(corner_coords):
-                                aper = CircularAperture(ap, r=msky_ap)
-                                flux_tmp = aperture_photometry(tmp[zz], aper, method='exact')
-                                fluxes[aa] = np.array(flux_tmp['aperture_sum'])
-                            avg = np.median(fluxes)/(np.pi*msky_ap**2)
-                            tmp[zz] = tmp[zz] - avg
-                        hdul[0].data = tmp                                            
-                        hdul.writeto(prod, output_verify='ignore', overwrite=True)
+                if manual_sky:  # perform manual sky subtraction
+                    manual_sky_subtract(lab_bp, instr, corner_coords, msky_ap, outpath_ifs_fits, filetype="cen")
                     
                 os.system("mv {} {}.".format(lab_bp+instr+'*.fits',outpath_ifs_calib))
                 os.system("rm {}{}".format(outpath_ifs_fits,"tmp*.fits"))
@@ -1996,8 +1991,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     lab_sci = xtalkcorr_lab_IFS
                     hdul.writeto(inpath+xtalkcorr_lab_IFS+lab_bp+psf_list_ifs[ii], output_verify='ignore', overwrite=True)      
                     #pdb.set_trace()
-                        
-                    
+
                 if not isfile(outpath_ifs_sof+"PSF{}{:.0f}.sof".format(lab_distort,ii)) or overwrite_sof:
                     with open(outpath_ifs_sof+"PSF{}{:.0f}.sof".format(lab_distort,ii), 'w') as f:
                         f.write(inpath+skysub_lab_IFS+lab_bp+psf_list_ifs[ii]+'\t'+'IFS_SCIENCE_DR_RAW\n')
@@ -2036,23 +2030,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     command+= " {}PSF{}{:.0f}.sof".format(outpath_ifs_sof,lab_distort,ii)
                     os.system(command)
     
-                if manual_sky: # subtract residual sky level
-                    curr_path = pathlib.Path().absolute()
-                    file_list = os.listdir(curr_path)
-                    products_list = [x for x in file_list if (x.startswith(lab_bp+instr) and x.endswith(".fits"))]
-                    for pp, prod in enumerate(products_list):
-                        hdul = fits.open(prod)
-                        tmp = hdul[0].data
-                        for zz in range(tmp.shape[0]):
-                            fluxes = np.zeros(len(corner_coords_psf))
-                            for aa, ap in enumerate(corner_coords_psf):
-                                aper = CircularAperture(ap, r=msky_ap_psf)
-                                flux_tmp = aperture_photometry(tmp[zz], aper, method='exact')
-                                fluxes[aa] = np.array(flux_tmp['aperture_sum'])
-                            avg = np.median(fluxes)/(np.pi*msky_ap_psf**2)
-                            tmp[zz] = tmp[zz] - avg
-                        hdul[0].data = tmp                                            
-                        hdul.writeto(prod, output_verify='ignore', overwrite=True)   
+                if manual_sky:  # perform manual sky subtraction
+                    manual_sky_subtract(lab_bp, instr, corner_coords, msky_ap, outpath_ifs_fits, filetype="psf")
                     
                 os.system("mv {} {}.".format(lab_bp+instr+'*.fits',outpath_ifs_calib))
                 os.system("rm {}{}".format(outpath_ifs_fits,"tmp*.fits"))
