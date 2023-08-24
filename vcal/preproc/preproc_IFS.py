@@ -562,14 +562,14 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             elif "dft" in rec_met_tmp:
                                 # 1. alignment with upsampling
                                 try:
-                                    cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1], xy[0]), negative=negative,
-                                                                                            fwhm=4, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[4:]),
-                                                                                            imlib='opencv', interpolation='lanczos4',
-                                                                                            full_output=True, verbose=True, nproc=nproc,
-                                                                                            save_shifts=False, debug=False, plot=plot)
+                                    cube_dft, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1], xy[0]), negative=negative,
+                                                                                                fwhm=4, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[4:]),
+                                                                                                imlib='opencv', interpolation='lanczos4',
+                                                                                                full_output=True, verbose=True, nproc=nproc,
+                                                                                                save_shifts=False, debug=False, plot=plot)
                                     # 2. final centering based on 2d fit
-                                    cube_tmp = np.zeros([1, cube.shape[1], cube.shape[2]], dtype=np.float32)  # needs to have three dimensions
-                                    cube_tmp[0] = np.median(cube, axis=0)  # median combine all channels
+                                    cube_tmp = np.zeros([1, cube_dft.shape[1], cube_dft.shape[2]], dtype=np.float32)  # needs to have three dimensions
+                                    cube_tmp[0] = np.median(cube_dft, axis=0)  # median combine all channels
                                     _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
                                                                                 nproc=nproc, imlib='opencv', interpolation='lanczos4',
                                                                                 offset=None, negative=negative, threshold=False,
@@ -749,7 +749,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             final_x_shifts_std.append(np.std(x_shifts))
                     if plot:
                         try:
-                            f, (ax1) = plt.subplots(1,1, figsize=(15,10))
+                            f, (ax1) = plt.subplots(nrows=1, ncols=1, figsize=(15, 10))
                             if fi == 0:
                                 ax1.errorbar(all_mjd,final_y_shifts,final_y_shifts_std,fmt='bo',label='y')
                                 ax1.errorbar(all_mjd,final_x_shifts,final_x_shifts_std,fmt='ro',label='x')
