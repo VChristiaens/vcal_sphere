@@ -544,12 +544,15 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         for fn, filename in enumerate(file_list):
                             cube, header = open_fits(outpath+filename+"_1bpcorr.fits", header=True, verbose=debug)
                             if fi == 1 or not coro:
-                                frame_conv = frame_filter_lowpass(np.median(cube,axis=0),fwhm_size=int(1.2*max_resel))
+                                # median combine all channels, lowpass filter
+                                frame_conv = frame_filter_lowpass(np.median(cube, axis=0), fwhm_size=int(1.2*max_resel))
                                 idx_max = np.argmax(frame_conv)
-                                yx = np.unravel_index(idx_max,frame_conv.shape)
-                                xy = (int(yx[1]),int(yx[0]))
+                                yx = np.unravel_index(idx_max, frame_conv.shape)
+                                xy = (int(yx[1]), int(yx[0]))
+                                if debug:
+                                    print(f"Rough xy position: {xy}", flush=True)
                             else:
-                                xy=None
+                                xy = None
                             if "2dfit" in rec_met_tmp:
                                 cube, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=xy, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model=rec_met_tmp[:-6],
                                                                            nproc=nproc, imlib='opencv', interpolation='lanczos4',
@@ -557,30 +560,16 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                            save_shifts=False, full_output=True, verbose=True,
                                                                            debug=False, plot=False)
                             elif "dft" in rec_met_tmp:
-                                #1 rough centering with peak
-                                # _, peak_y, peak_x = peak_coordinates(cube, fwhm=1.2*max_resel, 
-                                #                                      approx_peak=None, 
-                                #                                      search_box=None,
-                                #                                      channels_peak=False)
-                                # _, peak_yx_ch = peak_coordinates(cube, fwhm=1.2*max_resel, 
-                                #                                  approx_peak=(peak_y, peak_x), 
-                                #                                  search_box=31,
-                                #                                  channels_peak=True)
-                                # cy, cx = frame_center(cube[0])
-                                # for zz in range(cube.shape[0]):
-                                #     cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1])
-                                #2. alignment with upsampling
+                                # 1. alignment with upsampling
                                 try:
-                                    cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1],xy[0]), negative=negative,
+                                    cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1], xy[0]), negative=negative,
                                                                                             fwhm=4, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[4:]),
                                                                                             imlib='opencv', interpolation='lanczos4',
                                                                                             full_output=True, verbose=True, nproc=nproc,
                                                                                             save_shifts=False, debug=False, plot=plot)
-                                    #3 final centering based on 2d fit
-                                    cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
-                                    cube_tmp[0] = np.median(cube,axis=0)
-                                    if debug:
-                                        print("rough xy position: ",xy, flush=True)
+                                    # 2. final centering based on 2d fit
+                                    cube_tmp = np.zeros([1, cube.shape[1], cube.shape[2]], dtype=np.float32)  # needs to have three dimensions
+                                    cube_tmp[0] = np.median(cube, axis=0)  # median combine all channels
                                     _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
                                                                                 nproc=nproc, imlib='opencv', interpolation='lanczos4',
                                                                                 offset=None, negative=negative, threshold=False,
@@ -593,6 +582,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     cube = cube_shift(cube, shift_y=y_shifts[0], shift_x=x_shifts[0], nproc=nproc)
                                 except:
                                     y_shifts, x_shifts = np.zeros(cube.shape[0]), np.zeros(cube.shape[0])
+                                    print(f"\nWARNING: DFT upsampling and 2d fit failed for cube {filename}_1bpcorr.fits\n"
+                                          f"The shifts for this cube will be set to zero. It is recommended to check\n"
+                                          f"these cubes individually to determine the cause.\n")
 
                             elif "satspots" in rec_met_tmp:
                                 # if first file and OBJ, or only CEN
