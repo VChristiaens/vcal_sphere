@@ -39,7 +39,7 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              find_scal_vector, cube_subsample)
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.psfsub import median_sub, MEDIAN_SUB_Params
-from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle
+from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle, frame_center
 
 mpl_backend("agg")
 
@@ -543,9 +543,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         for fn, filename in enumerate(file_list):
                             cube, header = open_fits(outpath+filename+"_1bpcorr.fits", header=True, verbose=debug)
                             if fi == 1 or not coro:
-                                # median combine all channels, lowpass filter, avoid data outside frame, find max
+                                cube_med = np.median(cube, axis=0)  # median combine all channels
+                                # low pass filter, search in subframe that avoids empty data in the edges
                                 y_max, x_max = peak_coordinates(np.median(cube, axis=0), fwhm=int(1.2*max_resel),
-                                                                search_box=85)  # hardcoded box for IFS, doesn't change
+                                                                approx_peak=frame_center(cube_med), search_box=85)
                                 xy = (x_max, y_max)
                                 if debug:
                                     print(f"Rough xy position of star: {xy}", flush=True)
@@ -1392,11 +1393,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 sdi_frame = np.median(derot_cube,axis=0)
                 write_fits(outpath+"final_simple_SDI_{:.0f}fp_nmed{:.0f}.fits".format(nfp,n_med),
                            mask_circle(sdi_frame,coro_sz), verbose=debug)
-                stim_map = stim_map(derot_cube)
+                stim = stim_map(derot_cube)
                 inv_stim_map = inverse_stim_map(resc_cube_res_all, derot_angles, nproc=nproc)
-                thr = np.percentile(mask_circle(inv_stim_map,coro_sz), 99.9)
-                norm_stim_map = stim_map/thr
-                stim_maps = np.array([mask_circle(stim_map,coro_sz),
+                thr = np.percentile(mask_circle(inv_stim_map, coro_sz), q=99.9)
+                norm_stim_map = stim/thr
+                stim_maps = np.array([mask_circle(stim,coro_sz),
                                       mask_circle(inv_stim_map,coro_sz),
                                       mask_circle(norm_stim_map,coro_sz)])
                 write_fits(outpath+"final_simple_SDI_stim_{:.0f}fp_nmed{:.0f}.fits".format(nfp,n_med), stim_maps, verbose=debug)
