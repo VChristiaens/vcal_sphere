@@ -27,8 +27,7 @@ from vcal import __path__ as vcal_path
 from vcal.utils import find_nearest
 from vip_hci.fits import open_fits, open_header, write_fits
 from vip_hci.fm import normalize_psf
-from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
-from vip_hci.metrics import stim_map as compute_stim_map
+from vip_hci.metrics import stim_map, inverse_stim_map, peak_coordinates
 from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              cube_recenter_dft_upsampling, cube_shift,
                              cube_detect_badfr_pxstats,
@@ -544,13 +543,12 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         for fn, filename in enumerate(file_list):
                             cube, header = open_fits(outpath+filename+"_1bpcorr.fits", header=True, verbose=debug)
                             if fi == 1 or not coro:
-                                # median combine all channels, lowpass filter
-                                frame_conv = frame_filter_lowpass(np.median(cube, axis=0), fwhm_size=int(1.2*max_resel))
-                                idx_max = np.argmax(frame_conv)
-                                yx = np.unravel_index(idx_max, frame_conv.shape)
-                                xy = (int(yx[1]), int(yx[0]))
+                                # median combine all channels, lowpass filter, avoid data outside frame, find max
+                                y_max, x_max = peak_coordinates(np.median(cube, axis=0), fwhm=int(1.2*max_resel),
+                                                                search_box=191)  # hardcoded box for IFS, doesn't change
+                                xy = (x_max, y_max)
                                 if debug:
-                                    print(f"Rough xy position: {xy}", flush=True)
+                                    print(f"Rough xy position of star: {xy}", flush=True)
                             else:
                                 xy = None
                             if "2dfit" in rec_met_tmp:
@@ -1394,8 +1392,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 sdi_frame = np.median(derot_cube,axis=0)
                 write_fits(outpath+"final_simple_SDI_{:.0f}fp_nmed{:.0f}.fits".format(nfp,n_med),
                            mask_circle(sdi_frame,coro_sz), verbose=debug)
-                stim_map = compute_stim_map(derot_cube)
-                inv_stim_map = compute_inverse_stim_map(resc_cube_res_all, derot_angles, nproc=nproc)
+                stim_map = stim_map(derot_cube)
+                inv_stim_map = inverse_stim_map(resc_cube_res_all, derot_angles, nproc=nproc)
                 thr = np.percentile(mask_circle(inv_stim_map,coro_sz), 99.9)
                 norm_stim_map = stim_map/thr
                 stim_maps = np.array([mask_circle(stim_map,coro_sz),
