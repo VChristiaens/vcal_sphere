@@ -545,7 +545,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             if fi == 1 or not coro:
                                 # median combine all channels, lowpass filter, avoid data outside frame, find max
                                 y_max, x_max = peak_coordinates(np.median(cube, axis=0), fwhm=int(1.2*max_resel),
-                                                                search_box=191)  # hardcoded box for IFS, doesn't change
+                                                                search_box=85)  # hardcoded box for IFS, doesn't change
                                 xy = (x_max, y_max)
                                 if debug:
                                     print(f"Rough xy position of star: {xy}", flush=True)
