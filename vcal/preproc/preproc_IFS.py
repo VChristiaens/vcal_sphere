@@ -561,13 +561,13 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             elif "dft" in rec_met_tmp:
                                 # 1. alignment with upsampling
                                 try:
-                                    cube_dft, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1], xy[0]), negative=negative,
-                                                                                                fwhm=4, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[4:]),
-                                                                                                imlib='opencv', interpolation='lanczos4',
-                                                                                                full_output=True, verbose=True, nproc=nproc,
-                                                                                                save_shifts=False, debug=False, plot=plot)
+                                    cube_dft = cube_recenter_dft_upsampling(cube, center_fr1=(xy[1], xy[0]), negative=negative,
+                                                                            fwhm=4, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[4:]),
+                                                                            imlib='opencv', interpolation='lanczos4',
+                                                                            full_output=False, verbose=True, nproc=nproc,
+                                                                            save_shifts=False, debug=False, plot=plot)
                                     # 2. final centering based on 2d fit
-                                    cube_tmp = np.zeros([1, cube_dft.shape[1], cube_dft.shape[2]], dtype=np.float32)  # needs to have three dimensions
+                                    cube_tmp = np.zeros([1, cube_dft.shape[-2], cube_dft.shape[-1]], dtype=np.float32)  # needs to have three dimensions
                                     cube_tmp[0] = np.median(cube_dft, axis=0)  # median combine all channels
                                     _, y_shifts, x_shifts = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model='moff',
                                                                                 nproc=nproc, imlib='opencv', interpolation='lanczos4',
@@ -578,7 +578,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     if debug:
                                         print(f"dft{int(rec_met_tmp[4:])} + 2dfit centering: xshift: {x_shifts[0]} px, "
                                               f"yshift: {y_shifts[0]} px for cube {filename}_1bpcorr.fits", flush=True)
-                                    cube = cube_shift(cube, shift_y=y_shifts[0], shift_x=x_shifts[0], nproc=nproc)
+                                    cube = cube_shift(cube_dft, shift_y=y_shifts[0], shift_x=x_shifts[0], nproc=nproc)
                                 except:
                                     y_shifts, x_shifts = np.zeros(cube.shape[0]), np.zeros(cube.shape[0])
                                     print(f"\nWARNING: DFT upsampling and 2d fit failed for cube {filename}_1bpcorr.fits\n"
@@ -731,14 +731,14 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                 cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
                                                                                interpolation='lanczos4', nproc=nproc)
                             elif "speckle" in rec_met_tmp:
-                                cube, x_shifts, y_shifts = cube_recenter_via_speckles(cube, cube_ref=None, alignment_iter=5,
-                                                                                      gammaval=1, min_spat_freq=0.5,
-                                                                                      max_spat_freq=3,
-                                                                                      fwhm=1.2*max_resel, debug=False,
-                                                                                      negative=negative,
-                                                                                      recenter_median=False, subframesize=20,
-                                                                                      imlib='opencv', interpolation='bilinear',
-                                                                                      save_shifts=False, plot=False, nproc=nproc)
+                                cube, _, _, x_shifts, y_shifts = cube_recenter_via_speckles(cube, cube_ref=None, alignment_iter=5,
+                                                                                            gammaval=1, min_spat_freq=0.5,
+                                                                                            max_spat_freq=3,
+                                                                                            fwhm=1.2*max_resel, debug=False,
+                                                                                            negative=negative,
+                                                                                            recenter_median=False, subframesize=20,
+                                                                                            imlib='opencv', interpolation='bilinear',
+                                                                                            save_shifts=False, plot=False, nproc=nproc)
                             else:
                                 raise ValueError("Centering method not recognized")
                             write_fits(outpath+filename+"_2cen.fits", cube, header=header, verbose=debug)
