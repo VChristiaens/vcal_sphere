@@ -12,7 +12,7 @@
     "badfr_crit":[{"thr":0.7,"ref":"median","perc":20}],
     "badfr_crit_psf":[{"thr":0.8,"ref":"median","perc":10}],
     "max_bpix_nit": 10,
-    "cen_box_sz": [31,31,31],
+    "cen_box_sz": [31,21,31],
     "true_ncen": 2,
     "template_strehl": ["science_dbi_{}{:.0f}","psf_dbi_{}{:.0f}"],
     "bp_crop_sz":261,

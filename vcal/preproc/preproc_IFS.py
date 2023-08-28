@@ -159,8 +159,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     idx_test_cube = params_preproc.get('idx_test_cube',[0,0,0])
     if isinstance(idx_test_cube,int):
         idx_test_cube = [idx_test_cube]*3
-    cen_box_sz = params_preproc.get('cen_box_sz',[31,35,31]) # size of the subimage for 2d fit
-    if isinstance(cen_box_sz,int):
+    cen_box_sz = params_preproc.get('cen_box_sz', [31, 21, 31])  # size of the subimage for centering fits
+    if isinstance(cen_box_sz, int):
         cen_box_sz = [cen_box_sz]*3
     true_ncen = params_preproc['true_ncen']# number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
     #distort_corr = params_preproc.get('distort_corr',True)
