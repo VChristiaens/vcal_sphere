@@ -565,7 +565,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                             fwhm=4, subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[4:]),
                                                                             imlib='opencv', interpolation='lanczos4',
                                                                             full_output=False, verbose=True, nproc=nproc,
-                                                                            save_shifts=False, debug=False, plot=plot)
+                                                                            save_shifts=False, debug=False, plot=False)
                                     # 2. final centering based on 2d fit
                                     cube_tmp = np.zeros([1, cube_dft.shape[-2], cube_dft.shape[-1]], dtype=np.float32)  # needs to have three dimensions
                                     cube_tmp[0] = np.median(cube_dft, axis=0)  # median combine all channels
@@ -573,7 +573,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                 nproc=nproc, imlib='opencv', interpolation='lanczos4',
                                                                                 offset=None, negative=negative, threshold=False,
                                                                                 save_shifts=False, full_output=True, verbose=True,
-                                                                                debug=False, plot=plot)
+                                                                                debug=False, plot=False)
 
                                     if debug:
                                         print(f"dft{int(rec_met_tmp[4:])} + 2dfit centering: xshift: {x_shifts[0]} px, "
