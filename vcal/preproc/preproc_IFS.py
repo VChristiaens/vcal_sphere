@@ -545,7 +545,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             if fi == 1 or not coro:
                                 cube_med = np.median(cube, axis=0)  # median combine all channels
                                 # low pass filter, search in subframe that avoids empty data in the edges
-                                y_max, x_max = peak_coordinates(np.median(cube, axis=0), fwhm=int(1.2*max_resel),
+                                y_max, x_max = peak_coordinates(cube_med, fwhm=int(1.2*max_resel),
                                                                 approx_peak=frame_center(cube_med), search_box=85)
                                 xy = (x_max, y_max)
                                 if debug:
