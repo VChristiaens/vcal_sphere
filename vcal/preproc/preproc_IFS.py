@@ -736,8 +736,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                             max_spat_freq=3,
                                                                                             fwhm=1.2*max_resel, debug=False,
                                                                                             negative=negative,
-                                                                                            recenter_median=False, subframesize=cen_box_sz[fi],
-                                                                                            imlib='opencv', interpolation='bilinear',
+                                                                                            recenter_median=True, fit_type="ann",
+                                                                                            subframesize=cen_box_sz[fi],
                                                                                             plot=False, nproc=nproc,
                                                                                             full_output=True)
                             else:
