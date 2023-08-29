@@ -166,7 +166,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     #distort_corr = params_preproc.get('distort_corr',True)
     bp_crop_sz = params_preproc.get('bp_crop_sz',261)         # crop size before bad pix correction for OBJ, PSF and CEN
     final_crop_sz = params_preproc.get('final_crop_sz',[257,256]) #361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
-    final_crop_sz_psf = params_preproc.get('final_crop_sz_psf',[35,64]) # 51 => 0.25'' radius (~3.5 FWHM)
+    final_crop_sz_psf = params_preproc.get('final_crop_sz_psf', [17])  # 51 => 0.25'' radius (~3.5 FWHM)
     psf_model = params_preproc.get('psf_model',"gauss") #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
     bin_fac = params_preproc.get('bin_fac',1)  # binning factors for final cube. If the cube is not too large, do not bin.
     # SDI
