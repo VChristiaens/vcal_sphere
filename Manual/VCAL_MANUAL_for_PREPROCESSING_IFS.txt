@@ -90,7 +90,7 @@ norm_per_s = True                                            # if True, divide a
 template_strehl = ["science_dbi_{}{:.0f}","psf_dbi_{}{:.0f}"]
 distort_corr = 1                                             # whether to correct for distortion (anamorphism) or not (following scal_x_distort and scal_y_distort)
 final_crop_sz = 361                                          # int or list (if list, cubes of different dims will be saved). NOTE: only last odd dim will be saved using final_cubename . 823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
-final_crop_sz_psf = 35                                       # int or list (if list, cubes of different dims will be saved). NOTE: only last odd dim will be saved using final_psfname. 51 => 0.25'' radius (~3.5 FWHM)
+final_crop_sz_psf = 17                                       # int or list (if list, cubes of different dims will be saved). NOTE: only last odd dim will be saved using final_psfname. 51 => 0.25'' radius (~3.5 FWHM)
 psf_model = 'gauss'                                          #'airy' #model to be used to measure FWHM and flux. Choice between {'gauss', 'moff', 'airy'}
 bin_fac = 1                                                  # binning factors for final cube. If the cube is not too large, do not bin.
 corono mask. NOTE: this is the index of the original cubes (not images inside the cube), (e.g. since typically there are only 2 CEN cubes, value would either be 0 or 1) 

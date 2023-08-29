@@ -17,7 +17,7 @@
     "template_strehl": ["science_dbi_{}{:.0f}","psf_dbi_{}{:.0f}"],
     "bp_crop_sz":261,
     "final_crop_sz":[257,256],
-    "final_crop_sz_psf": [35,64],
+    "final_crop_sz_psf": [17],
     "psf_model": "gauss",
     "bin_fac": 1,
     "mask_scal":[0.7,0],
