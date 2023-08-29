@@ -738,7 +738,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                             negative=negative,
                                                                                             recenter_median=False, subframesize=20,
                                                                                             imlib='opencv', interpolation='bilinear',
-                                                                                            save_shifts=False, plot=False, nproc=nproc)
+                                                                                            plot=False, nproc=nproc)
                             else:
                                 raise ValueError("Centering method not recognized")
                             write_fits(outpath+filename+"_2cen.fits", cube, header=header, verbose=debug)
