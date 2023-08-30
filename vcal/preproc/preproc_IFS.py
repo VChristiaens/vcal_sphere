@@ -360,17 +360,17 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         if 2 in to_do:
             print("\n************* 2. RECENTERING *************\n", flush=True)
             for fi, file_list in enumerate(obj_psf_list):  # OBJECT, then PSF (but not CEN)
-                if fi != 1:
+                if fi == 0:
                     negative = coro
                     rec_met_tmp = rec_met
-                    if fi == 0:
-                        all_mjd = []
-                        print("\nRecentering OBJ files\n", flush=True)
+                    all_mjd = []
+                    print("\nRecentering OBJ files\n", flush=True)
                 elif fi == 1:
-                    negative = False
+                    negative = False  # PSF frames will never use a coronagraph
                     rec_met_tmp = rec_met_psf
                     print("\nRecentering PSF files\n", flush=True)
-                else:  # CEN
+                elif fi == 2:  # CEN does not need to be centered and are no longer used
+                    print("\nFinished centering\n", flush=True)
                     break
                 if not isfile(outpath+f"{file_list[-1]}_2cen.fits") or overwrite[1]:
                     if isinstance(rec_met, list):
