@@ -369,7 +369,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     negative = False  # PSF frames will never use a coronagraph
                     rec_met_tmp = rec_met_psf
                     print("\nRecentering PSF files\n", flush=True)
-                elif fi == 2:  # CEN does not need to be centered and are no longer used
+                elif fi == 2:  # CEN does not need to be centered and are no longer used, only keep to make master cube
+                    if not isfile(outpath + f"{file_list[-1]}_2cen.fits") or overwrite[1]:
+                        for fn, filename in enumerate(file_list):
+                            system(f"mv {outpath}{filename}_1bpcorr.fits {outpath}{filename}_2cen.fits")
                     print("\nFinished centering\n", flush=True)
                     break
                 if not isfile(outpath+f"{file_list[-1]}_2cen.fits") or overwrite[1]:
