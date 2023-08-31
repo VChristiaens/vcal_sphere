@@ -333,13 +333,15 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             for file_list in obj_psf_list:
                 for fi, filename in enumerate(file_list):
                     if fi == 0:
-                        full_output=True
+                        full_output = True
                     else:
-                        full_output=False
+                        full_output = False
                     if not isfile(outpath+"{}_1bpcorr.fits".format(filename)) or overwrite[0]:
                         cube, header = open_fits(inpath+filename, header=True, verbose=debug)
-                        if cube.shape[1]%2==0 and cube.shape[2]%2==0:
-                            cube = cube[:,1:,1:]
+                        mask = open_fits(inpath+filename, n=1)  # mask from esorex showing locations of empty data
+                        cube[mask == 2] = 0  # set values of 2 (empty data) in the mask to 0 in the image
+                        if cube.shape[1] % 2 == 0 and cube.shape[2] % 2 == 0:
+                            cube = cube[:, 1:, 1:]
                             header["NAXIS1"] = cube.shape[1]
                             header["NAXIS2"] = cube.shape[2]
                         if 0 < bp_crop_sz < cube.shape[1]:
