@@ -603,7 +603,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     sat_y = np.zeros([ncen, n_z, 4])    # four spots per channel
                                     sat_x = np.zeros([ncen, n_z, 4])
 
-                                    # loop over all CEN files and retrieve the located of the satellite spots
+                                    # loop over all CEN files and retrieve the location of the satellite spots
                                     for cc in range(ncen):
                                         # first get the MJD time of each cube
                                         cube_cen, head_cc = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits", verbose=debug, header=True)
@@ -733,8 +733,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         plt.close("all")
 
                             elif "radon" in rec_met_tmp:
-                                cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
-                                                                               interpolation='lanczos4', nproc=nproc)
+                                cube, y_shifts, x_shifts, _ = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
+                                                                                  interpolation='lanczos4', nproc=nproc)
                             elif "speckle" in rec_met_tmp:
                                 cube, _, _, x_shifts, y_shifts = cube_recenter_via_speckles(cube, cube_ref=None, alignment_iter=5,
                                                                                             gammaval=1, min_spat_freq=0.5,
