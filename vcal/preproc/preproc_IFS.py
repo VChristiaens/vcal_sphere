@@ -33,10 +33,10 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              cube_detect_badfr_pxstats,
                              cube_detect_badfr_ellipticity,
                              cube_detect_badfr_correlation,
-                             cube_recenter_satspots, cube_recenter_radon,
-                             cube_recenter_via_speckles, frame_shift,
-                             cube_crop_frames, frame_crop, cube_derotate,
-                             find_scal_vector, cube_subsample)
+                             frame_center_satspots, cube_recenter_satspots,
+                             cube_recenter_radon, cube_recenter_via_speckles,
+                             frame_shift,cube_crop_frames, frame_crop,
+                             cube_derotate, find_scal_vector, cube_subsample)
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.psfsub import median_sub, MEDIAN_SUB_Params
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle, frame_center
@@ -322,6 +322,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
         resels = lbdas*0.206265/(plsc*diam)
         max_resel = np.amax(resels)
+        scale_list = max(lbdas)/lbdas
 
         if not isfile(outpath+final_lbdaname):
             write_fits(outpath+final_lbdaname,lbdas, verbose=debug)
@@ -374,7 +375,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 elif fi == 2:  # CEN does not need to be centered and are no longer used, only keep to make master cube
                     if not isfile(outpath + f"{file_list[-1]}_2cen.fits") or overwrite[1]:
                         for fn, filename in enumerate(file_list):
-                            system(f"mv {outpath}{filename}_1bpcorr.fits {outpath}{filename}_2cen.fits")
+                            system(f"cp {outpath}{filename}_1bpcorr.fits {outpath}{filename}_2cen.fits")
                     print("\nFinished centering\n", flush=True)
                     break
                 if not isfile(outpath+f"{file_list[-1]}_2cen.fits") or overwrite[1]:
@@ -598,18 +599,21 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     # INFER SHIFTS FROM CEN CUBES
                                     cen_cube_names = obj_psf_list[-1]
                                     mjd_cen = np.zeros(ncen)
-                                    y_shifts_cen_tmp = np.zeros([ncen, n_z])
-                                    x_shifts_cen_tmp = np.zeros([ncen, n_z])
-                                    sat_y = np.zeros([ncen, n_z, 4])    # four spots per channel
-                                    sat_x = np.zeros([ncen, n_z, 4])
+                                    y_shifts_cen_tmp = np.zeros(ncen)
+                                    x_shifts_cen_tmp = np.zeros(ncen)
+                                    sat_y = np.zeros([ncen, 4])  # four spots per cube
+                                    sat_x = np.zeros([ncen, 4])
 
                                     # loop over all CEN files and retrieve the location of the satellite spots
                                     for cc in range(ncen):
                                         # first get the MJD time of each cube
                                         cube_cen, head_cc = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits", verbose=debug, header=True)
                                         mjd_cen[cc] = float(head_cc['MJD-OBS'])
-                                        # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots) if present
-                                        cube_cen_sub = np.copy(cube_cen)
+                                        ref_xy = frame_center(cube_cen)
+                                        diff = int((ori_sz-bp_crop_sz)/2)
+                                        xy_spots_tmp = tuple([(xy_spots[i][0]-diff, xy_spots[i][1]-diff) for i in range(len(xy_spots))])
+
+                                        # SUBTRACT NEAREST OBJ CUBE to find sat spots
                                         if not use_cen_only:
                                             mjd_mean = []
                                             pa_sci_ini = []
@@ -623,22 +627,36 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                             m_idx = find_nearest(mjd_mean, mjd_cen[cc])
                                             cube_near = open_fits(outpath+file_list[m_idx]+"_1bpcorr.fits", verbose=debug)
                                             if cube_near.ndim == 4:
-                                                cube_cen_sub -= np.median(cube_near, axis=0)
-                                            else:
+                                                cube_near = np.median(cube_near, axis=0)
+
+                                            print(f"\nOBJ cube {file_list[m_idx]}_1bpcorr.fits will be subtracted from "
+                                                  f"CEN cube {cen_cube_names[cc]}_1bpcorr.fits\n", flush=True)
+
+                                        iterations = 5  # hard code for now, although two seems like enough
+                                        for i in range(iterations):
+                                            # rescale CEN (and OBJ), median combine to improve satspot flux, find
+                                            # satspot center, use new center to improve rescaling
+                                            cube_cen_sub = _cube_resc_wave(cube_cen, scaling_list=scale_list,
+                                                                           ref_xy=ref_xy, imlib="opencv")
+                                            if not use_cen_only:
+                                                # rescale both the sci and cen cubes using theoretical scaling factors
+                                                cube_near = _cube_resc_wave(cube_near, scaling_list=scale_list,
+                                                                            ref_xy=ref_xy, imlib="opencv")
                                                 cube_cen_sub -= cube_near
-                                            print(f"\nSubtracted OBJ cube {file_list[m_idx]}_1bpcorr.fits from CEN cube "
-                                                  f"{cen_cube_names[cc]}_1bpcorr.fits\n")
-                                        diff = int((ori_sz-bp_crop_sz)/2)
-                                        xy_spots_tmp = tuple([(xy_spots[i][0]-diff, xy_spots[i][1]-diff) for i in range(len(xy_spots))])
-                                        # find center location
-                                        res = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[fi],
-                                                                     sigfactor=sigfactor, plot=False, fit_type="moff",
-                                                                     lbda=lbdas, verbose=True, full_output=True)
-                                        _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], sat_y[cc], sat_x[cc] = res
+
+                                            # find center location
+                                            res = frame_center_satspots(np.median(cube_cen_sub, axis=0),
+                                                                        xy_spots_tmp, subi_size=cen_box_sz[fi],
+                                                                        sigfactor=sigfactor, fit_type="moff",
+                                                                        verbose=debug, shift=True, debug=True)
+                                            _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], sat_y[cc], sat_x[cc] = res
+                                            ref_xy = (frame_center(cube_cen)[1]-x_shifts_cen_tmp[cc],
+                                                      frame_center(cube_cen)[0]-y_shifts_cen_tmp[cc])
+
                                         if plot and not use_cen_only:  # cen only can make too many plots
-                                            plot_frames(tuple(cube_cen_sub), rows=8, dpi=300, cmap="inferno",
-                                                        label=tuple(["Channel " + str(x) for x in range(1, 40)]),
-                                                        save=outpath+f"Subtracted_{cen_cube_names[cc]}.pdf")
+                                            plot_frames(np.median(cube_cen_sub, axis=0), dpi=300, cmap="inferno",
+                                                        label=f"Subtracted and rescaled \n{cen_cube_names[cc]}_1bpcorr.fits",
+                                                        label_size=8, save=outpath+f"Subtracted_{cen_cube_names[cc]}.pdf")
                                     # median combine results for all MJD CEN bef and all after SCI obs
                                     header_ini = open_header(inpath+OBJ_IFS_list[0]+'.fits')
                                     mjd = float(header_ini["MJD-OBS"])  # mjd of first obs
