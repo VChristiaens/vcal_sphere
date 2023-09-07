@@ -938,7 +938,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    full_output=True, verbose=verbose, mask_rdi=mask_rdi,
                                                    nproc=nproc)
                             tmp[pp], _, tmp_tmp = pca(algo_params=params_pca)
-                            write_fits(outpath+'TMP_final_PCA-SADI1_full_npc{:.0f}_'.format(npc)+test_pcs_str+label_test+'.fits', tmp_tmp)
+                            if debug:
+                                write_fits(outpath+'TMP_final_PCA-SADI1_full_npc{:.0f}_'.format(npc)+test_pcs_str+label_test+'.fits', tmp_tmp)
                             if do_stim_map:
                                 tmp_tmp_der = cube_derotate(tmp_tmp, derot_angles, imlib='opencv', nproc=nproc)
                                 stim_map[pp] = compute_stim_map(tmp_tmp_der)
