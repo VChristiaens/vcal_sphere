@@ -644,19 +644,23 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                             ref_xy=ref_xy, imlib="opencv")
                                                 cube_cen_sub -= cube_near
 
+                                            cube_cen_sub = np.median(cube_cen_sub, axis=0)  # median collapse channels
                                             # find center location
-                                            res = frame_center_satspots(np.median(cube_cen_sub, axis=0),
-                                                                        xy_spots_tmp, subi_size=cen_box_sz[fi],
-                                                                        sigfactor=sigfactor, fit_type="moff",
-                                                                        verbose=debug, shift=True, debug=True)
+                                            res = frame_center_satspots(cube_cen_sub, xy_spots_tmp,
+                                                                        subi_size=cen_box_sz[fi], sigfactor=sigfactor,
+                                                                        fit_type="moff", verbose=debug, shift=True)
+
                                             _, y_shifts_cen_tmp[cc], x_shifts_cen_tmp[cc], sat_y[cc], sat_x[cc] = res
                                             ref_xy = (frame_center(cube_cen)[1]-x_shifts_cen_tmp[cc],
                                                       frame_center(cube_cen)[0]-y_shifts_cen_tmp[cc])
 
                                         if plot and not use_cen_only:  # cen only can make too many plots
-                                            plot_frames(np.median(cube_cen_sub, axis=0), dpi=300, cmap="inferno",
+                                            plot_frames(cube_cen_sub, dpi=300, cmap="inferno",
+                                                        circle=tuple(zip(sat_x[cc], sat_y[cc])),
+                                                        vmin=np.percentile(cube_cen_sub, q=1),
+                                                        vmax=np.percentile(cube_cen_sub, q=99.9),
                                                         label=f"Subtracted and rescaled \n{cen_cube_names[cc]}_1bpcorr.fits",
-                                                        label_size=8, save=outpath+f"Subtracted_{cen_cube_names[cc]}.pdf")
+                                                        label_size=8, save=outpath+f"Detected_satspots_{cen_cube_names[cc]}.pdf")
                                     # median combine results for all MJD CEN bef and all after SCI obs
                                     header_ini = open_header(inpath+OBJ_IFS_list[0]+'.fits')
                                     mjd = float(header_ini["MJD-OBS"])  # mjd of first obs
