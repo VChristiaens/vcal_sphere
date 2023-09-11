@@ -35,6 +35,6 @@
     "pcs_sadi_ann_adi":[1,4,1],
     "max_fr_list":[50],
     "verbose":1,
-    "nproc":1,
+    "nproc":4,
     "overwrite_pp":0
 }
