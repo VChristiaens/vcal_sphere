@@ -75,7 +75,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         instr_cst = load(instr_param_file)
 
     #**************************** PARAMS TO BE ADAPTED ****************************
-    path = params_calib['path'] # "/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/"
+    path = params_calib['path']
     inpath = path+"IFS_reduction/1_calib_esorex/calib/"
     label_test = params_preproc.get('label_test', '')
     outpath = path+"IFS_reduction/2_preproc_vip{}/".format(label_test)
@@ -87,6 +87,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         sky_pre = "skycorr_"
     else:
         sky_pre = ""
+    mode = params_calib["mode"]
 
     ## note: for CrA9, no need for PSF because the OBJ ones are not saturated 
 
@@ -124,10 +125,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     rec_met_psf = params_preproc['rec_met_psf']
 
     # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
-    xy_spots = params_preproc.get('xy_spots',[])
-    if " xy_spots" in filt_spec.keys() : xy_spots = filt_spec["xy_spots"]
+    xy_spots = params_preproc['xy_spots']
 
     sigfactor = params_preproc['sigfactor']
+
     badfr_criteria = params_preproc['badfr_crit_names']
     badfr_criteria_psf = params_preproc['badfr_crit_names_psf']
     badfr_crit = params_preproc['badfr_crit']
