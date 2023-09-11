@@ -123,10 +123,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     # preprocessing options
     rec_met = params_preproc['rec_met']    # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
     rec_met_psf = params_preproc['rec_met_psf']
-
-    # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
-    xy_spots = params_preproc['xy_spots']
-
     sigfactor = params_preproc['sigfactor']
 
     badfr_criteria = params_preproc['badfr_crit_names']
