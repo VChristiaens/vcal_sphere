@@ -456,6 +456,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     if not use_cen_only:
                                         cube_cen -= cube
                                     diff = int((ori_sz-bp_crop_sz)/2)
+                                    xy_spots = [[105, 169], [171, 181], [117, 103], [183, 115]]
                                     xy_spots_tmp = tuple([(xy_spots[i][0]-diff,xy_spots[i][1]-diff) for i in range(len(xy_spots))])
 
                                     ### get the MJD time of each cube
@@ -604,6 +605,15 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     x_shifts_cen_tmp = np.zeros(ncen)
                                     sat_y = np.zeros([ncen, 4])  # four spots per cube
                                     sat_x = np.zeros([ncen, 4])
+                                    diff = int((ori_sz - bp_crop_sz) / 2)  # coordinates change depending on the crop size
+
+                                    # when rescaling the spots will occur at greater separation in the YJH mode.
+                                    # alternative is to scale to the shortest wavelength always, but I think this is better
+                                    if mode == "YJ":
+                                        xy_spots = [[90, 179], [182, 195], [107, 87], [199, 103]]
+                                    elif mode == "YJH":
+                                        xy_spots = [[77, 187], [191, 207], [99, 73], [213, 93]]
+                                    xy_spots_tmp = tuple([(xy_spots[i][0] - diff, xy_spots[i][1] - diff) for i in range(len(xy_spots))])
 
                                     # loop over all CEN files and retrieve the location of the satellite spots
                                     for cc in range(ncen):
@@ -611,8 +621,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         cube_cen, head_cc = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits", verbose=debug, header=True)
                                         mjd_cen[cc] = float(head_cc['MJD-OBS'])
                                         ref_xy = frame_center(cube_cen)
-                                        diff = int((ori_sz-bp_crop_sz)/2)
-                                        xy_spots_tmp = tuple([(xy_spots[i][0]-diff, xy_spots[i][1]-diff) for i in range(len(xy_spots))])
 
                                         # SUBTRACT NEAREST OBJ CUBE to find sat spots
                                         if not use_cen_only:
