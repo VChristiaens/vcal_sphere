@@ -50,7 +50,7 @@ matplotlib.use('Agg')
 def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                   params_calib_name='VCAL_params_calib.json'):
     """
-    Preprocessing of SPHERE/IRDIS data using preproc parameters provided in 
+    Preprocessing of SPHERE/IRDIS data using preproc parameters provided in
     json file.
 
     Parameters:
@@ -62,7 +62,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
 
     Returns:
     ********
-    None. All preprocessed products are written as fits files, and can then be 
+    None. All preprocessed products are written as fits files, and can then be
     used for post-processing.
 
     """
