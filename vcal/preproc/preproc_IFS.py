@@ -69,8 +69,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     with open(params_calib_name, 'r') as read_file_params_calib:
         params_calib = load(read_file_params_calib)
 
-    with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
-        filt_spec = load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filter combination
     with open(vcal_path[0] + "/instr_param/sphere.json", 'r') as instr_param_file:
         instr_cst = load(instr_param_file)
 
