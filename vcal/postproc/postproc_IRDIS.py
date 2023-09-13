@@ -846,7 +846,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                             ## Convolution
                             if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'_conv.fits') or overwrite_ADI) and do_conv:
                                 tmp = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'.fits')
-                                tmp = frame_filter_lowpass(tmp, mode='gauss', fwhm_size=fwhm/2, gauss_mode='conv')
+                                tmp = frame_filter_lowpass(tmp, mode='gauss', fwhm_size=fwhm/2, conv_mode='conv')
                                 write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'_conv.fits', tmp, verbose=False)
                             ## SNR map  
                             if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'_snrmap.fits') or overwrite_ADI) and do_snr_map[0]:
@@ -1104,7 +1104,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_'.format(label_stg)+test_pcs_str+label_filt+'_conv.fits') or overwrite_pp) and do_conv:
                                     tmp = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_'.format(label_stg)+test_pcs_str+label_filt+'.fits')
                                     for nn in range(tmp.shape[0]):
-                                        tmp[nn] = frame_filter_lowpass(tmp[nn], mode='gauss',  fwhm_size=fwhm, gauss_mode='conv')
+                                        tmp[nn] = frame_filter_lowpass(tmp[nn], mode='gauss',  fwhm_size=fwhm, conv_mode='conv')
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_'.format(label_stg)+test_pcs_str+label_filt+'_conv.fits', tmp, verbose=False)
                                 ### SNR map  
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_'.format(label_stg)+test_pcs_str+label_filt+'_snrmap.fits') or overwrite_pp) and do_snr_map[1] and cc==0:
@@ -1194,7 +1194,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_conv.fits') or overwrite_pp) and do_conv:
                                     tmp = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'.fits')
                                     for nn in range(tmp.shape[0]):
-                                        tmp[nn] = frame_filter_lowpass(tmp[nn], mode='gauss',  fwhm_size=fwhm, gauss_mode='conv')
+                                        tmp[nn] = frame_filter_lowpass(tmp[nn], mode='gauss',  fwhm_size=fwhm, conv_mode='conv')
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_conv.fits', tmp, verbose=False)
                                 ### SNR map  
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_snrmap.fits') or overwrite_pp) and do_snr_map[1] and cc==0:
@@ -1278,7 +1278,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_'.format(label_stg)+test_pcs_str+label_filt+'_conv.fits') or overwrite_pp) and do_conv:
                                     tmp = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_'.format(label_stg)+test_pcs_str+label_filt+'.fits')
                                     for nn in range(tmp.shape[0]):
-                                        tmp[nn] = frame_filter_lowpass(tmp[nn], mode='gauss',  fwhm_size=fwhm, gauss_mode='conv')
+                                        tmp[nn] = frame_filter_lowpass(tmp[nn], mode='gauss',  fwhm_size=fwhm, conv_mode='conv')
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_'.format(label_stg)+test_pcs_str+label_filt+'_conv.fits', tmp, verbose=False)
                                 ### SNR map  
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_'.format(label_stg)+test_pcs_str+label_filt+'_snrmap.fits') or overwrite_pp) and do_snr_map[2]:
@@ -1374,7 +1374,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_conv.fits') or overwrite_pp) and do_conv:
                                     tmp = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'.fits')
                                     for nn in range(tmp.shape[0]):
-                                        tmp[nn] = frame_filter_lowpass(tmp[nn], mode='gauss', fwhm_size=fwhm, gauss_mode='conv')
+                                        tmp[nn] = frame_filter_lowpass(tmp[nn], mode='gauss', fwhm_size=fwhm, conv_mode='conv')
                                     write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_conv.fits', tmp, verbose=False)
                                 ### SNR map  
                                 if (not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_ann_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'_snrmap.fits') or overwrite_pp) and do_snr_map[2]:
