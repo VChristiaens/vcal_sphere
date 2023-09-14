@@ -27,13 +27,37 @@ The latter can be installed with: pip install dfitspy
 - 'WAVE,LAMP'
 If not present, you will need to download them separately from the ESO archive. Consider the calibration files that were obtained closest in time from the observations, in the same mode (INS2 COMB IFS header keyword) as the observations.
 
-5) Make a copy of example JSON parameter files (in vcal_sphere/example) and place them into another directory (any directory but 'raw' you created above!). Then *adapt them* for your data:
-	a) calibration (flat-fielding, sky subtraction, in addition for IFS: detector-level bad pixel correction, wavelength calibration, spectral cube creation)
-	b) preprocessing (bad pixel correction, centering, bad frame removal, ADI cube creation, derotation angle calculation)
-	c) post-processing (median-ADI; PCA-ADI full/ann; PCA-SADI/PCA-ASDI for IFS)
-Description for each parameter is provided in the relevant MANUAL txt files.
+5) Make a copy of example JSON parameter files (in vcal_sphere/Examples) and place them into another directory (any directory but 'raw' you created above!).
+	a) calibration (flat-fielding, sky subtraction, in addition for IFS: detector-level bad pixel correction, wavelength calibration, spectral cube creation) - common for IFS and IRDIS;
+	b) preprocessing (bad pixel correction, centering, bad frame removal, ADI cube creation, derotation angle calculation):
+		- VCAL_params_preproc_IRDIS.json if reducing IRDIS data;
+		- VCAL_params_preproc_IFS.json if reducing IFS data;
+	c) post-processing (median-ADI; PCA-ADI full/ann; PCA-SADI/PCA-ASDI for IFS):
+		- VCAL_params_postproc_IRDIS.json if reducing IRDIS data;
+		- VCAL_params_postproc_IFS.json if reducing IFS data.
 
-6) Run VCAL:
+6) Then *adapt the* parameter files based on your data:
+	a) for the calibration parameter file, the following keywords are critical to check and adapt:
+		- "path": your path to the parent folder containing the "raw" subfolder created in step 1;
+		- "inpath_filt_table": you full path to the "vcal_sphere/Static/" folder;
+    		- "dit_ifs"/"dit_irdis": the DIT of your science images;
+		- "dit_psf_ifs"/"dit_psf_irdis": the DIT of your non-coronagraphic non-saturated images of the star (if any);
+		- "dit_cen_ifs"/"dit_cen_irdis": the DIT of your "CENTER" images taken with satellite spots on (if any);
+		- "comb_iflt": the filter combination used.
+		- "mode": the IFS mode used ("YJ" or "YJH", if relevant)
+	b) for the preproc parameter file, the following keywords are critical to check and adapt:
+		- "coro": 1 or 0, depending on whether the observation was made with a coronagraph or not;
+		- "rec_met": if either coro=0 or no satellite spots observations is available, change the value to "dft_100", otherwise leave to default;
+		- "approx_xy_bkg": This should first be left to 0 for your first run of the preprocessing, and should then be updated to a tuple of xy coordinates if reduced images produced in stage 3 reveal a BKG star somewhere in the field (take the brightest if several). Check output file 2_preproc_vip/median_ADI1_*.fits. If any BKG star is present it is highly recommended to use it to refine centering. Otherwise, a better recentering method working without BKG star should be available by the end of September 2023.
+		- "to_do": first [1,2,3], then [4,5,6,7,8,9,10] after checking whether a BKG star is present in the field, and adapting "approx_xy_bkg" accordingly.
+	c) for the postproc parameter files, the following keywords are critical to check and adapt:
+		- "sourcename": change to your source name (just used for some output files and plots),
+		- "details":" (IFS 2018/12/17)" (additional info shown on some plots)
+		- "ref_cube_name": should the name (including full path) of a preprocessed reference cube (i.e. obtained after step b), including a {} blank for the filter. If no reference cube, *delete* the line - only ADI will be performed.
+
+Apart from the parameters listed above, the others can be left as default for a first run. Description for each parameter is provided in the relevant MANUAL txt files (in vcal_sphere/Manual).
+
+7) Run VCAL:
 	- cd in the directory with your adapted JSON parameter files, 
 	- open an ipython/jupyter notebook session
 	- import and run vcal functions, calling the relevant parameter files:
@@ -47,7 +71,7 @@ Description for each parameter is provided in the relevant MANUAL txt files.
 		from vcal.postproc import postproc_IRDIS
 			postproc_IRDIS('VCAL_params_postproc_IRDIS.json', 'VCAL_params_preproc_IRDIS.json', 'VCAL_params_calib.json')
 
-Pro tip: instead of ipython/jupyter sessions, consider making a bash script for automated reductions.
-
+Pro tip 1: run parts a) and b) of the pipeline with mostly default parameters (apart exceptions above), then look at the master cubes produced by the end of preprocessing. If they look relatively stable and with the star well-centered in the images, proceed to part c). Otherwise, try to figure out what part you are not satisfied with (e.g. centering, bad pixels, bad frames?), then try with other parameters associated to these steps accordingly. If lost, raise an issue (preferred option, as others may also be able to help) or contact me.
+Pro tip 2: instead of ipython/jupyter sessions, consider making a bash script for automated reductions.
 
 Warning: Different observations may have different specific issues that may have not been predicted for handling by the pipeline. Inspect intermediate files for diagnostic, and iterate on the requested reduction parameters in the JSON files.
