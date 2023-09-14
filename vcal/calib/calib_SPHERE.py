@@ -31,7 +31,7 @@ from vcal import __path__ as vcal_path
 
 def calib(params_calib_name='VCAL_params_calib.json'):
     """
-    Basic calibration of SPHERE data using calibration parameters provided in 
+    Basic calibration of SPHERE data using calibration parameters provided in
     json file.
 
     Input:
@@ -41,7 +41,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
 
     Output:
     *******
-    None. All calibrated products are written as fits files, and can then be 
+    None. All calibrated products are written as fits files, and can then be
     used for preprocessing.
 
     """
@@ -54,7 +54,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
         path += '/'
     inpath = path+"raw/"
     # "/Applications/ESO/spher-calib-0.38.0/cal/"
-    inpath_filt_table = params_calib.get('inpath_filt_table', '~/')
+    inpath_filt_table = params_calib.get('inpath_filt_table', '../../Static/')
 
     # if not provided, automatically infer observing mode from fits files in data path (most common is chosen)
     if 'comb_iflt' in params_calib:
