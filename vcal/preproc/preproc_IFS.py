@@ -35,7 +35,7 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              cube_detect_badfr_correlation,
                              frame_center_satspots, cube_recenter_satspots,
                              cube_recenter_radon, cube_recenter_via_speckles,
-                             frame_shift,cube_crop_frames, frame_crop,
+                             frame_shift, cube_crop_frames, frame_crop,
                              cube_derotate, find_scal_vector, cube_subsample)
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.psfsub import median_sub, MEDIAN_SUB_Params
@@ -334,7 +334,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         full_output = False
                     if not isfile(outpath+"{}_1bpcorr.fits".format(filename)) or overwrite[0]:
                         cube, header = open_fits(inpath+filename, header=True, verbose=debug)
-                        mask = open_fits(inpath+filename, n=1)  # mask from esorex showing locations of empty data
+                        mask = open_fits(inpath+filename, n=1, verbose=debug)  # mask from esorex showing locations of empty data
                         cube[mask == 2] = 0  # set values of 2 (empty data) in the mask to 0 in the image
                         if cube.shape[1] % 2 == 0 and cube.shape[2] % 2 == 0:
                             cube = cube[:, 1:, 1:]
