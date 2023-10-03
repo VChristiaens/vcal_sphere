@@ -1,33 +1,45 @@
-This file describes the structure of the preprocessing pipeline for IRDIS, and describes the parameters that can be set in the json file.
-
 ************************ PREPROCESSING (IRDIS) ******************************
 
-# OBS
-coro = True  # whether the observations were coronagraphic or not
-coro_sz = 12  # if coronagraphic, provide radius of the coronagraph in pixels (check header for size in mas and convert)
-#dit_irdis = 64.      # read later from header
-#dit_psf_irdis = 4.   # read later from header
+This file describes the structure of the preprocessing pipeline for IRDIS, and describes the parameters that can be set in the json file.
 
-# Parts of pipeline to be run/overwritten
-to_do = {1,2,3,4,5,6,7,8,9,10} # parts of pre-processing to be run. 
-    #1. crop odd + bad pix corr
+*** TLDR instructions ***
+1) Leave most parameters to default values as shown in Example parameter files, apart from the following ones which are critical to adapt:
+	- coro: 1 or 0, depending on whether the observation was made with a coronagraph or not;
+	- rec_met: change it, e.g. to "dft_100" only if coro=0, otherwise leave default;
+	- "approx_xy_bkg": change it to 0 for your first run.
+2) After saving the adapted json file, run the following:
+	from vcal.preproc import preproc_IRDIS
+	preproc_IRDIS('VCAL_params_preproc_IRDIS.json', 'VCAL_params_calib.json')
+3) Check 2_preproc_vip/median_ADI1_*.fits and search for any BKG star (or bright enough companion) present in the field.
+4) If any BKG star is present in the field, adapt "approx_xy_bkg" in the preproc parameter file using the xy coordinates you read in the fits file.
+5) Regardless of 4), set "to_do" to [4,5,6,7,8,9,10] now
+6) Run again step 2). The preprocessing will run until the end now. Check the final cubes. If not satisfy, adapt parameters described below accordingly, and re-run the steps that need so.
+
+*** STRUCTURE OF THE WORKFLOW ***
+    #1. crop images to odd size + bad pix correction
     #   a. with provided mask (static) => iterative because clumps
     #   b. sigma filtering (cosmic rays) => non-iterative
-    #2. Recentering
-    #3. Make first master cube + derot angles calculation
-    #4. anamorphism correction + final ADI cube writing
-    #5. fine recentering based on bkg star (if relevant)
-    #6. bad frame rejection
+    #2. Centering of the star in the images
+    #3. Make first master cube + calculate derotation angles
+    #4. Anamorphism correction + new master cube writing
+    #5. Fine recentering based on bkg star (if relevant)  + new master cube writing
+    #6. Bad frame rejection  + new master cube writing
     #   a. Plots before rejection
     #   b. Rejection
     #   c. Plots after rejection
-    #7. final PSF cube + FWHM + unsat flux (PSF)
-    #   a. Gaussian
-    #   b. Airy
-    #8. Subtract satspots if 'CENTER' used as object (e.g. if OBJ is a ref cube)
-    #9. final ADI cube (bin+crop)
-    #10. Calculate scale factors (if DBI)
+    #7. Final PSF cube writing + calculation of unsaturated flux and FWHM
+    #8. Subtraction of satellite spots if 'CENTER' cubes are used as "object" (rare case)
+    #9. Writing of final ADI cubes after potential temporal subsampling (i.e. binning) and image cropping
+    #10. Calculation of scaling factors to align images (can be useful for DBI post-processing in the next part)
 
+
+# OBS
+coro = True  # whether the observations were coronagraphic or not
+coro_sz = 12  # if coronagraphic, provide radius of the mask in pixels - this area will be discarded (check header for size in mas and convert)
+
+
+# Parts of pipeline to be run/overwritten
+to_do = {1,2,3,4,5,6,7,8,9,10} # parts of pre-processing to be run. 
 overwrite = [1,1,1,1,1,1,1,1,1,1]  # list of bools corresponding to parts of pre-processing to be run again even if files already exist. Same order as to_do
 debug = True # whether to print more info - useful for debugging
 save_space = False # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
@@ -86,7 +98,8 @@ sub_med4bkg = 1  # bool to perform median subtraction before gaussian fit to est
 
 good_cen_idx = None # None or int. If some CEN cubes are bad (i.e. star not exactly behind coronagraphic mask), this should be the index of a good CEN cube. If not provided, will assume all CEN cubes have the star perfectly behind mask. Will be used for star-BKG radius and differential shifts. Default: None (i.e. not provided in .json file)
 
-#******************** PARAMS LIKELY GOOD AS DEFAULT ***************************
+
+#  PARAMS LIKELY GOOD AS DEFAULT #
 instr = 'SPHER' # instrument name in file name
 # First run  dfits *.fits |fitsort DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
 # then adapt below
