@@ -46,7 +46,7 @@ save_space = False # whether to progressively delete intermediate products as ne
 
 
 # Preprocessing options
-rec_met = "satspots"     # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
+rec_met = "satspots"# recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle", "cross_corr_nn"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
 rec_met_psf = "dft_100"
 sigfactor=3. # float corresponding to the SNR threshold used (anything below the threshold is set to 0) before fitting 2D Moffat or Gaussian to find the centroid of either the satellite spots or bkg star.
 xy_spots = [[[452,559], [515,559], [451,494], [518,494]],[[452,559], [515,559], [451,494], [518,494]]] # if recentering by satspots provide here the coordinates of the satellite spots. Two possibilities for the format:
