@@ -51,22 +51,33 @@ out or a bug is fixed:
   $ git add remote upstream https://github.com/VChristiaens/vcal_sphere.git
 
 
-
 Requirements
 ------------
 - VIP: https://github.com/vortex-exoplanet/VIP
 - esorex: https://www.eso.org/sci/software/cpl/esorex.html
 
 
+Quick start
+-----------
+Follow the instructions in the VCAL_QUICKSTART.txt file.
+
+
 Checklist
 ---------
 Before running the pipeline, make sure:
 
-1) you only keep in your 'raw' folder raw flats and darks from the same morning! I.e. remove all the other ones in different folders!
-2) you downloaded manually raw IFS darks with matching DITs to the FLATS - they don't come automatically just by ticking the box of downloading data with raw calibs!
-3) first try basic calibration using default parameters - change them only if you know what you're doing.
+1) you only keep in your 'raw' folder raw flats and darks from the same morning! I.e. remove all the other ones in different folders.
+2) If planning to reduce IFS data: make sure you downloaded manually raw IFS darks with matching DITs to the FLATS - they don't come automatically just by ticking the box of downloading data with raw calibs.
+3) First try basic calibration and preprocessing using default parameters - change them only if the master cubes obtained by the end of preprocessing look poor. 
+
+
+Contact
+-------
+Feel free to raise any issue on the GitHub. 
+If you have questions on proper usage of the code, assess whether the data look well calibrated/pre-processed/post-processed, or would like to contribute to the code, feel free to contact me at valentin.christiaens@uliege.be.
 
 
 Acknowledgements
 ----------------
-If you use `vcal_sphere`, please cite `Christiaens et al. (2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.502.6117C/abstract>`_. 
+The code will soon be placed on ASCL for a proper citation handle.
+In the meantime, if you use `vcal_sphere`, please cite `Christiaens et al. (2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.502.6117C/abstract>`_. 

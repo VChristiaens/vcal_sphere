@@ -2,4 +2,6 @@ Before running the pipeline, make sure:
 
 1) you only keep in your 'raw' folder raw flats and darks from the same morning! I.e. remove all the other ones in different folders!
 2) you downloaded manually raw IFS darks with matching DITs to the FLATS - they don't come automatically just by ticking the box of downloading data with raw calibs!
-3) first try basic calibration using default parameters - change them only if you know what you're doing.
+3) first try basic calibration using default parameters (apart from the ones listed in VCAL_QUICKSTART.txt), then change them only if not satisfied with the results.
+
+Refer to VCAL_QUICKSTART.txt for details on the steps to follow.

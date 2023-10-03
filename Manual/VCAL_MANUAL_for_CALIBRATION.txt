@@ -24,14 +24,14 @@ STEPS:
     #19. actual reduction (CEN if any)
     #20. actual reduction (PSF if any)
 
-************************ json file parameters ******************************
+***************** Description of json file parameters ******************
 
-# PATHS
+# PATHS:
     "path": str, parent path -- subdirectories with products will be created in there
     "inpath": str, where raw downloaded files should be placed
     "inpath_filt_table": str, # path to SPHERE filter curves
    
-# OBSERVATION
+# OBSERVATION:
 ## First run  dfits *.fits |fitsort DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT INS.COMB.IFLT in the 'raw' directory to fill the appropriate values.
     "dit_ifs": float, integration time of science IFS observations to be considered
     "dit_irdis" : float, integration time of science IRDIS observations to be considered
@@ -69,7 +69,7 @@ STEPS:
     #19. actual reduction (CEN if any)
     #20. actual reduction (PSF if any)
     
-# REDUCTION params (likely to require change)
+# REDUCTION params (somewhat likely to require change)
 ## For optimal reduction, you may check the sky cubes by eye and possibly adapt values below:
     "good_sky_irdis": list of str or list of int, #which skies to use for IRDIS? ['all'] or list of indices (chronological order). If empty list, will either use_ins_bg or just subtract the dark.
     "good_psf_sky_irdis": list of str or list of int, #which skies to use for IRDIS? ['all'] or list of indices (chronological order). If empty list, will either use_ins_bg or just subtract the dark.
