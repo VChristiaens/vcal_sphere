@@ -1058,6 +1058,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                       full_output=True, verbose=verbose, mask_rdi=mask_rdi)
                                         if debug:
                                             write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+'npc{:.0f}'.format(npc)+label_filt+'_res.fits', tmp_res)
+                                            write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+'npc{:.0f}'.format(npc)+label_filt+'_der.fits', tmp)
                                             if pp == 0:
                                                 write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+'npc{:.0f}'.format(npc)+label_filt+'_pcs.fits', pcs)
                                                 write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+'npc{:.0f}'.format(npc)+label_filt+'_recon.fits', recon)
