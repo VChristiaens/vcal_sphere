@@ -38,11 +38,7 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit, cube_re
                              cube_shift, find_scal_vector, cube_derotate)
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
-
                          mask_circle, frame_filter_highpass, frame_filter_lowpass, cube_filter_highpass, cube_filter_lowpass)
-
-                         mask_circle, frame_filter_lowpass)
-
 from ..utils import (cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos,
                      set_backend, find_rot_cen, circ_interp, find_nearest)
 
@@ -775,7 +771,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                                offset=None, negative=negative, threshold=False,
                                                                                save_shifts=False, full_output=True, verbose=verbose,
                                                                                debug=False, plot=False)
-
                             elif "cross_corr" in rec_met_tmp:
                                 cen_cube_names = obj_psf_list[-1]
                                 
@@ -810,7 +805,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[ff][i][0]-diff,xy_spots[ff][i][1]-diff) for i in range(len(xy_spots[ff]))])
                                         cube_cen_sub = cube_filter_highpass(cube_cen_sub, mode='gauss-subt', fwhm_size = 8)
-                                        cube_cen_sub = cube_filter_lowpass(cube_cen_sub, fwhm_size = 2. )
+                                        cube_cen_sub = cube_filter_lowpass(cube_cen_sub, fwhm_size = 2.)
                                         cube_cen_sub, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[2], 
                                                                                                   sigfactor=sigfactor, plot=plot,
                                                                                                   fit_type='moff', lbda=None, 
@@ -867,7 +862,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                 
                                                 cube = cube_shift(cube, final_y_shifts[1:]+ + np.mean(y_const), final_x_shifts[1:]+ np.mean(x_const))
                                                 
-
                             elif "dft" in rec_met_tmp:
                                 # 1 rough centering with peak
                                 _, peak_y, peak_x = peak_coordinates(cube, fwhm=1.2*resel[ff],
@@ -1120,7 +1114,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 raise ValueError(
                                     "Centering method not recognized")
                             if fi > 0 or not use_cen_only:
-
                                 write_fits(outpath+filename+filt +"_2cen.fits", cube, header=header)
                                 if "cross_corr" not in rec_met_tmp:           
                                     final_y_shifts.extend(y_shifts.tolist())
@@ -1157,78 +1150,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             write_fits(outpath+"TMP_shifts_cen_x{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), x_shifts_cen)
                         
                                                           
-                        # if fi>0 or not use_cen_only: 
-                            # write_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_y_shifts))
-                            # write_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_x_shifts))
-                        # if "satspots" in rec_met_tmp:
-                            # write_fits(outpath+"TMP_shifts_cen_y{}_{}_{}.fits".format(labels[fi], filters[ff], rec_met_tmp), y_shifts_cen)
-                            # write_fits(outpath+"TMP_shifts_cen_x{}_{}_{}.fits".format(labels[fi], filters[ff], rec_met_tmp), x_shifts_cen)
-                        # if fi > 0 or not use_cen_only:
-                            # write_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(labels[fi], filters[ff], rec_met_tmp), np.array(final_y_shifts))
-                            # write_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[fi], filters[ff], rec_met_tmp), np.array(final_x_shifts))
-                        # if fi != 1 and plot and not use_cen_only:
-                            # f, (ax1) = plt.subplots(1, 1, figsize=(15, 10))
-                            # t0 = np.amin(unique_mjd_cen)
-                            # ax1.errorbar(  # np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                # (mjd_all-t0)*60*24,
-                                # final_y_shifts, final_y_shifts_std,
-                                # fmt='bo', label='y')
-                            # ax1.errorbar(  # np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                # (mjd_all-t0)*60*24,
-                                # final_x_shifts, final_x_shifts_std,
-                                # fmt='ro', label='x')
-                            # if "satspots" in rec_met_tmp:
-                                # ax1.errorbar((unique_mjd_cen-t0)/60., y_shifts_cen, y_shifts_cen_err,
-                                             # fmt='co', label='y cen')
-                                # ax1.errorbar((unique_mjd_cen-t0)/60., x_shifts_cen, x_shifts_cen_err,
-                                             # fmt='mo', label='x cen')
-                            # ax1.set_xlabel("Time from start of obs. (min)")
-                            # plt.legend(loc='best')
-                            # plt.savefig(outpath+"Shifts_xy{}_{}.pdf".format(
-                                # labels[fi], rec_met_tmp), bbox_inches='tight', format='pdf')
-                            # plt.clf()
-
-                                write_fits(outpath+filename+filt +
-                                           "_2cen.fits", cube, header=header)
-                                final_y_shifts.extend(y_shifts.tolist())
-                                final_x_shifts.extend(x_shifts.tolist())
-                                final_y_shifts_std.extend(
-                                    [np.std(y_shifts)]*len(y_shifts))
-                                final_x_shifts_std.extend(
-                                    [np.std(x_shifts)]*len(x_shifts))
-                            # write_fits(outpath+"TMP_final_shifts{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), np.array([final_y_shifts,final_x_shifts]))
-                        if "satspots" in rec_met_tmp:
-                            write_fits(outpath+"TMP_shifts_cen_y{}_{}_{}.fits".format(
-                                labels[fi], filters[ff], rec_met_tmp), y_shifts_cen)
-                            write_fits(outpath+"TMP_shifts_cen_x{}_{}_{}.fits".format(
-                                labels[fi], filters[ff], rec_met_tmp), x_shifts_cen)
-                        if fi > 0 or not use_cen_only:
-                            write_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(
-                                labels[fi], filters[ff], rec_met_tmp), np.array(final_y_shifts))
-                            write_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(
-                                labels[fi], filters[ff], rec_met_tmp), np.array(final_x_shifts))
-                        if fi != 1 and plot and not use_cen_only:
-                            f, (ax1) = plt.subplots(1, 1, figsize=(15, 10))
-                            t0 = np.amin(unique_mjd_cen)
-                            ax1.errorbar(  # np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                (mjd_all-t0)*60*24,
-                                final_y_shifts, final_y_shifts_std,
-                                fmt='bo', label='y')
-                            ax1.errorbar(  # np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                (mjd_all-t0)*60*24,
-                                final_x_shifts, final_x_shifts_std,
-                                fmt='ro', label='x')
-                            if "satspots" in rec_met_tmp:
-                                ax1.errorbar((unique_mjd_cen-t0)/60., y_shifts_cen, y_shifts_cen_err,
-                                             fmt='co', label='y cen')
-                                ax1.errorbar((unique_mjd_cen-t0)/60., x_shifts_cen, x_shifts_cen_err,
-                                             fmt='mo', label='x cen')
-                            ax1.set_xlabel("Time from start of obs. (min)")
-                            plt.legend(loc='best')
-                            plt.savefig(outpath+"Shifts_xy{}_{}.pdf".format(
-                                labels[fi], rec_met_tmp), bbox_inches='tight', format='pdf')
-                            plt.clf()
-
+                        if fi>0 or not use_cen_only: 
+                            write_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_y_shifts))
+                            write_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_x_shifts))
+                        
 
         # ******************************* MASTER CUBES ******************************
         if 3 in to_do:
@@ -2188,7 +2113,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         norm_psf, med_flux, fwhm = normalize_psf(med_psf, fwhm='fit', size=None, threshold=None, mask_core=None,
                                                                  model=psf_model, interpolation='lanczos4',
                                                                  force_odd=False, full_output=True, verbose=debug, debug=False)
-
                         if crop_sz%2: # only save final with VIP conventions, for use in postproc.  
                             header = fits.Header()
                             header['Flux 0'] = 'Flux scaled to coronagraphic DIT'
@@ -2204,29 +2128,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         write_fits(outpath+"4_final_psf_flux_med_{}_{}{:.0f}.fits".format(filt,psf_model,crop_sz), np.array([med_flux]))
                         write_fits(outpath+"4_final_psf_fwhm_{}_{}.fits".format(filt,psf_model), np.array([fwhm]))
                         
-
-                        if crop_sz % 2:  # only save final with VIP conventions, for use in postproc.
-                            write_fits(outpath+final_psfname +
-                                       "{}.fits".format(filt), med_psf)
-                            write_fits(outpath+final_psfname_norm +
-                                       "{}.fits".format(filt), norm_psf)
-                            write_fits(outpath+final_fluxname+"{}.fits".format(filt),
-                                       np.array(
-                                           [med_flux*dit_irdis/dit_psf_irdis, med_flux]),
-                                       header={'Flux 0:': 'Flux scaled to coronagraphic DIT',
-                                               'Flux 1:': 'Flux measured in PSF image'})
-                            write_fits(outpath+final_fwhmname +
-                                       "{}.fits".format(filt), np.array([fwhm]))
-                        write_fits(
-                            outpath+"4_final_psf_med{}_{}{:.0f}.fits".format(filt, psf_model, crop_sz), med_psf)
-                        write_fits(
-                            outpath+"4_final_psf_med{}_{}_norm{:.0f}.fits".format(filt, psf_model, crop_sz), norm_psf)
-                        write_fits(outpath+"4_final_psf_flux_med_{}_{}{:.0f}.fits".format(
-                            filt, psf_model, crop_sz), np.array([med_flux]))
-                        write_fits(
-                            outpath+"4_final_psf_fwhm_{}_{}.fits".format(filt, psf_model), np.array([fwhm]))
-
-
                         ntot = cube.shape[0]
                         fluxes = np.zeros(ntot)
                         for nn in range(ntot):
