@@ -1150,36 +1150,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             write_fits(outpath+"TMP_shifts_cen_x{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), x_shifts_cen)
                         
                                                           
-                        # if fi>0 or not use_cen_only: 
-                            # write_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_y_shifts))
-                            # write_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_x_shifts))
-                        # if "satspots" in rec_met_tmp:
-                            # write_fits(outpath+"TMP_shifts_cen_y{}_{}_{}.fits".format(labels[fi], filters[ff], rec_met_tmp), y_shifts_cen)
-                            # write_fits(outpath+"TMP_shifts_cen_x{}_{}_{}.fits".format(labels[fi], filters[ff], rec_met_tmp), x_shifts_cen)
-                        # if fi > 0 or not use_cen_only:
-                            # write_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(labels[fi], filters[ff], rec_met_tmp), np.array(final_y_shifts))
-                            # write_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[fi], filters[ff], rec_met_tmp), np.array(final_x_shifts))
-                        # if fi != 1 and plot and not use_cen_only:
-                            # f, (ax1) = plt.subplots(1, 1, figsize=(15, 10))
-                            # t0 = np.amin(unique_mjd_cen)
-                            # ax1.errorbar(  # np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                # (mjd_all-t0)*60*24,
-                                # final_y_shifts, final_y_shifts_std,
-                                # fmt='bo', label='y')
-                            # ax1.errorbar(  # np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                # (mjd_all-t0)*60*24,
-                                # final_x_shifts, final_x_shifts_std,
-                                # fmt='ro', label='x')
-                            # if "satspots" in rec_met_tmp:
-                                # ax1.errorbar((unique_mjd_cen-t0)/60., y_shifts_cen, y_shifts_cen_err,
-                                             # fmt='co', label='y cen')
-                                # ax1.errorbar((unique_mjd_cen-t0)/60., x_shifts_cen, x_shifts_cen_err,
-                                             # fmt='mo', label='x cen')
-                            # ax1.set_xlabel("Time from start of obs. (min)")
-                            # plt.legend(loc='best')
-                            # plt.savefig(outpath+"Shifts_xy{}_{}.pdf".format(
-                                # labels[fi], rec_met_tmp), bbox_inches='tight', format='pdf')
-                            # plt.clf()
+                        if fi>0 or not use_cen_only: 
+                            write_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_y_shifts))
+                            write_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(labels[fi],filters[ff],rec_met_tmp), np.array(final_x_shifts))
+                        
 
         # ******************************* MASTER CUBES ******************************
         if 3 in to_do:
