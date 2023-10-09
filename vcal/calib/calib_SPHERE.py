@@ -216,6 +216,9 @@ def calib(params_calib_name='VCAL_params_calib.json'):
     # for IFS only, will subtract the sky before the science_dr recipe (corrects also for dark, incl. bias, and vast majority of bad pixels!!)
     sky = params_calib.get('sky', 1)
     verbose = params_calib.get('verbose', 1)
+    # call command esorex
+    com_esorex = params_calib.get('com_esorex', 'esorex')
+
 
     # Formatting
     skysub_lab_IRD = "skysub/"
@@ -273,7 +276,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         f.write(
                             inpath+dark_list_irdis[ii]+'\t'+'IRD_DARK_RAW\n')
             if not isfile(outpath_irdis_fits+"master_dark.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ird_master_dark"
+                command = "{} sph_ird_master_dark".format(com_esorex)
                 command += " --ird.master_dark.sigma_clip=10.0"
                 command += " --ird.master_dark.save_addprod=TRUE"
                 command += " --ird.master_dark.outfilename={}master_dark.fits".format(
@@ -297,7 +300,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     f.write("{}master_badpixelmap.fits".format(
                         outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP\n')
             if not isfile(outpath_irdis_fits+"master_gain.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ird_gain"
+                command = "{} sph_ird_gain".format(com_esorex)
                 command += " --ird.gain.save_addprod=TRUE"
                 command += " --ird.gain.outfilename={}master_gain_map.fits".format(
                     outpath_irdis_fits)
@@ -471,7 +474,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                         outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
 
             if not isfile(outpath_irdis_fits+"master_flat.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ird_instrument_flat"
+                command = "{} sph_ird_instrument_flat".format(com_esorex)
                 command += " --ird.instrument_flat.badpix_lowtolerance=0.5"
                 command += " --ird.instrument_flat.badpix_uptolerance=1.5"
                 command += " --ird.instrument_flat.save_addprod=TRUE"
@@ -706,13 +709,13 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
                     if len(sky_list_irdis) > 0:
                         if not isfile(outpath_irdis_fits+"sky_bg_fit.fits") or overwrite_sof or overwrite_fits:
-                            command = "esorex sph_ird_sky_bg"
+                            command = "{} sph_ird_sky_bg".format(com_esorex)
                             command += " --ird.sky_bg.save_addprod=TRUE"
                             command += " --ird.sky_bg.outfilename={}sky_bg.fits".format(
                                 outpath_irdis_fits)
                     else:
                         if not isfile(outpath_irdis_fits+"ins_bg_fit.fits") or overwrite_sof or overwrite_fits:
-                            command = "esorex sph_ird_ins_bg"
+                            command = "{} sph_ird_ins_bg".format(com_esorex)
                             command += " --ird.ins_bg.save_addprod=TRUE"
                             command += " --ird.ins_bg.outfilename={}ins_bg.fits".format(
                                 outpath_irdis_fits)
@@ -993,13 +996,13 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
                     if len(sky_list_irdis) > 0:
                         if not isfile(outpath_irdis_fits+"psf_sky_bg.fits") or overwrite_sof or overwrite_fits:
-                            command = "esorex sph_ird_sky_bg"
+                            command = "{} sph_ird_sky_bg".format(com_esorex)
                             command += " --ird.sky_bg.save_addprod=TRUE"
                             command += " --ird.sky_bg.outfilename={}psf_sky_bg.fits".format(
                                 outpath_irdis_fits)
                     else:
                         if not isfile(outpath_irdis_fits+"psf_sky_bg.fits") or overwrite_sof or overwrite_fits:
-                            command = "esorex sph_ird_ins_bg"
+                            command = "{} sph_ird_ins_bg".format(com_esorex)
                             command += " --ird.ins_bg.save_addprod=TRUE"
                             command += " --ird.ins_bg.outfilename={}psf_sky_bg.fits".format(
                                 outpath_irdis_fits)
@@ -1054,7 +1057,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
 
                     if not isfile(outpath_irdis_fits+"science_dbi{:.0f}.fits".format(ii)) or overwrite_sof or overwrite_fits:
-                        command = "esorex sph_ird_{}".format(lab_rec)
+                        command = "{} sph_ird_{}".format(com_esorex, lab_rec)
                         command += " --ird.{}.outfilename={}science_{:.0f}.fits".format(
                             lab_rec, outpath_irdis_fits, ii)
                         command += " --ird.{}.outfilename_left={}science_{}{:.0f}.fits".format(
@@ -1099,7 +1102,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
 
                     if not isfile(outpath_irdis_fits+"cen_dbi{:.0f}.fits".format(ii)) or overwrite_sof or overwrite_fits:
-                        command = "esorex sph_ird_{}".format(lab_rec)
+                        command = "{} sph_ird_{}".format(com_esorex, lab_rec)
                         command += " --ird.{}.outfilename={}cen_{:.0f}.fits".format(
                             lab_rec, outpath_irdis_fits, ii)
                         command += " --ird.{}.outfilename_left={}cen_{}{:.0f}.fits".format(
@@ -1142,7 +1145,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
 
                     if not isfile(outpath_irdis_fits+"psf_dbi{:.0f}.fits".format(ii)) or overwrite_sof or overwrite_fits:
-                        command = "esorex sph_ird_{}".format(lab_rec)
+                        command = "{} sph_ird_{}".format(com_esorex, lab_rec)
                         command += " --ird.{}.outfilename={}psf_{:.0f}.fits".format(
                             lab_rec, outpath_irdis_fits, ii)
                         command += " --ird.{}.outfilename_left={}psf_{}{:.0f}.fits".format(
@@ -1277,7 +1280,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
             write_fits(outpath_ifs_fits+"master_dark_cube.fits",
                        master_dark_cube[:counter])
             if not isfile(outpath_ifs_fits+"master_dark.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ifs_master_dark"
+                command = "{} sph_ifs_master_dark".format(com_esorex)
                 command += " --ifs.master_dark.sigma_clip=10.0"
                 #command+= " --ifs.master_dark.save_addprod=TRUE"
                 command += " --ifs.master_dark.outfilename={}master_dark.fits".format(
@@ -1335,7 +1338,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     write_fits(
                         outpath_ifs_fits+"master_dark_cube{:.0f}.fits".format(nn), master_dark_cube[:counter])
                     if not isfile(outpath_ifs_fits+"master_dark{:.0f}.fits".format(nn)) or overwrite_sof or overwrite_fits:
-                        command = "esorex sph_ifs_master_dark"
+                        command = "{} sph_ifs_master_dark".format(com_esorex)
                         command += " --ifs.master_dark.sigma_clip=10.0"
                         #command+= " --ifs.master_dark.save_addprod=TRUE"
                         command += " --ifs.master_dark.outfilename={}master_dark{:.0f}.fits".format(
@@ -1392,7 +1395,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     for ii in range(len(gain_list_ifs)):
                         f.write(inpath+gain_list_ifs[ii]+'\t'+'IFS_GAIN_RAW\n')
             if not isfile(outpath_ifs_fits+"master_gain.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ifs_gain"
+                command = "{} sph_ifs_gain".format(com_esorex)
                 command += " --ifs.gain.outfilename={}master_gain_map.fits".format(
                     outpath_ifs_fits)
                 command += " --ifs.gain.nonlin_filename={}nonlin_map.fits".format(
@@ -1456,7 +1459,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                     outpath_ifs_fits)+'\t'+'IFS_STATIC_BADPIXELMAP')
 
             if not isfile(outpath_ifs_fits+"preamp_l5.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ifs_master_detector_flat"
+                command = "{} sph_ifs_master_detector_flat".format(com_esorex)
                 command += " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                 command += " --ifs.master_detector_flat.badpix_uptolerance=5."
                 command += " --ifs.master_detector_flat.save_addprod=TRUE"
@@ -1497,7 +1500,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             outpath_ifs_fits)+'\t'+'IFS_PREAMP_FLAT\n')
 
                     if run_rec and (not isfile(outpath_ifs_fits+"large_scale_flat_l{:.0f}.fits".format(kk)) or overwrite_sof or overwrite_fits):
-                        command = "esorex sph_ifs_master_detector_flat"
+                        command = "{} sph_ifs_master_detector_flat".format(com_esorex)
                         command += " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                         command += " --ifs.master_detector_flat.badpix_uptolerance=5."
                         command += " --ifs.master_detector_flat.save_addprod=TRUE"
@@ -1536,7 +1539,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             outpath_ifs_fits)+'\t'+'IFS_PREAMP_FLAT\n')
 
                 if not isfile(outpath_ifs_fits+"large_scale_flat_l5.fits") or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_master_detector_flat"
+                    command = "{} sph_ifs_master_detector_flat".format(com_esorex)
                     command += " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                     command += " --ifs.master_detector_flat.badpix_uptolerance=5."
                     command += " --ifs.master_detector_flat.save_addprod=TRUE"
@@ -1581,7 +1584,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 outpath_ifs_fits, kk)+'\t'+'IFS_LARGE_SCALE_FLAT\n')
 
                     if run_rec and (not isfile(outpath_ifs_fits+"master_flat_det_l{:.0f}.fits".format(kk)) or overwrite_sof or overwrite_fits):
-                        command = "esorex sph_ifs_master_detector_flat"
+                        command = "{} sph_ifs_master_detector_flat".format(com_esorex)
                         command += " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                         command += " --ifs.master_detector_flat.badpix_uptolerance=5."
                         #command+= " --ifs.master_detector_flat.save_addprod=TRUE"
@@ -1616,7 +1619,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                 outpath_ifs_fits)+'\t'+'IFS_LARGE_SCALE_FLAT\n')
 
                 if not isfile(outpath_ifs_fits+"master_flat_det_l5.fits") or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_master_detector_flat"
+                    command = "{} sph_ifs_master_detector_flat".format(com_esorex)
                     #command+= " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                     #command+= " --ifs.master_detector_flat.badpix_uptolerance=5."
                     #command+= " --ifs.master_detector_flat.save_addprod=TRUE"
@@ -1670,7 +1673,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             outpath_ifs_fits)+'\t'+'IFS_MASTER_DARK\n')
 
             if not isfile(outpath_ifs_fits+"spectra_pos.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ifs_spectra_positions"
+                command = "{} sph_ifs_spectra_positions".format(com_esorex)
                 if mode == "YJH":
                     command += " --ifs.spectra_positions.hmode=TRUE"
                 else:
@@ -1722,7 +1725,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             outpath_ifs_fits)+'\t'+'IFS_PREAMP_FLAT\n')
 
                 if not isfile(outpath_ifs_fits+"master_flat_tot.fits") or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_instrument_flat"
+                    command = "{} sph_ifs_instrument_flat".format(com_esorex)
                     if len(flat_list_ifs) > 1 and flat_fit:
                         command += " --ifs.instrument_flat.make_badpix=TRUE"
                         command += " --ifs.instrument_flat.badpixfilename={}master_badpixelmap_tot.fits".format(
@@ -1824,7 +1827,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             master_flatname)+'\t'+'IFS_INSTRUMENT_FLAT_FIELD\n')
 
             if not isfile(outpath_ifs_fits+"wave_calib.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ifs_wave_calib"
+                command = "{} sph_ifs_wave_calib".format(com_esorex)
                 command += " --ifs.wave_calib.number_lines=0"
                 if wc_win_sz != 4:
                     command += " --ifs.wave_calib.fit_window_size={:.0f}".format(
@@ -1889,7 +1892,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                                     'IFS_MASTER_DFF_LONG{}\n'.format(lab))
 
                 if not isfile(outpath_ifs_fits+"master_flat_ifu.fits") or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_instrument_flat"
+                    command = "{} sph_ifs_instrument_flat".format(com_esorex)
                     if len(flat_list_ifs) > 1 and flat_fit:
                         command += " --ifs.instrument_flat.make_badpix=TRUE"
                         command += " --ifs.instrument_flat.badpixfilename={}master_badpixelmap_tot.fits".format(
@@ -2094,7 +2097,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             outpath_ifs_fits)+'\t'+'IFS_WAVECALIB\n')
 
                 if not isfile(outpath_ifs_fits+"ifs{}_{:.0f}.fits".format(lab_distort, ii)) or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_science_dr"
+                    command = "{} sph_ifs_science_dr".format(com_esorex)
                     command += " --ifs.science_dr.outfilename={}tmp{}_{:.0f}.fits".format(
                         outpath_ifs_fits, lab_distort, ii)
                     command += " --ifs.science_dr.use_adi=0"
@@ -2244,7 +2247,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             outpath_ifs_fits)+'\t'+'IFS_WAVECALIB\n')
 
                 if not isfile(outpath_ifs_fits+"ifs_cen{}_{:.0f}.fits".format(lab_distort, ii)) or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_science_dr"
+                    command = "{} sph_ifs_science_dr".format(com_esorex)
                     command += " --ifs.science_dr.outfilename={}tmp_cen{}_{:.0f}.fits".format(
                         outpath_ifs_fits, lab_distort, ii)
                     command += " --ifs.science_dr.use_adi=0"
@@ -2383,7 +2386,7 @@ def calib(params_calib_name='VCAL_params_calib.json'):
                             outpath_ifs_fits)+'\t'+'IFS_WAVECALIB\n')
 
                 if not isfile(outpath_ifs_fits+"ifs_psf{}_{:.0f}.fits".format(lab_distort, ii)) or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_science_dr"
+                    command = "{} sph_ifs_science_dr".format(com_esorex)
                     command += " --ifs.science_dr.outfilename={}tmp_psf{}_{:.0f}.fits".format(
                         outpath_ifs_fits, lab_distort, ii)
                     command += " --ifs.science_dr.use_adi=0"
