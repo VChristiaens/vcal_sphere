@@ -23,6 +23,7 @@ from astropy.stats.sigma_clipping import sigma_clipped_stats
 from matplotlib import use as mpl_backend
 from pandas.io.parsers.readers import read_csv
 
+from hciplot import plot_frames
 from vcal import __path__ as vcal_path
 from vip_hci.fits import open_fits, open_header, write_fits
 from vip_hci.fm import normalize_psf
@@ -730,6 +731,13 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                                                   fit_type='moff', lbda=None, 
                                                                                                   debug=debug, verbose=verbose, 
                                                                                                   full_output=True)
+                                        if plot:
+                                            plot_frames(cube_cen_sub, dpi=300, cmap="inferno",
+                                                        vmin=np.percentile(cube_cen_sub, q=1),
+                                                        vmax=np.percentile(cube_cen_sub, q=99.9),
+                                                        label=f"Subtracted and rescaled \n{cen_cube_names[cc]}_1bpcorr.fits",
+                                                        label_size=8, save=outpath+f"Detected_satspots_{cen_cube_names[cc]}.pdf")
+
                                         y_shifts_cen_tmp.append(y_tmp)
                                         x_shifts_cen_tmp.append(x_tmp)
                                         y_shifts_cen_med[cc] = np.median(y_tmp)
