@@ -721,6 +721,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             m_idx = find_nearest(mjd_mean,mjd_cen[cc])
                                             cube_near = open_fits(outpath+file_list[m_idx]+filt+"_1bpcorr.fits")
                                             cube_cen_sub -= np.median(cube_near,axis=0)
+                                            print(f"\nOBJ cube {file_list[m_idx]}_1bpcorr.fits will be subtracted from "
+                                                  f"CEN cube {cen_cube_names[cc]}_1bpcorr.fits\n", flush=True)
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[ff][i][0]-diff,xy_spots[ff][i][1]-diff) for i in range(len(xy_spots[ff]))])
                                         cube_cen_sub, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[2], 
