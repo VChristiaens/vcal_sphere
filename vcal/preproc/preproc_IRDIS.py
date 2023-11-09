@@ -499,7 +499,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     cen_cube_names = obj_psf_list[-1]
                                     mjd_cen = np.zeros(ncen)
                                     for cc in range(ncen):
-                                        _, head_cc = open_fits(inpath+cen_cube_names[cc]+filters_lab[ff], header = True)
+                                        head_cc = open_header(inpath+cen_cube_names[cc]+filters_lab[ff])
                                         cube_cen = open_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_1bpcorr.fits")
                                         if cc==0:
                                             #n_frc=cube_cen.shape[0]
@@ -703,7 +703,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     pa_cen = []
                                     for cc in range(ncen):
                                         ### first get the MJD time of each cube     
-                                        _, head_cc = open_fits(inpath+cen_cube_names[cc]+filters_lab[ff], header = True)
+                                        head_cc = open_header(inpath+cen_cube_names[cc]+filters_lab[ff])
                                         pa_cen.append(float(head_cc["HIERARCH ESO TEL PARANG START"]))
                                         cube_cen = open_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_1bpcorr.fits")
                                         nfr_tmp = cube_cen.shape[0]
@@ -722,8 +722,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             m_idx = find_nearest(mjd_mean,mjd_cen[cc])
                                             cube_near = open_fits(outpath+file_list[m_idx]+filt+"_1bpcorr.fits")
                                             cube_cen_sub -= np.median(cube_near,axis=0)
-                                            print(f"\nOBJ cube {file_list[m_idx]}_1bpcorr.fits will be subtracted from "
-                                                  f"CEN cube {cen_cube_names[cc]}_1bpcorr.fits\n", flush=True)
+                                            print(f"\nOBJ cube {file_list[m_idx]}{filt}_1bpcorr.fits will be subtracted from "
+                                                  f"CEN cube {cen_cube_names[cc]}{filters_lab[ff]}_1bpcorr.fits\n", flush=True)
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[ff][i][0]-diff,xy_spots[ff][i][1]-diff) for i in range(len(xy_spots[ff]))])
                                         cube_cen_sub, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[2], 
@@ -735,8 +735,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             plot_frames(cube_cen_sub, dpi=300, cmap="inferno",
                                                         vmin=np.percentile(cube_cen_sub, q=1),
                                                         vmax=np.percentile(cube_cen_sub, q=99.9),
-                                                        label=f"Subtracted and rescaled \n{cen_cube_names[cc]}_1bpcorr.fits",
-                                                        label_size=8, save=outpath+f"Detected_satspots_{cen_cube_names[cc]}.pdf")
+                                                        label=f"Subtracted \n{cen_cube_names[cc]}{filt}_1bpcorr.fits",
+                                                        label_size=8, save=outpath+f"Detected_satspots_{cen_cube_names[cc]}{filt}.pdf")
 
                                         y_shifts_cen_tmp.append(y_tmp)
                                         x_shifts_cen_tmp.append(x_tmp)
