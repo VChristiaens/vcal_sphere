@@ -1601,8 +1601,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 crop_size = int(crop_sz*fwhm)
                                 if not crop_size%2:
                                     crop_size+=1
-                                if  crop_size > cube.shape[-1] or crop_size > good_frame.shape[-1] : 
-                                    crop_size = max([good_frame.shape[-1],cube.shape[-1]]) - 2
+                                if  crop_size >= cube.shape[-1] or crop_size >= good_frame.shape[-1]:
+                                    crop_size = min([good_frame.shape[-1],cube.shape[-1]]) - 2
                                 if "dist" in badfr_crit_tmp[idx_corr].keys(): 
                                     dist = badfr_crit_tmp[idx_corr]["dist"]
                                 if "mode" in badfr_crit_tmp[idx_corr].keys():
