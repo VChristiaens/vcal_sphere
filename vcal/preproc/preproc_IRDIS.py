@@ -864,15 +864,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 cube, y_shifts, x_shifts = cube_recenter_radon(cube, full_output=True, verbose=True, 
                                                                                interpolation='lanczos4')                                         
                             elif "speckle" in rec_met_tmp:
-                                cube, x_shifts, y_shifts = cube_recenter_via_speckles(cube, cube_ref=None, alignment_iter=5,
+                                cube, _, _, x_shifts, y_shifts = cube_recenter_via_speckles(cube, cube_ref=None, alignment_iter=5,
                                                                                       gammaval=1, min_spat_freq=0.5, 
                                                                                       max_spat_freq=3,
                                                                                       fwhm=1.2*max_resel, debug=False, 
                                                                                       negative=negative,
-                                                                                      recenter_median=False, subframesize=20,
+                                                                                      recenter_median=False, subframesize=cen_box_sz[fi],
                                                                                       interpolation='bilinear',
-                                                                                      save_shifts=False, plot=False,
-                                                                                      nproc=nproc)
+                                                                                      plot=False, nproc=nproc)
                             else:
                                 raise ValueError("Centering method not recognized")
                             if fi>0 or not use_cen_only:                                                                     
