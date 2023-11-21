@@ -851,15 +851,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         write_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]), final_derot_angles, verbose=debug)
                         write_fits(outpath+"1_master_par_angles{}.fits".format(labels[fi]), final_par_angles, verbose=debug)
 
-                        # median-ADI
-                        ADI_frame = np.zeros([n_z,master_cube.shape[-2],master_cube.shape[-1]], dtype=np.float32)
-                        for zz in range(n_z):
-                            params = MEDIAN_SUB_Params(cube=master_cube[zz], angle_list=final_derot_angles, radius_int=10,
-                                                  nproc=nproc)
-                            ADI_frame[zz] = median_sub(algo_params=params)
-                        write_fits(outpath+"median_ADI1_{}.fits".format(labels[fi]), ADI_frame, verbose=debug)
-
-
         #********************* PLOTS + TRIM BAD FRAMES OUT ************************
 
         if 4 in to_do:
