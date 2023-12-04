@@ -37,12 +37,11 @@ from pandas.core.frame import DataFrame as DF
 from vip_hci.psfsub import pca, pca_annular, PCA_Params, PCA_ANNULAR_Params
 from vip_hci.metrics import stim_map as compute_stim_map
 from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
-from vip_hci.fm import cube_inject_companions, cube_planet_free
+from vip_hci.fm import cube_inject_companions, cube_planet_free, find_nearest
 from vip_hci.metrics import contrast_curve, snr, snrmap
 from vip_hci.preproc import cube_derotate
 from vip_hci.fits import open_fits, write_fits
 from vip_hci.var import mask_circle, frame_center
-from ..utils import find_nearest
 
 from vcal import __path__ as vcal_path
 mpl_backend('Agg')

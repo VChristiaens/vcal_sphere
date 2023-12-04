@@ -30,10 +30,9 @@ from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
 from vip_hci.preproc import cube_shift, frame_shift, cube_crop_frames, cube_recenter_via_speckles
 from vip_hci.preproc.rescaling import _cube_resc_wave
 from vip_hci.var import mask_circle, cube_filter_highpass, frame_center, frame_filter_lowpass
-from ..utils import find_nearest
 from vip_hci.psfsub import median_sub, pca, pca_annular, nmf, MEDIAN_SUB_Params, PCA_Params, PCA_ANNULAR_Params, NMF_Params
 from vip_hci.psfsub.utils_pca import pca_annulus
-from vip_hci.fm import normalize_psf, cube_inject_companions, cube_planet_free
+from vip_hci.fm import normalize_psf, cube_inject_companions, cube_planet_free, find_nearest
 
 from vip_hci.config import time_ini, timing
 

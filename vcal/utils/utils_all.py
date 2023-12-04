@@ -6,7 +6,6 @@ General utility routines used in vcal.
 
 __author__ = 'V. Christiaens'
 __all__ = ['set_backend',
-         'find_nearest',
          'nonzero_median',
          'cube_crop_quadrant',
          'most_common']
@@ -52,40 +51,6 @@ def set_backend():
     print("Using ..... ", get_backend())
 
     return None
-
-
-def find_nearest(array, value, output='index', constraint=None, n=1):
-    """
-    Function to find the indices, and optionally the values, of an array's n closest elements to a certain value.
-    Possible outputs: 'index','value','both' 
-    Possible constraints: 'ceil', 'floor', None ("ceil" will return the closest element with a value greater than 'value', "floor" the opposite)
-    """
-    if type(array) is np.ndarray:
-        pass
-    elif type(array) is list:
-        array = np.array(array)
-    else:
-        raise ValueError("Input type for array should be np.ndarray or list.")
-
-    if constraint is None:
-        fm = np.absolute(array-value)
-
-    elif constraint == 'ceil':
-        fm = array-value
-        fm = fm[np.where(fm>0)]
-    elif constraint == 'floor':
-         fm = -(array-value)
-         fm = fm[np.where(fm>0)]
-    else:
-        raise ValueError("Constraint not recognised")
-
-    idx = fm.argsort()[:n]
-    if n == 1:
-        idx = idx[0]
-
-    if output=='index': return idx
-    elif output=='value': return array[idx]
-    else: return array[idx], idx
 
 
 def nonzero_median(cube,axis=None,median=True,thr=1e-10):

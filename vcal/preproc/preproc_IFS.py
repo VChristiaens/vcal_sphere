@@ -24,9 +24,8 @@ from pandas.io.parsers.readers import read_csv
 
 from hciplot import plot_frames
 from vcal import __path__ as vcal_path
-from vcal.utils import find_nearest
 from vip_hci.fits import open_fits, open_header, write_fits
-from vip_hci.fm import normalize_psf
+from vip_hci.fm import normalize_psf, find_nearest
 from vip_hci.metrics import stim_map, inverse_stim_map, peak_coordinates
 from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              cube_recenter_dft_upsampling, cube_shift,
@@ -38,7 +37,6 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              frame_shift, cube_crop_frames, frame_crop,
                              cube_derotate, find_scal_vector, cube_subsample)
 from vip_hci.preproc.rescaling import _cube_resc_wave
-from vip_hci.psfsub import median_sub, MEDIAN_SUB_Params
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle, frame_center
 
 mpl_backend("agg")
@@ -634,6 +632,18 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
                                             print(f"\nOBJ cube {file_list[m_idx]}_1bpcorr.fits will be subtracted from "
                                                   f"CEN cube {cen_cube_names[cc]}_1bpcorr.fits\n", flush=True)
+
+
+                                        # code going here that measures satspot location in each channel
+                                        # but it continues if it can't fit a channel
+                                        #res = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp)
+
+
+
+
+
+
+
 
                                         iterations = 5  # hard code for now, although two seems like enough
                                         for i in range(iterations):
