@@ -1,6 +1,6 @@
 {
     "path": "/parent-path-to-data/",
-    "dit_ifs": 96,
+    "dit_ifs:": 96,
     "dit_irdis" : 16,
     "dit_psf_ifs" : 2,
     "dit_psf_irdis": 2,
