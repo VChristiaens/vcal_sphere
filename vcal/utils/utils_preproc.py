@@ -4,8 +4,9 @@
 Utility routines for recentering based on background star for SPHERE/IRDIS data.
 """
 
-__author__ = 'V. Christiaens, J. Baird'
+__author__ = 'V. Christiaens, J. Baird, Iain Hammond'
 __all__ = ['cube_recenter_bkg',
+           'scaling_by_satspots',
            'rough_centering',
            'fit2d_bkg_pos',
            'interpolate_bkg_pos',
@@ -325,6 +326,46 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         return cube, final_shifts, final_unc
     else:
         return cube
+
+
+def scaling_by_satspots(lbdas: np.array, coordinates_array: np.array, snr_channel: np.array, snr_thres: int = 5) -> np.array:
+    """
+    Calculates the scaling factors for each channel based on the measured distances between satellite spots.
+    Does not depend on the location of the true center.
+    Designed for IFS but works for IRDIS dual imaging.
+
+    Parameters
+    ----------
+    lbdas: np.array
+        Wavelengths for each channel in µm.
+    coordinates_array: np.array
+        x-y coordinates of the satellite spots in each channel.
+        Order: top-left, top-right, bottom-left, bottom-right.
+    snr_channel: np.array
+        Mean SNR values for each channel.
+    snr_thres: int, float
+        SNR threshold for considering a channel as low SNR, and uses theoretical scaling.
+
+    Returns
+    ----------
+    scale_list_measured: np.array
+        Scaling factors for each channel based.
+    """
+    # vectorised calculation of all distances
+    spot_dist = np.linalg.norm(coordinates_array[:, [0, 1, 0, 0, 1, 2], :] - coordinates_array[:, [2, 3, 1, 3, 2, 3], :], axis=2)
+    scale_list_measured = max(np.mean(spot_dist, axis=1)) / np.mean(spot_dist, axis=1)
+
+    low_snr_mask = snr_channel <= snr_thres
+    if np.any(low_snr_mask):
+        scale_list_measured[low_snr_mask] = lbdas[low_snr_mask] / min(lbdas)
+        low_snr_channels = lbdas[low_snr_mask]
+        print(f"Low SNR (<= {snr_thres} for channels {low_snr_channels} µm, using theoretical scaling here")
+        if np.sum(low_snr_mask) >= len(lbdas) * 2 / 3:
+            print("WARNING: Too many channels with poor SNR. Falling back to theoretical scaling. "
+                  "SDI will be less effective.")
+            scale_list_measured = max(lbdas) / lbdas
+
+    return scale_list_measured
 
 
 def rough_centering(array, fwhm_odd=5):
