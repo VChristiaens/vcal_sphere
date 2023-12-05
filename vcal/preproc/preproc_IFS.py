@@ -20,13 +20,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
 from matplotlib import use as mpl_backend
+from matplotlib.colors import LogNorm
 from pandas.io.parsers.readers import read_csv
 
 from hciplot import plot_frames
 from vcal import __path__ as vcal_path
 from vip_hci.fits import open_fits, open_header, write_fits
 from vip_hci.fm import normalize_psf, find_nearest
-from vip_hci.metrics import stim_map, inverse_stim_map, peak_coordinates
+from vip_hci.metrics import stim_map, inverse_stim_map, peak_coordinates, snr
 from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              cube_recenter_dft_upsampling, cube_shift,
                              cube_detect_badfr_pxstats,
@@ -37,7 +38,8 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              frame_shift, cube_crop_frames, frame_crop,
                              cube_derotate, find_scal_vector, cube_subsample)
 from vip_hci.preproc.rescaling import _cube_resc_wave
-from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle, frame_center
+from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle, frame_center, cart_to_pol
+from ..utils.utils_preproc import scaling_by_satspots
 
 mpl_backend("agg")
 
@@ -597,22 +599,30 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     x_shifts_cen_tmp = np.zeros(ncen)
                                     sat_y = np.zeros([ncen, 4])  # four spots per cube
                                     sat_x = np.zeros([ncen, 4])
-                                    diff = int((ori_sz - bp_crop_sz) / 2)  # coordinates change depending on the crop size
-
-                                    # when rescaling the spots will occur at greater separation in the YJH mode.
-                                    # alternative is to scale to the shortest wavelength always, but I think this is better
-                                    if mode == "YJ":
-                                        xy_spots = [[90, 179], [182, 195], [107, 87], [199, 103]]
-                                    elif mode == "YJH":
-                                        xy_spots = [[77, 187], [191, 207], [99, 73], [213, 93]]
-                                    xy_spots_tmp = tuple([(xy_spots[i][0] - diff, xy_spots[i][1] - diff) for i in range(len(xy_spots))])
+                                    loD = lbdas * 1e-6 / 8.2 * 180 / np.pi * 3600 / plsc  # 1lambda/D in detector px, rad -> deg -> arcsec -> detector px
+                                    factor = 14  # satspots appear at 14lambda/D, from SPHERE manual
 
                                     # loop over all CEN files and retrieve the location of the satellite spots
                                     for cc in range(ncen):
                                         # first get the MJD time of each cube
                                         cube_cen, head_cc = open_fits(outpath+cen_cube_names[cc]+"_1bpcorr.fits", verbose=debug, header=True)
+                                        if cc == 0:
+                                            all_cen_sub = np.zeros((ncen, cube_cen.shape[0], cube_cen.shape[-2], cube_cen.shape[-1]))
                                         mjd_cen[cc] = float(head_cc['MJD-OBS'])
+                                        waffle_orientation = head_cc['HIERARCH ESO OCS WAFFLE ORIENT']
+                                        if waffle_orientation == '+':
+                                            orient = abs(ifs_off) * np.pi / 180
+                                        elif waffle_orientation == 'x':
+                                            orient = abs(ifs_off) * np.pi / 180 + np.pi / 4
                                         ref_xy = frame_center(cube_cen)
+
+                                        spot_xy = np.zeros((len(lbdas), 4, 2))  # fill with predictions
+                                        for idx in range(len(lbdas)):
+                                            for spot in range(4):
+                                                spot_xy[idx][spot][0] = ref_xy[0] + factor * loD[idx] * np.cos(
+                                                    orient + np.pi / 2 * spot)
+                                                spot_xy[idx][spot][1] = ref_xy[1] + factor * loD[idx] * np.sin(
+                                                    orient + np.pi / 2 * spot)
 
                                         # SUBTRACT NEAREST OBJ CUBE to find sat spots
                                         if not use_cen_only:
@@ -629,21 +639,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                             cube_near = open_fits(outpath+file_list[m_idx]+"_1bpcorr.fits", verbose=debug)
                                             if cube_near.ndim == 4:
                                                 cube_near = np.median(cube_near, axis=0)
-
                                             print(f"\nOBJ cube {file_list[m_idx]}_1bpcorr.fits will be subtracted from "
                                                   f"CEN cube {cen_cube_names[cc]}_1bpcorr.fits\n", flush=True)
-
-
-                                        # code going here that measures satspot location in each channel
-                                        # but it continues if it can't fit a channel
-                                        #res = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp)
-
-
-
-
-
-
-
+                                            all_cen_sub[cc] = cube_cen - cube_near
+                                        else:
+                                            all_cen_sub[cc] = cube_cen
 
                                         iterations = 5  # hard code for now, although two seems like enough
                                         for i in range(iterations):
@@ -659,7 +659,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
                                             cube_cen_sub = np.median(cube_cen_sub, axis=0)  # median collapse channels
                                             # find center location
-                                            res = frame_center_satspots(cube_cen_sub, xy_spots_tmp,
+                                            res = frame_center_satspots(cube_cen_sub, (spot_xy[-1][0], spot_xy[-1][-1], spot_xy[-1][1], spot_xy[-1][2]),
                                                                         subi_size=cen_box_sz[fi], sigfactor=sigfactor,
                                                                         fit_type="moff", verbose=debug, shift=True)
 
@@ -667,13 +667,36 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                             ref_xy = (frame_center(cube_cen)[1]-x_shifts_cen_tmp[cc],
                                                       frame_center(cube_cen)[0]-y_shifts_cen_tmp[cc])
 
-                                        if plot and not use_cen_only:  # cen only can make too many plots
-                                            plot_frames(cube_cen_sub, dpi=300, cmap="inferno",
-                                                        circle=tuple(zip(sat_x[cc], sat_y[cc])),
-                                                        vmin=np.percentile(cube_cen_sub, q=1),
-                                                        vmax=np.percentile(cube_cen_sub, q=99.9),
-                                                        label=f"Subtracted and rescaled \n{cen_cube_names[cc]}_1bpcorr.fits",
-                                                        label_size=8, save=outpath+f"Detected_satspots_{cen_cube_names[cc]}.pdf")
+                                        if plot and cc == 0:
+                                            plt.close("all")
+                                            fig = plt.figure(figsize=(8, 8))
+
+                                            ax = fig.add_subplot(111)
+                                            ax.imshow(cube_cen_sub, aspect='equal',
+                                                      norm=LogNorm(np.nanmax(cube_cen[0]) * 1e-2,
+                                                                   vmax=np.nanmax(cube_cen[0]),
+                                                                   clip=True), interpolation='nearest',
+                                                      cmap="inferno")
+                                            ax.set_xlabel('x coordinate [px]')
+                                            ax.set_ylabel('y coordinate [px]')
+                                            ax.invert_yaxis()
+                                            ax.annotate("Rescaled and median combined",
+                                                        xy=(10, 420), xycoords='axes pixels', weight='bold',
+                                                        color="white")
+                                            ax.annotate(
+                                                f"Predicted satellite spot positions\nUsing the {waffle_orientation} waffle pattern\n{cen_cube_names[cc]}\nClosest in time science frame has been subtracted",
+                                                xy=(10, 10), xycoords='axes pixels', weight='bold',
+                                                color="white")
+
+                                            for coords in spot_xy:
+                                                x, y = coords.T
+                                                ax.scatter(x, y, c="white", alpha=0.2)
+
+                                            plt.savefig(outpath + "Predicted_satspots.pdf", bbox_inches='tight',
+                                                        pad_inches=0.01)
+                                            plt.close("all")
+
+                                    write_fits(outpath+ "all_cen_subtracted.fits", all_cen_sub, verbose=debug)
                                     # median combine results for all MJD CEN bef and all after SCI obs
                                     header_ini = open_header(inpath+OBJ_IFS_list[0]+'.fits')
                                     mjd = float(header_ini["MJD-OBS"])  # mjd of first obs
@@ -766,6 +789,100 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         ax.set_ylabel("Image y-coordinate [px]")
                                         plt.savefig(outpath+"Satspot_coordinates.pdf", bbox_inches="tight")
                                         plt.close("all")
+
+                                if fn == 0:
+                                    # find the scaling factors here
+                                    spot_xy_predict = np.zeros((len(lbdas), 4, 2))  # fill with predictions
+                                    spot_xcenters = np.zeros((len(lbdas), 4))  # measured
+                                    spot_ycenters = np.zeros((len(lbdas), 4))  # measured
+                                    snr_val = np.zeros((len(lbdas), 4))
+                                    snr_channel_mean = np.zeros((ncen, len(lbdas)))
+                                    scale_list_measured_mean = np.zeros((ncen, len(lbdas)))
+
+                                    # find all spots
+                                    for cc in range(ncen):
+                                        img = all_cen_sub[cc]
+                                        for idx in range(len(lbdas)):
+                                            for spot in range(4):
+                                                spot_xy_predict[idx][spot][0] = ref_xy[0] - x_shifts_cen_tmp[cc] + factor * loD[idx] * np.cos(
+                                                    orient + np.pi / 2 * spot)
+                                                spot_xy_predict[idx][spot][1] = ref_xy[1] - y_shifts_cen_tmp[cc] + factor * loD[idx] * np.sin(
+                                                    orient + np.pi / 2 * spot)
+                                            _, _, _, spot_ycenters[idx], spot_xcenters[idx] = frame_center_satspots(img[idx],
+                                                                                                                    xy=(
+                                                                                                                    spot_xy_predict[
+                                                                                                                        idx][0],
+                                                                                                                    spot_xy_predict[
+                                                                                                                        idx][
+                                                                                                                        -1],
+                                                                                                                    spot_xy_predict[
+                                                                                                                        idx][1],
+                                                                                                                    spot_xy_predict[
+                                                                                                                        idx][
+                                                                                                                        2]),
+                                                                                                                    subi_size=21,
+                                                                                                                    shift=True,
+                                                                                                                    fit_type="moff",
+                                                                                                                    verbose=False)
+                                        coordinates_array = np.column_stack((spot_xcenters.flatten(), spot_ycenters.flatten()))  # stack the columns of x and y coordinates together
+                                        coordinates_array = coordinates_array.reshape((len(lbdas), 4, 2))  # reshape to sames as predicted array
+                                        # measure SNR, avoid other spots
+                                        for idx in range(len(lbdas)):
+                                            for spot in range(4):
+                                                snr_val[idx][spot] = snr(img[idx], source_xy=(coordinates_array[idx][spot][0], coordinates_array[idx][spot][1]),
+                                                                         fwhm=2 * resels[idx], verbose=False, plot=False,
+                                                                         exclude_theta_range=(cart_to_pol(coordinates_array[idx][spot][0],
+                                                                                                          coordinates_array[idx][spot][1],
+                                                                                     cy=img.shape[-1] / 2,
+                                                                                     cx=img.shape[-1] / 2)[1] + 70,
+                                                                         cart_to_pol(coordinates_array[idx][spot][0],
+                                                                                     coordinates_array[idx][spot][1],
+                                                                                     cy=img.shape[-1] / 2,
+                                                                                     cx=img.shape[-1] / 2)[1] + 280))
+                                        snr_channel_mean[cc] = np.mean(snr_val, axis=1)
+                                        scale_list_measured_mean[cc] = scaling_by_satspots(lbdas, coordinates_array,
+                                                                                           snr_channel_mean[cc], snr_thres=5)
+
+                                    snr_channel_mean = np.mean(snr_channel_mean, axis=0)
+                                    scale_list_measured_mean = np.mean(scale_list_measured_mean, axis=0)
+
+                                    if plot:
+                                        plt.close("all")
+                                        plt.plot(lbdas, snr_val[:, 0], label="top-left")
+                                        plt.plot(lbdas, snr_val[:, 1], label="top-right")
+                                        plt.plot(lbdas, snr_val[:, 2], label="bottom-left")
+                                        plt.plot(lbdas, snr_val[:, 3], label="bottom-right")
+                                        plt.plot(lbdas, snr_channel_mean, label="Mean", linestyle="-.", c="grey")
+                                        plt.legend()
+                                        plt.minorticks_on()
+                                        plt.xlabel("Wavelength [µm]")
+                                        plt.ylabel("Approx. SNR")
+                                        plt.savefig(outpath + "Satspots_SNR.pdf", bbox_inches='tight', pad_inches=0.01)
+                                        plt.close("all")
+
+                                        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 4), dpi=300,
+                                                                 constrained_layout=True)
+
+                                        axes[0].scatter(lbdas, scale_list_measured_mean, label="Measured")
+                                        axes[0].set_xlabel('Wavelength [µm]')
+                                        axes[0].set_ylabel('Scaling Factor')
+                                        axes[0].plot(lbdas, max(lbdas) / lbdas, label="Theoretical", c="black",
+                                                     linestyle="--", alpha=0.8)
+                                        axes[1].scatter(lbdas, scale_list_measured_mean - max(lbdas) / lbdas, label="Deviation")
+                                        axes[1].hlines(0, xmin=min(lbdas), xmax=max(lbdas), label="Theoretical",
+                                                       color="black", linestyle="--", alpha=0.8)
+                                        axes[1].set_xlabel('Wavelength [µm]')
+                                        axes[1].set_ylabel('Measured - Theoretical')
+                                        axes[0].legend()
+                                        axes[0].minorticks_on()
+                                        axes[1].legend()
+                                        axes[1].minorticks_on()
+                                        plt.savefig(outpath + "Scaling_from_satspots.pdf", bbox_inches='tight', pad_inches=0.01)
+                                        plt.close("all")
+
+                                    best = np.argsort(snr_channel_mean)[-5:]
+                                    write_fits(outpath+"Satspot_SNR_best.fits", best, verbose=debug)
+                                    print(f"Five highest SNR channels {best} which are {lbdas[best]} µm")
 
                             elif "radon" in rec_met_tmp:
                                 cube, y_shifts, x_shifts, _ = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
