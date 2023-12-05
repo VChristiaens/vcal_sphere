@@ -845,6 +845,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
                                     snr_channel_mean = np.mean(snr_channel_mean, axis=0)
                                     scale_list_measured_mean = np.mean(scale_list_measured_mean, axis=0)
+                                    write_fits(outpath + final_scalefac_name, scale_list_measured_mean, verbose=debug)
 
                                     if plot:
                                         plt.close("all")
