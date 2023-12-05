@@ -128,7 +128,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     final_fluxname = params_preproc.get('final_fluxname','final_flux')
     final_fwhmname = params_preproc.get('final_fwhmname','final_fwhm')  
     final_lbdaname = params_preproc.get('final_lbdaname','lbdas') 
-    final_scalefacname = params_preproc.get('final_scalefacname',None)
+    final_scalefacname = params_preproc.get('final_scalefacname', None)
 #    psf_name = final_psfname # possibly change if not PSF (e.g. OBJ is not saturated)
 #    fwhm_name = final_fwhmname
     fluxes_name = final_fluxname #just the first row (second corresponds to uncertainties?)
@@ -309,7 +309,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     
     if final_scalefacname is not None:
         scale_list = open_fits(inpath+final_scalefacname, verbose=debug)
-        msg = ("\nUsing scaling factors from pre-processing step 8. \n"
+        msg = ("\nUsing scaling factors from pre-processing. \n"
                "It is recommended these are checked to ensure that they make sense.\n")
         print(msg, flush=True)
     else:
