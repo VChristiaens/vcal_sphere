@@ -26,7 +26,7 @@ from pandas.io.parsers.readers import read_csv
 from hciplot import plot_frames
 from vcal import __path__ as vcal_path
 from vip_hci.fits import open_fits, open_header, write_fits
-from vip_hci.fm import normalize_psf
+from vip_hci.fm import normalize_psf, find_nearest
 from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
 from vip_hci.metrics import peak_coordinates
 from vip_hci.metrics import stim_map as compute_stim_map
@@ -41,7 +41,7 @@ from vip_hci.psfsub import median_sub, MEDIAN_SUB_Params
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle, frame_filter_lowpass)
 from ..utils import (cube_recenter_bkg, fit2d_bkg_pos, interpolate_bkg_pos,
-                     find_rot_cen, circ_interp, find_nearest)
+                     find_rot_cen, circ_interp)
 
 mpl_backend('Agg')
 
