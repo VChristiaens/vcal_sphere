@@ -883,7 +883,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
                                     best = np.argsort(snr_channel_mean)[-5:]
                                     write_fits(outpath+"Satspot_SNR_best.fits", best, verbose=debug)
-                                    print(f"Five highest SNR channels {best} which are {lbdas[best]} µm")
+                                    print(f"Five highest SNR channels {best+1} which are {lbdas[best]} µm")
 
                             elif "radon" in rec_met_tmp:
                                 cube, y_shifts, x_shifts, _ = cube_recenter_radon(cube, full_output=True, verbose=True, imlib='opencv',
@@ -1047,8 +1047,14 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
                     final_good_index_list = list(range(cube.shape[1]))
 
-                    for zz in range(n_z):
-                        print(f"********** Trimming bad frames from channel {zz+1} ***********\n", flush=True)
+                    # if Satspot_SNR_best.fits exists, read the numbers and use those channels to detect bad frames
+                    if isfile(outpath+"Satspot_SNR_best.fits"):
+                        channels = open_fits(outpath+"Satspot_SNR_best.fits", verbose=debug)
+                        print(f"Using five highest SNR channels {channels+1} from satspots for bad frame detection")
+                    else:
+                        channels = np.arange(0, n_z)
+                    for zz in channels:  # zero based in the case of no prior good channels
+                        print(f"********** Identifying bad frames using channel {zz+1} ***********\n", flush=True)
                         ngood_fr_ch = len(final_good_index_list)
 
                         plot_tmp = False
