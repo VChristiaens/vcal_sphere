@@ -104,7 +104,7 @@ final_cubename = "final_cube"                     # can be provided with or with
 final_anglename = "final_derot_angles.fits"       # can be provided with or without the suffix ".fits"   
 final_psfname = "final_psf"                       # can be provided with or without the suffix ".fits" 
 final_fluxname = "final_flux"
-final_scalefacname = None                         # can be a string corresponding to the filename scaling factor. "final_scale_fac". Note: not recommended.
+final_scalefacname = "final_scale_fac"            # can be a string corresponding to the filename scaling factor
 
 # output options
-"verbose": 1                                                 # whether to print more info during processing                          
+"verbose": 1                                      # whether to print more info during processing
