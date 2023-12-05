@@ -1050,6 +1050,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     # if Satspot_SNR_best.fits exists, read the numbers and use those channels to detect bad frames
                     if isfile(outpath+"Satspot_SNR_best.fits"):
                         channels = open_fits(outpath+"Satspot_SNR_best.fits", verbose=debug)
+                        channels = np.array(channels, dtype=int)  # ensure channels are integers
                         print(f"Using five highest SNR channels {channels+1} from satspots for bad frame detection")
                     else:
                         channels = np.arange(0, n_z)
