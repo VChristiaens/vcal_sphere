@@ -841,7 +841,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                      cx=img.shape[-1] / 2)[1] + 280))
                                         snr_channel_mean[cc] = np.mean(snr_val, axis=1)
                                         scale_list_measured_mean[cc] = scaling_by_satspots(lbdas, coordinates_array,
-                                                                                           snr_channel_mean[cc], snr_thres=5)
+                                                                                           snr_channel_mean[cc], snr_thres=8)
 
                                     snr_channel_mean = np.mean(snr_channel_mean, axis=0)
                                     scale_list_measured_mean = np.mean(scale_list_measured_mean, axis=0)
