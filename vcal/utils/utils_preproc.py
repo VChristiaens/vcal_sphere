@@ -359,7 +359,7 @@ def scaling_by_satspots(lbdas: np.array, coordinates_array: np.array, snr_channe
     if np.any(low_snr_mask):
         scale_list_measured[low_snr_mask] = lbdas[low_snr_mask] / min(lbdas)
         low_snr_channels = lbdas[low_snr_mask]
-        print(f"Low SNR (<= {snr_thres} for channels {low_snr_channels} µm, using theoretical scaling here")
+        print(f"Low SNR (<= {snr_thres}) for channels {low_snr_channels} µm, using theoretical scaling here")
         if np.sum(low_snr_mask) >= len(lbdas) * 2 / 3:
             print("WARNING: Too many channels with poor SNR. Falling back to theoretical scaling. "
                   "SDI will be less effective.")
