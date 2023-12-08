@@ -183,18 +183,16 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                     elif header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'DARK':
                         dark_list_ifs.append(fname)
                     elif header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'FLAT,LAMP':
-                        if 'IFSFLAT' in header['HIERARCH ESO OCS DET1 IMGNAME']:
+                        # six cases to deal with: BB (CAL_BB_2_[mode]), 1.02µm (CAL_NB1_1_[mode],
+                        # 1.23µm (CAL_NB2_1_[mode]), 1.3µm (CAL_NB3_1_[mode]), OBS_[mode] and 1.55µm (CAL_NB4_1_[mode]) if YJH
+                        if "CAL_BB_2_" in header["HIERARCH ESO INS2 COMB IFS"]:  # white
+                            flat_list_ifs_det_BB.append(fname)
+                        elif "CAL_NB" in header["HIERARCH ESO INS2 COMB IFS"]:  # narrow bands
+                            flat_list_ifs_det.append(fname)
+                        elif 'IFSFLAT' in header['HIERARCH ESO OCS DET1 IMGNAME']:  # ifu flat
                             flat_list_ifs.append(fname)
-                            if float(header['HIERARCH ESO DET SEQ1 DIT']) not in dit_ifs_flat:
-                                dit_ifs_flat.append(float(header['HIERARCH ESO DET SEQ1 DIT']))
-                        elif header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
-                            if 'BB' in header['HIERARCH ESO INS2 CAL'] or 'BB' in header['HIERARCH ESO INS2 COMB IFS']:
-                                flat_list_ifs_det_BB.append(fname)
-                            else:
-                                flat_list_ifs_det.append(fname)
-                            if float(header['HIERARCH ESO DET SEQ1 DIT']) not in dit_ifs_flat:
-                                dit_ifs_flat.append(float(header['HIERARCH ESO DET SEQ1 DIT']))
-                            #mjd_obs_flat_ifs = abs(float(header['MJD-OBS']))
+                        if float(header['HIERARCH ESO DET SEQ1 DIT']) not in dit_ifs_flat:
+                            dit_ifs_flat.append(float(header['HIERARCH ESO DET SEQ1 DIT']))
                         
                     elif header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'LAMP,DISTORT' and len(distort_IFS)==0:
                         distort_IFS.append(fname)
