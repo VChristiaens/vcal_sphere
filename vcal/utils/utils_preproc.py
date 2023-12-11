@@ -353,7 +353,7 @@ def scaling_by_satspots(lbdas: np.array, coordinates_array: np.array, snr_channe
     """
     # vectorised calculation of all distances
     spot_dist = np.linalg.norm(coordinates_array[:, [0, 1, 0, 0, 1, 2], :] - coordinates_array[:, [2, 3, 1, 3, 2, 3], :], axis=2)
-    scale_list_measured = max(np.mean(spot_dist, axis=1)) / np.mean(spot_dist, axis=1)
+    scale_list_measured = max(np.nanmean(spot_dist, axis=1)) / np.nanmean(spot_dist, axis=1)
 
     low_snr_mask = snr_channel <= snr_thres
     if np.any(low_snr_mask):

@@ -839,12 +839,12 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                      coordinates_array[idx][spot][1],
                                                                                      cy=img.shape[-1] / 2,
                                                                                      cx=img.shape[-1] / 2)[1] + 280))
-                                        snr_channel_mean[cc] = np.mean(snr_val, axis=1)
+                                        snr_channel_mean[cc] = np.nanmean(snr_val, axis=1)
                                         scale_list_measured_mean[cc] = scaling_by_satspots(lbdas, coordinates_array,
                                                                                            snr_channel_mean[cc], snr_thres=8)
 
-                                    snr_channel_mean = np.mean(snr_channel_mean, axis=0)
-                                    scale_list_measured_mean = np.mean(scale_list_measured_mean, axis=0)
+                                    snr_channel_mean = np.nanmean(snr_channel_mean, axis=0)
+                                    scale_list_measured_mean = np.nanmean(scale_list_measured_mean, axis=0)
                                     write_fits(outpath + final_scalefac_name, scale_list_measured_mean, verbose=debug)
 
                                     if plot:
