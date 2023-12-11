@@ -352,7 +352,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
             label_test = '_mask{:.1f}_deltarot{:.1f}_maxfr{:.0f}'.format(mask_IWA, delta_rot, max_fr)
             if type(delta_rot_ann) == tuple:
                 label_test_ann = '_mask{:.1f}_deltarot{:.1f}-{:.1f}_maxfr{:.0f}'.format(mask_IWA, delta_rot_ann[0], delta_rot_ann[1], max_fr)
-            elif type(delta_rot_ann) == int:
+            # if delta_rot_ann is an int or a float, show it in the label to one decimal place
+            elif type(delta_rot_ann) == int or type(delta_rot_ann) == float:
                 label_test_ann = '_mask{:.1f}_deltarot{:.1f}_maxfr{:.0f}'.format(mask_IWA, delta_rot_ann, max_fr)
             else:
                 label_test_ann = label_test
