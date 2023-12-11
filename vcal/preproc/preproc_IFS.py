@@ -1059,7 +1059,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         ngood_fr_ch = len(final_good_index_list)
 
                         plot_tmp = False
-                        if zz == 0 or zz == n_z - 1 or debug:  # only plot for channel 1&39 or when debug is on
+                        if zz == channels[0] or zz == channels[-1] or debug:  # only plot for channel 1&39 or when debug is on
                             plot_tmp = plot
 
                         # Rejection based on pixel statistics
