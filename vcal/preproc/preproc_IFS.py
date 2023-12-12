@@ -842,11 +842,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                          cx=img.shape[-1] / 2)[1] + 280))
                                                 except ZeroDivisionError:
                                                     snr_val[idx][spot] = np.nan
-                                        snr_channel_mean[cc] = np.nanmean(snr_val, axis=1)
+                                        snr_channel_mean[cc] = np.nanmean(snr_val, axis=1)  # mean of each spot
                                         scale_list_measured_mean[cc] = scaling_by_satspots(lbdas, coordinates_array,
                                                                                            snr_channel_mean[cc], snr_thres=8)
 
-                                    snr_channel_mean = np.nanmean(snr_channel_mean, axis=0)
+                                    snr_channel_mean = np.nanmean(snr_channel_mean, axis=0)  # mean of each cube
                                     scale_list_measured_mean = np.nanmean(scale_list_measured_mean, axis=0)
                                     write_fits(outpath + final_scalefac_name, scale_list_measured_mean, verbose=debug)
 
