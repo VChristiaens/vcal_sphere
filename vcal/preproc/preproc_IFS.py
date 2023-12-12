@@ -829,16 +829,19 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         # measure SNR, avoid other spots
                                         for idx in range(len(lbdas)):
                                             for spot in range(4):
-                                                snr_val[idx][spot] = snr(img[idx], source_xy=(coordinates_array[idx][spot][0], coordinates_array[idx][spot][1]),
-                                                                         fwhm=2 * resels[idx], verbose=False, plot=False,
-                                                                         exclude_theta_range=(cart_to_pol(coordinates_array[idx][spot][0],
-                                                                                                          coordinates_array[idx][spot][1],
-                                                                                     cy=img.shape[-1] / 2,
-                                                                                     cx=img.shape[-1] / 2)[1] + 70,
-                                                                         cart_to_pol(coordinates_array[idx][spot][0],
-                                                                                     coordinates_array[idx][spot][1],
-                                                                                     cy=img.shape[-1] / 2,
-                                                                                     cx=img.shape[-1] / 2)[1] + 280))
+                                                try:  # to get the SNR, if it fails then set to nan
+                                                    snr_val[idx][spot] = snr(img[idx], source_xy=(coordinates_array[idx][spot][0], coordinates_array[idx][spot][1]),
+                                                                             fwhm=2 * resels[idx], verbose=False, plot=False,
+                                                                             exclude_theta_range=(cart_to_pol(coordinates_array[idx][spot][0],
+                                                                                                              coordinates_array[idx][spot][1],
+                                                                                         cy=img.shape[-1] / 2,
+                                                                                         cx=img.shape[-1] / 2)[1] + 70,
+                                                                             cart_to_pol(coordinates_array[idx][spot][0],
+                                                                                         coordinates_array[idx][spot][1],
+                                                                                         cy=img.shape[-1] / 2,
+                                                                                         cx=img.shape[-1] / 2)[1] + 280))
+                                                except ZeroDivisionError:
+                                                    snr_val[idx][spot] = np.nan
                                         snr_channel_mean[cc] = np.nanmean(snr_val, axis=1)
                                         scale_list_measured_mean[cc] = scaling_by_satspots(lbdas, coordinates_array,
                                                                                            snr_channel_mean[cc], snr_thres=8)
