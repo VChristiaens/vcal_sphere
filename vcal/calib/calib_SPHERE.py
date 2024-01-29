@@ -1583,7 +1583,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     command += " --ifs.wave_calib.wavelength_line4=1.5451"
                 if wc_win_sz != 4:
                     command += " --ifs.wave_calib.fit_window_size={:.0f}".format(wc_win_sz)
-                command += " --ifs.wave_calib.polyfit_order={:.0f}".format(poly_order_wc)
+                command += " ifs.wave_calib.polyfit_order={:.0f}".format(poly_order_wc)
                 command += " --ifs.wave_calib.outfilename={}wave_calib.fits".format(outpath_ifs_fits)
                 command += " {}wave_calib.sof".format(outpath_ifs_sof)
                 os.system(command)
