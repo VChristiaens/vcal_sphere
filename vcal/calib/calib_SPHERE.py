@@ -1640,7 +1640,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         command+= " --ifs.instrument_flat.badpix_uptolerance=5.0"
                     command+= " --ifs.instrument_flat.ifu_filename={}master_flat_ifu.fits".format(outpath_ifs_fits)
                     # providing the instrument_flat.iff path, or else esorex saves it to the current working directory
-                    # command += " --ifs.instrument_flat.iff_filename={}master_flat_tot.fits".format(outpath_ifs_fits)
+                    command += " --ifs.instrument_flat.iff_filename={}master_flat_tot.fits".format(outpath_ifs_fits)
                     if flat_fit: #and len(flat_list_ifs) > 4:
                         command+= " --ifs.instrument_flat.robust_fit=TRUE"
                     else:
