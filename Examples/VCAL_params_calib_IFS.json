@@ -22,7 +22,7 @@
     "indiv_fdark": 1,
     "dark_ifs": [0],
     "illum_pattern_corr": 1,
-    "flat_fit": 1,
+    "flat_fit": 0,
     "large_scale_flat": 0,
     "flat_smooth_method_idx": 1,
     "flat_smooth_length": 10,

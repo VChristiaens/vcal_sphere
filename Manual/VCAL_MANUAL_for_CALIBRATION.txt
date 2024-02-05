@@ -90,7 +90,7 @@ STEPS:
 
     ## flats:
     "illum_pattern_corr": True, # whether the illumination pattern of lenslets is to be taken into account. A low level wave-like structure can appear in the result if it is not applied.
-    "flat_fit": True # If fitting method is to be a robust linear fit. This will reduce the effect of cosmic rays and other temporary bad pixels.
+    "flat_fit": False # If fitting method is to be a robust linear fit. This will reduce the effect of cosmic rays and other temporary bad pixels.
     "large_scale_flat": 0, # Recommended 0 (deprecated, not used) in v1.47 2023-05-10 manual. Choice between "all" (as recommended in v1.38 manual), "some" (as recommended in v1.40 manual) or 0. See sph_ifs_science_dr description.
     "flat_smooth_method_idx": 1, # The smoothing method to use for large_scale_flat. Default 1 in sph_ifs_master_detector_flat recipe (0: CPL filter, 1: FFT filter).
     "flat_smooth_length": 10, # The smoothing length for the large_scale_flat. Default 10 in sph_ifs_master_detector_flat description.
