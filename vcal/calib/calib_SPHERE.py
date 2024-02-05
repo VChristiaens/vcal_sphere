@@ -1572,19 +1572,18 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
             if not isfile(outpath_ifs_fits+"wave_calib.fits") or overwrite_sof or overwrite_fits:
                 command = "esorex sph_ifs_wave_calib"
-                command += " --ifs.wave_calib.number_lines=0"
-                # if mode == "YJ":
-                #     command += " --ifs.wave_calib.number_lines=3"
-                # elif mode == "YJH":
-                #     command += " --ifs.wave_calib.number_lines=4"
-                # command += " --ifs.wave_calib.wavelength_line1=0.9877"
-                # command += " --ifs.wave_calib.wavelength_line2=1.1237"
-                # command += " --ifs.wave_calib.wavelength_line3=1.3094"
-                # if mode == "YJH":
-                #     command += " --ifs.wave_calib.wavelength_line4=1.5451"
+                command += " --ifs.wave_calib.wavelength_line1=0.9877"
+                command += " --ifs.wave_calib.wavelength_line2=1.1237"
+                command += " --ifs.wave_calib.wavelength_line3=1.3094"
+                if mode == "YJ":
+                    command += " --ifs.wave_calib.number_lines=3"
+                elif mode == "YJH":
+                    command += " --ifs.wave_calib.number_lines=4"
+                    command += " --ifs.wave_calib.wavelength_line4=1.5451"
                 if wc_win_sz != 4:
                     command += " --ifs.wave_calib.fit_window_size={:.0f}".format(wc_win_sz)
-                command += " --ifs.wave_calib.polyfit_order={:.0f}".format(poly_order_wc)
+                if poly_order_wc != 2:
+                    command += " --ifs.wave_calib.polyfit_order={:.0f}".format(poly_order_wc)
                 command += " --ifs.wave_calib.outfilename={}wave_calib.fits".format(outpath_ifs_fits)
                 command += " {}wave_calib.sof".format(outpath_ifs_sof)
                 os.system(command)
