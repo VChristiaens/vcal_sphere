@@ -4,7 +4,7 @@
 Utility routines for calibration and data sorting.
 """
 
-__author__ = 'V. Christiaens'
+__author__ = 'V. Christiaens, Iain Hammond'
 __all__ = ['make_lists',
            'sph_ifs_correct_spectral_xtalk']
 
@@ -186,11 +186,11 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                         # six cases to deal with: BB (CAL_BB_2_[mode]), 1.02µm (CAL_NB1_1_[mode]),
                         # 1.23µm (CAL_NB2_1_[mode]), 1.3µm (CAL_NB3_1_[mode]), OBS_[mode]
                         # and 1.55µm (CAL_NB4_1_[mode]) if YJH
-                        if "CAL_BB_2_" in header["HIERARCH ESO INS2 COMB IFS"]:  # white
+                        if "CAL_BB_2_" in header["HIERARCH ESO INS2 COMB IFS"]:  # white, two files
                             flat_list_ifs_det_BB.append(fname)
-                        elif "CAL_NB" in header["HIERARCH ESO INS2 COMB IFS"]:  # narrow bands
+                        elif "CAL_NB" in header["HIERARCH ESO INS2 COMB IFS"]:  # narrow bands, two files for each laser
                             flat_list_ifs_det.append(fname)
-                        elif 'IFSFLAT' in header['HIERARCH ESO OCS DET1 IMGNAME']:  # ifu flat
+                        elif 'IFSFLAT' in header['HIERARCH ESO OCS DET1 IMGNAME']:  # ifu flat, one file
                             flat_list_ifs.append(fname)
                         if float(header['HIERARCH ESO DET SEQ1 DIT']) not in dit_ifs_flat:
                             dit_ifs_flat.append(float(header['HIERARCH ESO DET SEQ1 DIT']))
@@ -666,7 +666,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
         dit_ifs_flat = [float(x) for x in dit_ifs_flat]
         flat_dark_list_ifs = [x.strip() for x in flat_dark_list_ifs] 
         sci_list_mjd_ifs = [x.strip() for x in sci_list_mjd_ifs] 
-        sky_list_mjd_ifs = [x.strip() for x in sky_list_mjd_ifs] 
+        sky_list_mjd_ifs = [x.strip() for x in sky_list_mjd_ifs]
         calib_IFS = [x.strip() for x in calib_IFS] 
         distort_IFS = [x.strip() for x in distort_IFS] 
         distort_ins_bg_IFS = [x.strip() for x in distort_ins_bg_IFS] 
@@ -680,19 +680,19 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
         dit_irdis_flat = [float(x) for x in dit_irdis_flat]
         flat_dark_list_irdis = [x.strip() for x in flat_dark_list_irdis] 
         sci_list_mjd_irdis = [x.strip() for x in sci_list_mjd_irdis] 
-        sky_list_mjd_irdis = [x.strip() for x in sky_list_mjd_irdis] 
-        calib_IRDIS = [x.strip() for x in calib_IRDIS] 
-        distort_IRDIS = [x.strip() for x in distort_IRDIS] 
-        distort_ins_bg_IRDIS = [x.strip() for x in distort_ins_bg_IRDIS] 
-        psf_list_ifs = [x.strip() for x in psf_list_ifs] 
-        psf_sky_list_ifs = [x.strip() for x in psf_sky_list_ifs] 
-        psf_ins_bg_list_ifs = [x.strip() for x in psf_ins_bg_list_ifs] 
-        psf_list_mjd_ifs = [x.strip() for x in psf_list_mjd_ifs] 
-        psf_list_irdis = [x.strip() for x in psf_list_irdis] 
-        psf_sky_list_irdis = [x.strip() for x in psf_sky_list_irdis] 
-        psf_ins_bg_list_irdis = [x.strip() for x in psf_ins_bg_list_irdis]         
-        psf_list_mjd_irdis = [x.strip() for x in psf_list_mjd_irdis] 
-        cen_list_ifs = [x.strip() for x in cen_list_ifs] 
+        sky_list_mjd_irdis = [x.strip() for x in sky_list_mjd_irdis]
+        calib_IRDIS = [x.strip() for x in calib_IRDIS]
+        distort_IRDIS = [x.strip() for x in distort_IRDIS]
+        distort_ins_bg_IRDIS = [x.strip() for x in distort_ins_bg_IRDIS]
+        psf_list_ifs = [x.strip() for x in psf_list_ifs]
+        psf_sky_list_ifs = [x.strip() for x in psf_sky_list_ifs]
+        psf_ins_bg_list_ifs = [x.strip() for x in psf_ins_bg_list_ifs]
+        psf_list_mjd_ifs = [x.strip() for x in psf_list_mjd_ifs]
+        psf_list_irdis = [x.strip() for x in psf_list_irdis]
+        psf_sky_list_irdis = [x.strip() for x in psf_sky_list_irdis]
+        psf_ins_bg_list_irdis = [x.strip() for x in psf_ins_bg_list_irdis]
+        psf_list_mjd_irdis = [x.strip() for x in psf_list_mjd_irdis]
+        cen_list_ifs = [x.strip() for x in cen_list_ifs]
         cen_sky_list_ifs = [x.strip() for x in cen_sky_list_ifs] 
         cen_ins_bg_list_ifs = [x.strip() for x in cen_ins_bg_list_ifs] 
         cen_list_mjd_ifs = [x.strip() for x in cen_list_mjd_ifs] 
@@ -700,33 +700,59 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
         cen_sky_list_irdis = [x.strip() for x in cen_sky_list_irdis] 
         cen_ins_bg_list_irdis = [x.strip() for x in cen_ins_bg_list_irdis]         
         cen_list_mjd_irdis = [x.strip() for x in cen_list_mjd_irdis] 
-        
+
+    # perform a check of how many calibration files were picked up
+    first_sci_mjd = sci_list_mjd_ifs[0]
+    if len(flat_list_ifs_det_BB) > 2:
+        print("WARNING: More than two broadband flats detected for IFS. Keeping the two closest to the science observations.", flush=True)
+        flat_list_ifs_det_BB_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in flat_list_ifs_det_BB]
+        idx = closest_to_obj(first_sci_mjd, flat_list_ifs_det_BB_mjd, n=2)
+        flat_list_ifs_det_BB = [flat_list_ifs_det_BB[i] for i in idx]  # only use the closest
+
+    if len(flat_list_ifs) > 1:
+        print("WARNING: More than one IFU flat detected for IFS. Keeping the closest to the science observations.", flush=True)
+        flat_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in flat_list_ifs]
+        idx = closest_to_obj(first_sci_mjd, flat_list_ifs_mjd, n=1)
+        flat_list_ifs = [flat_list_ifs[i] for i in idx]
+
+    if len(wave_list_ifs) > 1:
+        print("WARNING: More than one wavelength calibration detected for IFS. Keeping the closest to the science observations.", flush=True)
+        wave_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in wave_list_ifs]
+        idx = closest_to_obj(first_sci_mjd, wave_list_ifs_mjd, n=1)
+        wave_list_ifs = [wave_list_ifs[i] for i in idx]
+
+    if len(spec_pos_list_ifs) > 1:
+        print("WARNING: More than one spectral position file detected for IFS. Keeping the closest to the science observations.", flush=True)
+        spec_pos_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in spec_pos_list_ifs]
+        idx = closest_to_obj(first_sci_mjd, spec_pos_list_ifs_mjd, n=1)
+        spec_pos_list_ifs = [spec_pos_list_ifs[i] for i in idx]
+
     dico_files['ifs_mode'] = ifs_mode
     dico_files['sci_list_ifs'] = sci_list_ifs
     dico_files['sky_list_ifs'] = sky_list_ifs
     dico_files['flat_list_ifs'] = flat_list_ifs
-    dico_files['flat_list_ifs_det'] = flat_list_ifs_det    
+    dico_files['flat_list_ifs_det'] = flat_list_ifs_det
     dico_files['flat_list_ifs_det_BB'] = flat_list_ifs_det_BB
     dico_files['dark_list_ifs'] = dark_list_ifs
-    dico_files['ins_bg_list_ifs'] = ins_bg_list_ifs    
-    dico_files['dit_ifs_flat'] = dit_ifs_flat    
+    dico_files['ins_bg_list_ifs'] = ins_bg_list_ifs
+    dico_files['dit_ifs_flat'] = dit_ifs_flat
     dico_files['flat_dark_list_ifs'] = flat_dark_list_ifs
-    dico_files['sci_list_mjd_ifs'] = sci_list_mjd_ifs        
+    dico_files['sci_list_mjd_ifs'] = sci_list_mjd_ifs
     dico_files['sky_list_mjd_ifs'] = sky_list_mjd_ifs
     dico_files['calib_IFS'] = calib_IFS
-    dico_files['distort_IFS'] = distort_IFS          
+    dico_files['distort_IFS'] = distort_IFS
     dico_files['distort_ins_bg_IFS'] = distort_ins_bg_IFS
     dico_files['gain_list_ifs'] = gain_list_IFS
-    dico_files['specpos_IFS'] = spec_pos_list_ifs          
+    dico_files['specpos_IFS'] = spec_pos_list_ifs
     dico_files['wave_IFS'] = wave_list_ifs
     dico_files['sci_list_irdis'] = sci_list_irdis
     dico_files['sky_list_irdis'] = sky_list_irdis
     dico_files['flat_list_irdis'] = flat_list_irdis
     dico_files['dark_list_irdis'] = dark_list_irdis
     dico_files['ins_bg_list_irdis'] = ins_bg_list_irdis    
-    dico_files['dit_irdis_flat'] = dit_irdis_flat    
+    dico_files['dit_irdis_flat'] = dit_irdis_flat
     dico_files['flat_dark_list_irdis'] = flat_dark_list_irdis
-    dico_files['sci_list_mjd_irdis'] = sci_list_mjd_irdis        
+    dico_files['sci_list_mjd_irdis'] = sci_list_mjd_irdis
     dico_files['sky_list_mjd_irdis'] = sky_list_mjd_irdis
     dico_files['calib_IRDIS'] = calib_IRDIS
     dico_files['distort_IRDIS'] = distort_IRDIS
@@ -751,18 +777,17 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
     dico_files['file_list'] = file_list
     dico_files['fits_list'] = fits_list
     dico_files['calib_list'] = calib_list
-    dico_files['ao_files'] =  ao_files  
-  
+    dico_files['ao_files'] = ao_files
     
     return dico_files
 
 
 def sph_ifs_correct_spectral_xtalk(img, bpmap=None, boundary='fill', 
                                    fill_value=np.nan):
-    '''
-    CREDIT: A. Vigan (https://github.com/avigan/SPHERE/blob/master/sphere/IFS.py), 
+    """
+    CREDIT: A. Vigan (https://github.com/avigan/SPHERE/blob/master/sphere/IFS.py),
     based on obscure IDL routines from D. Mesa.
-    
+
     Corrects a IFS frame from the spectral crosstalk
     This routines corrects for the SPHERE/IFS spectral crosstalk at
     small scales and (optionally) at large scales. This correction is
@@ -789,7 +814,7 @@ def sph_ifs_correct_spectral_xtalk(img, bpmap=None, boundary='fill',
     -------
     img_corr : array_like
         Science frame corrected from the spectral crosstalk
-    '''
+    """
     
     # definition of the dimension of the matrix
     sepmax = 20
@@ -810,10 +835,32 @@ def sph_ifs_correct_spectral_xtalk(img, bpmap=None, boundary='fill',
             raise TypeError("If provided bpmap must have same shape as img")
         else:
             img_tmp[np.where(bpmap)] = np.nan
-    
 
     # convolution and subtraction
     conv = convolve(img_tmp, kernel, boundary=boundary, fill_value=fill_value)
     img_corr = img - conv
 
     return img_corr
+
+
+def closest_to_obj(obj_mjd: float, compare_mjd: list, n=1) -> list:
+    """
+    Find the closest file(s) in time to the OBJ.
+
+    obj_mjd: list
+        MJD of OBJ files.
+    compare_mjd : list
+        MJD to compare to OBJ.
+    n : int
+        Quantity of closest files to keep.
+    """
+    # convert strings to float
+    compare_mjd = [float(x) for x in compare_mjd]
+    obj_mjd = [float(x) for x in obj_mjd]
+    obj_min = obj_mjd[0]  # comparing to the first OBJ file time
+
+    compare_mjd = np.asarray(compare_mjd)
+    delta_t = np.absolute(compare_mjd - obj_min)
+    idx = delta_t.argsort()[:n]
+    idx_list = idx.tolist()  # indices of the smallest time difference
+    return idx_list
