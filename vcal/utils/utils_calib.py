@@ -856,7 +856,6 @@ def closest_to_obj(obj_mjd: float, compare_mjd: list, n=1) -> list:
     """
     # convert strings to float
     compare_mjd = [float(x) for x in compare_mjd]
-    obj_mjd = [float(x) for x in obj_mjd]
     obj_min = obj_mjd[0]  # comparing to the first OBJ file time
 
     compare_mjd = np.asarray(compare_mjd)
