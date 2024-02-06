@@ -847,19 +847,20 @@ def closest_to_obj(obj_mjd: float, compare_mjd: list, n=1) -> list:
     """
     Find the closest file(s) in time to the OBJ.
 
-    obj_mjd: list
-        MJD of OBJ files.
+    obj_mjd: float
+        MJD of OBJ file.
     compare_mjd : list
         MJD to compare to OBJ.
     n : int
         Quantity of closest files to keep.
     """
     # convert strings to float
+    if type(obj_mjd) == str:
+        obj_mjd = float(obj_mjd)
     compare_mjd = [float(x) for x in compare_mjd]
-    obj_min = obj_mjd[0]  # comparing to the first OBJ file time
 
     compare_mjd = np.asarray(compare_mjd)
-    delta_t = np.absolute(compare_mjd - obj_min)
+    delta_t = np.absolute(compare_mjd - obj_mjd)
     idx = delta_t.argsort()[:n]
     idx_list = idx.tolist()  # indices of the smallest time difference
     return idx_list
