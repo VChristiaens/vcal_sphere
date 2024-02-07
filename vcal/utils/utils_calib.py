@@ -855,7 +855,7 @@ def closest_to_obj(obj_mjd: float, compare_mjd: list, n=1) -> list:
         Quantity of closest files to keep.
     """
     # convert strings to float
-    if obj_mjd is not str:
+    if obj_mjd is str:
         obj_mjd = float(obj_mjd)
     compare_mjd = [float(x) for x in compare_mjd]
 
