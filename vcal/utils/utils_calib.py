@@ -722,7 +722,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
         wave_list_ifs = [wave_list_ifs[i] for i in idx]
 
     if len(spec_pos_list_ifs) > 1:
-        print("WARNING: More than one spectral position file detected for IFS. Keeping the closest to the science observations.", flush=True)
+        print("WARNING: More than one spectra position file detected for IFS. Keeping the closest to the science observations.", flush=True)
         spec_pos_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in spec_pos_list_ifs]
         idx = closest_to_obj(first_sci_mjd, spec_pos_list_ifs_mjd, n=1)
         spec_pos_list_ifs = [spec_pos_list_ifs[i] for i in idx]
