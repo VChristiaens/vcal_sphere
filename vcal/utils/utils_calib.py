@@ -170,7 +170,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                         sci_list_ifs.append(fname)
                         sci_list_mjd_ifs.append(header['MJD-OBS'])
                         ifs_mode = _check_mode(ifs_mode)
-                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'SKY' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
+                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'SKY':
                         sky_list_ifs.append(fname)
                         sky_list_mjd_ifs.append(header['MJD-OBS'])
                         ifs_mode = _check_mode(ifs_mode)
