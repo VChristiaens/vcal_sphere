@@ -67,3 +67,6 @@ mask_PCA      # if provided, radius in arcsec for an inner mask where the coeffi
 "end_nz":-1   # int or list of last channel(s) of IFS to reduce for SADI processing. To do up to the last channel, set to -1 (uses last channel), or -2 for second last etc.
 To run multiple reductions by dividing up channels, provide a list of start and end channels to start_nz and end_nz.
 e.g. "start_nz":[0,13,26], "end_nz":[12,25,-1] would divide IFS into three reductions of 13 spectral channels
+
+# output
+"overwrite_pp":1  # whether to overwrite previous post-processing results
