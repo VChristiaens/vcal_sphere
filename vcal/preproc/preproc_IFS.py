@@ -808,6 +808,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                     orient + np.pi / 2 * spot)
                                                 spot_xy_predict[idx][spot][1] = ref_xy[1] - y_shifts_cen_tmp[cc] + factor * loD[idx] * np.sin(
                                                     orient + np.pi / 2 * spot)
+                                            if debug:
+                                                print(f"Attempting to fit the satellite spot positions in channel {idx}")
                                             _, _, _, spot_ycenters[idx], spot_xcenters[idx] = frame_center_satspots(img[idx],
                                                                                                                     xy=(
                                                                                                                     spot_xy_predict[
