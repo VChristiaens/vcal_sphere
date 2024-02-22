@@ -190,6 +190,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                             flat_list_ifs_det_BB.append(fname)
                         elif "CAL_NB" in header["HIERARCH ESO INS2 COMB IFS"]:  # narrow bands, two files for each laser
                             flat_list_ifs_det.append(fname)
+                            # add list for each laser? then check after ...
                         elif 'IFSFLAT' in header['HIERARCH ESO OCS DET1 IMGNAME']:  # ifu flat, one file
                             flat_list_ifs.append(fname)
                         if float(header['HIERARCH ESO DET SEQ1 DIT']) not in dit_ifs_flat:
@@ -701,31 +702,32 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
         cen_ins_bg_list_irdis = [x.strip() for x in cen_ins_bg_list_irdis]
         cen_list_mjd_irdis = [x.strip() for x in cen_list_mjd_irdis]
 
-    # perform a check of how many calibration files were picked up
-    first_sci_mjd = sci_list_mjd_ifs[0]
-    if len(flat_list_ifs_det_BB) > 2:
-        print("WARNING: More than two broadband flats detected for IFS. Keeping the two closest to the science observations.", flush=True)
-        flat_list_ifs_det_BB_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in flat_list_ifs_det_BB]
-        idx = closest_to_obj(first_sci_mjd, flat_list_ifs_det_BB_mjd, n=2)
-        flat_list_ifs_det_BB = [flat_list_ifs_det_BB[i] for i in idx]  # only use the closest
+    # perform a check of how many calibration files were picked up for IFS
+    if dit_ifs is not None:
+        first_sci_mjd = sci_list_mjd_ifs[0]
+        if len(flat_list_ifs_det_BB) > 2:
+            print("WARNING: More than two broadband flats detected for IFS. Keeping the two closest to the science observations.", flush=True)
+            flat_list_ifs_det_BB_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in flat_list_ifs_det_BB]
+            idx = closest_to_obj(first_sci_mjd, flat_list_ifs_det_BB_mjd, n=2)
+            flat_list_ifs_det_BB = [flat_list_ifs_det_BB[i] for i in idx]  # only use the closest
 
-    if len(flat_list_ifs) > 1:
-        print("WARNING: More than one IFU flat detected for IFS. Keeping the closest to the science observations.", flush=True)
-        flat_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in flat_list_ifs]
-        idx = closest_to_obj(first_sci_mjd, flat_list_ifs_mjd, n=1)
-        flat_list_ifs = [flat_list_ifs[i] for i in idx]
+        if len(flat_list_ifs) > 1:
+            print("WARNING: More than one IFU flat detected for IFS. Keeping the closest to the science observations.", flush=True)
+            flat_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in flat_list_ifs]
+            idx = closest_to_obj(first_sci_mjd, flat_list_ifs_mjd, n=1)
+            flat_list_ifs = [flat_list_ifs[i] for i in idx]
 
-    if len(wave_list_ifs) > 1:
-        print("WARNING: More than one wavelength calibration detected for IFS. Keeping the closest to the science observations.", flush=True)
-        wave_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in wave_list_ifs]
-        idx = closest_to_obj(first_sci_mjd, wave_list_ifs_mjd, n=1)
-        wave_list_ifs = [wave_list_ifs[i] for i in idx]
+        if len(wave_list_ifs) > 1:
+            print("WARNING: More than one wavelength calibration detected for IFS. Keeping the closest to the science observations.", flush=True)
+            wave_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in wave_list_ifs]
+            idx = closest_to_obj(first_sci_mjd, wave_list_ifs_mjd, n=1)
+            wave_list_ifs = [wave_list_ifs[i] for i in idx]
 
-    if len(spec_pos_list_ifs) > 1:
-        print("WARNING: More than one spectra position file detected for IFS. Keeping the closest to the science observations.", flush=True)
-        spec_pos_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in spec_pos_list_ifs]
-        idx = closest_to_obj(first_sci_mjd, spec_pos_list_ifs_mjd, n=1)
-        spec_pos_list_ifs = [spec_pos_list_ifs[i] for i in idx]
+        if len(spec_pos_list_ifs) > 1:
+            print("WARNING: More than one spectra position file detected for IFS. Keeping the closest to the science observations.", flush=True)
+            spec_pos_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in spec_pos_list_ifs]
+            idx = closest_to_obj(first_sci_mjd, spec_pos_list_ifs_mjd, n=1)
+            spec_pos_list_ifs = [spec_pos_list_ifs[i] for i in idx]
 
     dico_files['ifs_mode'] = ifs_mode
     dico_files['sci_list_ifs'] = sci_list_ifs
