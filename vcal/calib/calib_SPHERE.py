@@ -908,7 +908,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 lab_SCI = 'IRD_SCIENCE_IMAGING_RAW\n'
                 lab_rec = 'science_imaging'
                 lab_lr = ["_CI_l_"+filters[0],"_CI_r_"+filters[0]]
-                print("lab_lr:", lab_lr)
+                print("lab_lr:", lab_lr, flush=True)
             else:
                 raise ValueError("science_mode not recognized: should be DBI or CI.")
                 
