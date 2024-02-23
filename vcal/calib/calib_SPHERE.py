@@ -908,7 +908,6 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 lab_SCI = 'IRD_SCIENCE_IMAGING_RAW\n'
                 lab_rec = 'science_imaging'
                 lab_lr = ["_CI_l_"+filters[0],"_CI_r_"+filters[0]]
-                print("lab_lr:", lab_lr, flush=True)
             else:
                 raise ValueError("science_mode not recognized: should be DBI or CI.")
                 
@@ -943,7 +942,9 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
     #                    if crop_sz_irdis>0 and crop_sz_irdis<1024:
     #                        command+= " --ird.{}.window_size={:.0f}".format(lab_rec,crop_sz_irdis)
                         command+= " {}OBJECT{:.0f}.sof".format(outpath_irdis_sof,ii)
+                        print(command, flush=True)
                         os.system(command)
+
                     if science_mode == 'DBI':
                         os.system("rm {}/*_total.fits".format(curr_path))
                     
