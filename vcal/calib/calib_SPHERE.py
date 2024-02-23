@@ -939,10 +939,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         command+= " --ird.{}.outfilename={}science_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
                         command+= " --ird.{}.outfilename_left={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
                         command+= " --ird.{}.outfilename_right={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
+                        if science_mode == "CI":
+                            command += " --ird.{}.save_addprod=TRUE".format(lab_rec)
     #                    if crop_sz_irdis>0 and crop_sz_irdis<1024:
     #                        command+= " --ird.{}.window_size={:.0f}".format(lab_rec,crop_sz_irdis)
                         command+= " {}OBJECT{:.0f}.sof".format(outpath_irdis_sof,ii)
-                        print(command, flush=True)
                         os.system(command)
 
                     if science_mode == 'DBI':
