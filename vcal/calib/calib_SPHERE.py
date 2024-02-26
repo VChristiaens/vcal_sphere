@@ -913,8 +913,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 
             # OBJECT  
             sci_list_irdis = dico_lists['sci_list_irdis']
-            n_sci = len(sci_list_irdis)
-            if n_sci>0:
+            if len(sci_list_irdis) > 0:
                 curr_path = str(pathlib.Path().absolute())+'/'
                 for ii in range(len(sci_list_irdis)):
                     if not isfile(outpath_irdis_sof+"OBJECT{:.0f}.sof".format(ii)) or overwrite_sof:
