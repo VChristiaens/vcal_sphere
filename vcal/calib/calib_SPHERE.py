@@ -903,19 +903,16 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             if science_mode == 'DBI':
                 lab_SCI = 'IRD_SCIENCE_DBI_RAW\n'
                 lab_rec = 'science_dbi'
-                lab_lr=["_"+filters[0],"_"+filters[1]]
             elif science_mode == 'CI':
                 lab_SCI = 'IRD_SCIENCE_IMAGING_RAW\n'
                 lab_rec = 'science_imaging'
-                lab_lr = ["_CI_l_"+filters[0],"_CI_r_"+filters[0]]
             else:
                 raise ValueError("science_mode not recognized: should be DBI or CI.")
-                
-            # OBJECT  
+
+            # OBJECT
             sci_list_irdis = dico_lists['sci_list_irdis']
             if len(sci_list_irdis) > 0:
-                curr_path = str(pathlib.Path().absolute())+'/'
-                for ii in range(len(sci_list_irdis)):
+                for ii, file in enumerate(sci_list_irdis):
                     if not isfile(outpath_irdis_sof+"OBJECT{:.0f}.sof".format(ii)) or overwrite_sof:
                         with open(outpath_irdis_sof+"OBJECT{:.0f}.sof".format(ii), 'w') as f:
                             f.write(inpath+label_ss+sci_list_irdis[ii]+'\t'+lab_SCI)
@@ -932,17 +929,16 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             if isfile(inpath_filt_table+"sph_ird_filt_table.fits"):
                                 f.write(inpath_filt_table+"sph_ird_filt_table.fits"+'\t'+'IRD_FILTER_TABLE\n')
                             f.write("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
-                            
-                    if not isfile(outpath_irdis_fits+"science_dbi{:.0f}.fits".format(ii)) or overwrite_sof or overwrite_fits:
-                        command = "esorex sph_ird_{}".format(lab_rec)
-                        command+= " --ird.{}.outfilename={}science_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)  # stacked L+R (not centered!)
-                        command+= " --ird.{}.outfilename_left={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)  # left
-                        command+= " --ird.{}.outfilename_right={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)   # right
-                        command += " --ird.{}.save_addprod=TRUE".format(lab_rec)  # CI doesn't save left and right separately by default
-                        command+= " {}OBJECT{:.0f}.sof".format(outpath_irdis_sof,ii)
+
+                    if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
+                            not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
+                        command = f"esorex sph_ird_{lab_rec}"
+                        command += f" --ird.{lab_rec}.outfilename={outpath_irdis_fits}{file}_total.fits"  # stacked L+R (not centered!)
+                        command += f" --ird.{lab_rec}.outfilename_left={outpath_irdis_fits}{file}_left.fits"  # left
+                        command += f" --ird.{lab_rec}.outfilename_right={outpath_irdis_fits}{file}_right.fits"  # right
+                        command += f" --ird.{lab_rec}.save_addprod=TRUE"  # to save left and right for CI
+                        command += f" {outpath_irdis_sof}OBJECT{ii}.sof"
                         os.system(command)
-                    if science_mode == 'DBI':
-                        os.system("rm {}/*_total.fits".format(curr_path))
                     
             # CEN
             cen_list_irdis = dico_lists['cen_list_irdis']
