@@ -396,11 +396,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         cube, header = open_fits(inpath+filename, header=True)
                         if filename[:-str_idx] in obj_psf_list[0] and use_cen_only:
                             continue
-                        if npsf>0 :
+                        if npsf > 0:
                             if filename[:-str_idx] in obj_psf_list[1]:
                                 bp_crop_sz_tmp = bp_crop_sz_psf 
-                        if cube.shape[1]%2==0 and cube.shape[2]%2==0:
-                            cube = cube[:,1:,1:]
+                        if header["NAXIS1"] % 2 == 0 and header["NAXIS2"] % 2 == 0:
+                            cube = cube[:, 1:, 1:]
                             header["NAXIS1"] = cube.shape[1]
                             header["NAXIS2"] = cube.shape[2]
                         if bp_crop_sz_tmp>0 and bp_crop_sz_tmp<cube.shape[1]:
