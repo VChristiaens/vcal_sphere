@@ -921,6 +921,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 command += f" --ird.science_{lab_rec}.save_addprod=TRUE"
                 command += f" {outpath_irdis_sof}{file_type}{ii}.sof"
                 os.system(command)
+                os.system(f"mv {file}_left.fits {outpath_irdis_fits}{file}_left.fits")
+                os.system(f"mv {file}_right.fits {outpath_irdis_fits}{file}_right.fits")
 
             # OBJECT
             sci_list_irdis = dico_lists['sci_list_irdis']
