@@ -936,11 +936,12 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             
                     if not isfile(outpath_irdis_fits+"science_dbi{:.0f}.fits".format(ii)) or overwrite_sof or overwrite_fits:
                         command = "esorex sph_ird_{}".format(lab_rec)
-                        command+= " --ird.{}.outfilename={}science_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
-                        command+= " --ird.{}.outfilename_left={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
-                        command+= " --ird.{}.outfilename_right={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
-                        if science_mode == "CI":
+                        command+= " --ird.{}.outfilename={}science_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)  # stacked L+R (not centered!)
+                        command+= " --ird.{}.outfilename_left={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)  # left
+                        command+= " --ird.{}.outfilename_right={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)   # right
+                        if science_mode == "CI":  # CI doesn't save left and right separately by default
                             command += " --ird.{}.save_addprod=TRUE".format(lab_rec)
+
                         command+= " {}OBJECT{:.0f}.sof".format(outpath_irdis_sof,ii)
                         os.system(command)
 
