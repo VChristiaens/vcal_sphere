@@ -919,7 +919,6 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 command += f" --ird.science_{lab_rec}.outfilename_left={outpath_irdis_fits}{file}_left.fits"
                 command += f" --ird.science_{lab_rec}.outfilename_right={outpath_irdis_fits}{file}_right.fits"
                 command += f" --ird.science_{lab_rec}.save_addprod=TRUE"
-                command += f" --ird.science_{lab_rec}.save_interprod=TRUE"
                 command += f" {outpath_irdis_sof}{file_type}{ii}.sof"
                 os.system(command)
 
