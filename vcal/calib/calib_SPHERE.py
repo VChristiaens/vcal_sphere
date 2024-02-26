@@ -902,10 +902,10 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 print("*** 6. IRDIS: Reduce all datacubes ***", flush=True)
             if science_mode == 'DBI':
                 lab_SCI = 'IRD_SCIENCE_DBI_RAW\n'
-                lab_rec = 'science_dbi'
+                lab_rec = 'dbi'
             elif science_mode == 'CI':
                 lab_SCI = 'IRD_SCIENCE_IMAGING_RAW\n'
-                lab_rec = 'science_imaging'
+                lab_rec = 'imaging'
             else:
                 raise ValueError("science_mode not recognized: should be DBI or CI.")
 
@@ -932,11 +932,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        command = f"esorex sph_ird_{lab_rec}"
-                        command += f" --ird.{lab_rec}.outfilename={outpath_irdis_fits}{file}_total.fits"  # stacked L+R (not centered!)
-                        command += f" --ird.{lab_rec}.outfilename_left={outpath_irdis_fits}{file}_left.fits"  # left
-                        command += f" --ird.{lab_rec}.outfilename_right={outpath_irdis_fits}{file}_right.fits"  # right
-                        command += f" --ird.{lab_rec}.save_addprod=TRUE"  # to save left and right for CI
+                        command = f"esorex sph_ird_science_{lab_rec}"
+                        command += f" --ird.science_{lab_rec}.outfilename={outpath_irdis_fits}{file}_total.fits"  # stacked L+R (not centered!)
+                        command += f" --ird.science_{lab_rec}.outfilename_left={outpath_irdis_fits}{file}_left.fits"  # left
+                        command += f" --ird.science_{lab_rec}.outfilename_right={outpath_irdis_fits}{file}_right.fits"  # right
+                        command += f" --ird.science_{lab_rec}.save_addprod=TRUE"  # to save left and right for CI
                         command += f" {outpath_irdis_sof}OBJECT{ii}.sof"
                         os.system(command)
                     
@@ -962,11 +962,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             f.write("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
                             
                     if not isfile(outpath_irdis_fits+"cen_dbi{:.0f}.fits".format(ii)) or overwrite_sof or overwrite_fits:
-                        command = "esorex sph_ird_{}".format(lab_rec)
-                        command+= " --ird.{}.outfilename={}cen_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
-                        command+= " --ird.{}.outfilename_left={}cen_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
-                        command+= " --ird.{}.outfilename_right={}cen_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
-                        command += " --ird.{}.save_addprod=TRUE".format(lab_rec)
+                        command = f"esorex sph_ird_science_{lab_rec}"
+                        command+= " --ird.science_{}.outfilename={}cen_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
+                        command+= " --ird.science_{}.outfilename_left={}cen_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
+                        command+= " --ird.science_{}.outfilename_right={}cen_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
+                        command += " --ird.science_{}.save_addprod=TRUE".format(lab_rec)
                         command+= " {}CEN{:.0f}.sof".format(outpath_irdis_sof,ii)
                         os.system(command)
                     
@@ -992,11 +992,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             f.write("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
                             
                     if not isfile(outpath_irdis_fits+"psf_dbi{:.0f}.fits".format(ii)) or overwrite_sof or overwrite_fits:
-                        command = "esorex sph_ird_{}".format(lab_rec)
-                        command+= " --ird.{}.outfilename={}psf_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
-                        command+= " --ird.{}.outfilename_left={}psf_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
-                        command+= " --ird.{}.outfilename_right={}psf_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
-                        command += " --ird.{}.save_addprod=TRUE".format(lab_rec)
+                        command = f"esorex sph_ird_science_{lab_rec}"
+                        command+= " --ird.science_{}.outfilename={}psf_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
+                        command+= " --ird.science_{}.outfilename_left={}psf_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
+                        command+= " --ird.science_{}.outfilename_right={}psf_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
+                        command += " --ird.science_{}.save_addprod=TRUE".format(lab_rec)
                         command+= " {}PSF{:.0f}.sof".format(outpath_irdis_sof,ii)
                         os.system(command)
                     
