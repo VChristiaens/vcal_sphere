@@ -914,6 +914,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 """
                 if file.endswith(".fits"):
                     file = file[:-5]
+                lab_re="dbi"
                 command = f"esorex sph_ird_science_{lab_rec}"
                 command += f" --ird.science_{lab_rec}.outfilename={outpath_irdis_fits}{file}_total.fits"
                 command += f" --ird.science_{lab_rec}.outfilename_left={outpath_irdis_fits}{file}_left.fits"
