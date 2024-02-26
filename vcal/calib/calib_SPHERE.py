@@ -938,8 +938,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         command+= " --ird.{}.outfilename={}science_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)  # stacked L+R (not centered!)
                         command+= " --ird.{}.outfilename_left={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)  # left
                         command+= " --ird.{}.outfilename_right={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)   # right
-                        if science_mode == "CI":  # CI doesn't save left and right separately by default
-                            command += " --ird.{}.save_addprod=TRUE".format(lab_rec)
+                        command += " --ird.{}.save_addprod=TRUE".format(lab_rec)  # CI doesn't save left and right separately by default
                         command+= " {}OBJECT{:.0f}.sof".format(outpath_irdis_sof,ii)
                         os.system(command)
                     if science_mode == 'DBI':
@@ -971,8 +970,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         command+= " --ird.{}.outfilename={}cen_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
                         command+= " --ird.{}.outfilename_left={}cen_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
                         command+= " --ird.{}.outfilename_right={}cen_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
-                        if science_mode == "CI":
-                            command += " --ird.{}.save_addprod=TRUE".format(lab_rec)
+                        command += " --ird.{}.save_addprod=TRUE".format(lab_rec)
                         command+= " {}CEN{:.0f}.sof".format(outpath_irdis_sof,ii)
                         os.system(command)
                     
@@ -1002,8 +1000,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         command+= " --ird.{}.outfilename={}psf_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
                         command+= " --ird.{}.outfilename_left={}psf_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
                         command+= " --ird.{}.outfilename_right={}psf_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
-                        if science_mode == "CI":
-                            command += " --ird.{}.save_addprod=TRUE".format(lab_rec)
+                        command += " --ird.{}.save_addprod=TRUE".format(lab_rec)
                         command+= " {}PSF{:.0f}.sof".format(outpath_irdis_sof,ii)
                         os.system(command)
                     
