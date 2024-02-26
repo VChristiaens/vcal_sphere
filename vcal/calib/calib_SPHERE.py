@@ -941,10 +941,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         command+= " --ird.{}.outfilename_right={}science_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)   # right
                         if science_mode == "CI":  # CI doesn't save left and right separately by default
                             command += " --ird.{}.save_addprod=TRUE".format(lab_rec)
-
                         command+= " {}OBJECT{:.0f}.sof".format(outpath_irdis_sof,ii)
                         os.system(command)
-
                     if science_mode == 'DBI':
                         os.system("rm {}/*_total.fits".format(curr_path))
                     
@@ -974,8 +972,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         command+= " --ird.{}.outfilename={}cen_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
                         command+= " --ird.{}.outfilename_left={}cen_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
                         command+= " --ird.{}.outfilename_right={}cen_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
-    #                    if crop_sz_irdis>0 and crop_sz_irdis<1024:
-    #                        command+= " --ird.{}.window_size={:.0f}".format(lab_rec,crop_sz_irdis)
+                        if science_mode == "CI":
+                            command += " --ird.{}.save_addprod=TRUE".format(lab_rec)
                         command+= " {}CEN{:.0f}.sof".format(outpath_irdis_sof,ii)
                         os.system(command)
                     
@@ -1005,8 +1003,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         command+= " --ird.{}.outfilename={}psf_{:.0f}.fits".format(lab_rec,outpath_irdis_fits,ii)
                         command+= " --ird.{}.outfilename_left={}psf_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[0],ii)
                         command+= " --ird.{}.outfilename_right={}psf_{}{:.0f}.fits".format(lab_rec,outpath_irdis_fits,lab_lr[1],ii)
-    #                    if crop_sz_psf_irdis>0 and crop_sz_psf_irdis<1024:
-    #                        command+= " --ird.{}.window_size={:.0f}".format(lab_rec,crop_sz_psf_irdis)
+                        if science_mode == "CI":
+                            command += " --ird.{}.save_addprod=TRUE".format(lab_rec)
                         command+= " {}PSF{:.0f}.sof".format(outpath_irdis_sof,ii)
                         os.system(command)
                     
