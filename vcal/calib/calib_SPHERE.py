@@ -5,7 +5,7 @@
 Module with the calibration routine for SPHERE data.
 """
 
-__author__ = 'V. Christiaens'
+__author__ = 'V. Christiaens, I. Hammond'
 __all__ = ['calib']
 
 import os
