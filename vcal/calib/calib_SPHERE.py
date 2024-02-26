@@ -899,14 +899,9 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
         if 6 in to_do:
             if verbose:
                 print("*** 6. IRDIS: Reduce all datacubes ***", flush=True)
-            if science_mode == 'DBI':
-                lab_SCI = 'IRD_SCIENCE_DBI_RAW\n'
-                lab_rec = 'dbi'
-            elif science_mode == 'CI':
-                lab_SCI = 'IRD_SCIENCE_IMAGING_RAW\n'
-                lab_rec = 'imaging'
-            else:
-                raise ValueError("science_mode not recognized: should be DBI or CI.")
+
+            lab_SCI = 'IRD_SCIENCE_DBI_RAW\n'
+            lab_rec = 'dbi'
 
             def _reduce_irdis_esorex(lab_rec, outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type):
                 """
