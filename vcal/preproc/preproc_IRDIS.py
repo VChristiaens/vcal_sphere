@@ -73,17 +73,17 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         params_calib = load(read_file_params_calib)
         
     with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
-        filt_spec = load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combinaison
+        filt_spec = load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combination
     with open(vcal_path[0] + "/instr_param/sphere.json", 'r') as instr_param_file:
         instr_cst = load(instr_param_file)
     
-    path = params_calib['path'] #"/Volumes/Val_stuff/VLT_SPHERE/J1900_3645/" # parent path
+    path = params_calib['path']  # parent path
     path_irdis = path+"IRDIS_reduction/"
     inpath = path_irdis+"1_calib_esorex/fits/"
     nd_filename = vcal_path[0][:-4]+"Static/SPHERE_CPI_ND.dat"  # FILE WITH TRANSMISSION OF NEUTRAL DENSITY FILTER
 
     # OBS
-    coro = params_preproc['coro']  # whether the observations were coronagraphic or not
+    coro = params_preproc['coro']  # whether the observations were coronagraphic
     coro_sz = params_preproc.get('coro_sz',8)  # if coronagraphic, provide radius of the coronagraph in pixels (check header for size in mas and convert)
     #dit_irdis = 64.      # read later from header
     #dit_psf_irdis = 4.   # read later from header
