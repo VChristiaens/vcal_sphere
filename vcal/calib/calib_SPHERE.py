@@ -994,6 +994,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
             # remove the stacked left and right sides called "_total"
             os.system(f"rm {outpath_irdis_fits}*_total.fits")
+            os.system(f"rm *_total.fits")
             # move the left and right files to the outpath and overwrite what esorex saved
             os.system(f"mv *_left.fits {outpath_irdis_fits}")
             os.system(f"mv *_right.fits {outpath_irdis_fits}")
