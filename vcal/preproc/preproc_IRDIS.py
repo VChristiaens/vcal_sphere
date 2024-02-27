@@ -376,7 +376,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     new_xy_pos.append((new_x,new_y))
                 xy_spots_fin.append(tuple(new_xy_pos))
             xy_spots = tuple(xy_spots_fin)
-            print("xy_spots:", xy_spots)
+        print("xy_spots:", xy_spots, flush=True)
         
         #********************************* BPIX CORR ******************************       
         if 1 in to_do:
