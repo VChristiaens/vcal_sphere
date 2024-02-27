@@ -900,24 +900,17 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             if verbose:
                 print("*** 6. IRDIS: Reduce all datacubes ***", flush=True)
 
-            if science_mode == "DBI":
-                lab_SCI = "IRD_SCIENCE_DBI_RAW\n"
-                lab_rec = "dbi"
-            elif science_mode == "CI":
-                lab_SCI = "IRD_SCIENCE_IMAGING_RAW\n"
-                lab_rec = "imaging"
-
-            def _reduce_irdis_esorex(lab_rec, outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type):
+            def _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type):
                 """
                 Short block to run the esorex command for IRDIS reduction.
                 """
                 if file.endswith(".fits"):
                     file = file[:-5]
-                command = f"esorex sph_ird_science_{lab_rec}"
-                command += f" --ird.science_{lab_rec}.outfilename={outpath_irdis_fits}{file}_total.fits"
-                command += f" --ird.science_{lab_rec}.outfilename_left={outpath_irdis_fits}{file}_left.fits"
-                command += f" --ird.science_{lab_rec}.outfilename_right={outpath_irdis_fits}{file}_right.fits"
-                command += f" --ird.science_{lab_rec}.save_addprod=TRUE"
+                command = f"esorex sph_ird_science_dbi"
+                command += f" --ird.science_dbi.outfilename={outpath_irdis_fits}{file}_total.fits"
+                command += f" --ird.science_dbi.outfilename_left={outpath_irdis_fits}{file}_left.fits"
+                command += f" --ird.science_dbi.outfilename_right={outpath_irdis_fits}{file}_right.fits"
+                command += f" --ird.science_dbi.save_addprod=TRUE"
                 command += f" {outpath_irdis_sof}{file_type}{ii}.sof"
                 os.system(command)
 
@@ -927,7 +920,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 for ii, file in enumerate(sci_list_irdis):
                     if not isfile(outpath_irdis_sof+"OBJECT{:.0f}.sof".format(ii)) or overwrite_sof:
                         with open(outpath_irdis_sof+"OBJECT{:.0f}.sof".format(ii), 'w') as f:
-                            f.write(inpath+label_ss+sci_list_irdis[ii]+'\t'+lab_SCI)
+                            f.write(inpath+label_ss+sci_list_irdis[ii]+'\t'+'IRD_SCIENCE_DBI_RAW\n')
                             if pca_subtr:
                                 f.write("{}{}master_dark.fits".format(outpath_irdis_fits,label_fd)+' \t'+'IRD_MASTER_DARK\n')
                             else:
@@ -944,7 +937,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        _reduce_irdis_esorex(lab_rec, outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type="OBJECT")
+                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type="OBJECT")
                     
             # CEN
             cen_list_irdis = dico_lists['cen_list_irdis']
@@ -952,7 +945,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 for ii, file in enumerate(cen_list_irdis):
                     if not isfile(outpath_irdis_sof+"CEN{:.0f}.sof".format(ii)) or overwrite_sof:
                         with open(outpath_irdis_sof+"CEN{:.0f}.sof".format(ii), 'w') as f:
-                            f.write(inpath+label_ss+cen_list_irdis[ii]+'\t'+lab_SCI)
+                            f.write(inpath+label_ss+cen_list_irdis[ii]+'\t'+'IRD_SCIENCE_DBI_RAW\n')
                             if pca_subtr:
                                 f.write("{}{}master_dark.fits".format(outpath_irdis_fits,label_fd)+' \t'+'IRD_MASTER_DARK\n')
                             else:
@@ -969,7 +962,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        _reduce_irdis_esorex(lab_rec, outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type="CEN")
+                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type="CEN")
                     
             # PSF
             psf_list_irdis = dico_lists['psf_list_irdis']
@@ -977,7 +970,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 for ii, file in enumerate(psf_list_irdis):
                     if not isfile(outpath_irdis_sof+"PSF{:.0f}.sof".format(ii)) or overwrite_sof:  
                         with open(outpath_irdis_sof+"PSF{:.0f}.sof".format(ii), 'w') as f:
-                            f.write(inpath+label_ss+psf_list_irdis[ii]+'\t'+lab_SCI)
+                            f.write(inpath+label_ss+psf_list_irdis[ii]+'\t'+'IRD_SCIENCE_DBI_RAW\n')
                             if pca_subtr_psf:
                                 f.write("{}{}master_dark.fits".format(outpath_irdis_fits,label_fd)+' \t'+'IRD_MASTER_DARK\n')
                             else:
@@ -994,14 +987,14 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        _reduce_irdis_esorex(lab_rec, outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type="PSF")
+                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type="PSF")
 
             # remove the stacked left and right sides called "_total"
             os.system(f"rm {outpath_irdis_fits}*_total.fits")
-            # os.system(f"rm *_total.fits")
+            os.system(f"rm *_total.fits")
             # move the left and right files to the outpath and overwrite what esorex saved
-            # os.system(f"mv *_left.fits {outpath_irdis_fits}")
-            # os.system(f"mv *_right.fits {outpath_irdis_fits}")
+            os.system(f"mv *_left.fits {outpath_irdis_fits}")
+            os.system(f"mv *_right.fits {outpath_irdis_fits}")
 
             # subtract residual sky level if required (FOR ALL: OBJECT, CENTER, PSF)
             if not pca_subtr or not pca_subtr_psf:
