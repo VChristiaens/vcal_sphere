@@ -320,13 +320,13 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     
         # COMBINED LISTS OF K1 and K2 (i.e. including OBJ AND PSF AND CEN, if any)
         all_files = listdir(inpath)
-        file_list_K1 = [name[:-5] for name in all_files if (name.startswith(instr) and name.endswith("left.fits"))]
-        file_list_K2 = [name[:-5] for name in all_files if (name.startswith(instr) and name.endswith("right.fits"))]    
-        file_list_K1.sort()
-        file_list_K2.sort()
-        ncubes = len(file_list_K1)
-        print("File list ({} cubes total): ".format(ncubes), file_list_K1, flush=True)
-        file_lists = [file_list_K1,file_list_K2]
+        file_list_l = [name[:-5] for name in all_files if (name.startswith(instr) and name.endswith("left.fits"))]
+        file_list_r = [name[:-5] for name in all_files if (name.startswith(instr) and name.endswith("right.fits"))]
+        file_list_l.sort()
+        file_list_r.sort()
+        ncubes = len(file_list_l)
+        print("File list ({} cubes total): ".format(ncubes), file_list_l, flush=True)
+        file_lists = [file_list_l,file_list_r]
             
         
         # TRANSMISSION in case of a neutral density filter is used
