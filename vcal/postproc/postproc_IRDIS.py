@@ -99,7 +99,9 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
 
     # from calib
     path = params_calib['path']
-    filters = filt_spec['filters'] 
+    filters = filt_spec['filters']
+    if len(filters) == 1:
+        filters = [filters[0]+'_l', filters[0]+'_r']  # CI
     path_irdis = path+"IRDIS_reduction/"
     
     # from preproc
