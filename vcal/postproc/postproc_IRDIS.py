@@ -99,14 +99,15 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
 
     # from calib
     path = params_calib['path']
+    plsc_ori = params_preproc['plsc']
     filters = filt_spec['filters']
     if len(filters) == 1:
         filters = [filters[0]+'_l', filters[0]+'_r']  # CI
+        plsc_ori *= 2  # plate scale is the same for each detector half
     path_irdis = path+"IRDIS_reduction/"
     
     # from preproc
     coro = params_preproc['coro']
-    plsc_ori = params_preproc['plsc']
     bin_fac = params_preproc.get('bin_fac',1)
     distort_corr = params_preproc['distort_corr']
     if distort_corr:
