@@ -747,8 +747,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         y_shifts_cen_std[cc] = np.std(y_tmp)
                                         x_shifts_cen_std[cc] = np.std(x_tmp)
                                         write_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_2cen_sub.fits", cube_cen_sub, header=head_cc)
-                                        y_tmp -= abs(pacy)  # dithering, if any
-                                        x_tmp -= abs(pacx)
                                         cube_cen = cube_shift(cube_cen, y_tmp, x_tmp, nproc=nproc)
                                         write_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_2cen.fits", cube_cen, header=head_cc)
                                     
@@ -840,8 +838,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                          pa_sci_fin[fn])
                                     if verbose:
                                         print(pos_xy, flush=True)
-                                    x_shifts = cx - pos_xy[0]
-                                    y_shifts = cy - pos_xy[1]
+                                    x_shifts = cx - pos_xy[0] - abs(pacx)  # account for dithering, if any
+                                    y_shifts = cy - pos_xy[1] - abs(pacy)
                                     
                                     for zz in range(n_fr):  
                                         cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz])                                    
