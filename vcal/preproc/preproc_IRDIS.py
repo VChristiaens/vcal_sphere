@@ -647,8 +647,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             if ((fn>0 and fi==0) or fn>npsf-1) and use_cen_only:
                                 continue
                             cube, header = open_fits(outpath+filename+filt+"_1bpcorr.fits", header=True)
-                            pacx = header["ESO INS1 PAC X"][0]/18  # 18 microns -> pixels, ref SPHERE manual
-                            pacy = header["ESO INS1 PAC Y"][0]/18
+                            pacx = header["ESO INS1 PAC X"]/18  # 18 microns -> pixels, ref SPHERE manual
+                            pacy = header["ESO INS1 PAC Y"]/18
                             n_fr=cube.shape[0]
                             if "2dfit" in rec_met_tmp:
                                 tmp = frame_filter_lowpass(np.median(cube,axis=0))
