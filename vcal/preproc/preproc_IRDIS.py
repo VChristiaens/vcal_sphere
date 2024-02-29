@@ -838,8 +838,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                          pa_sci_fin[fn])
                                     if verbose:
                                         print(pos_xy, flush=True)
-                                    x_shifts = cx - pos_xy[0] - abs(pacx)  # account for dithering, if any
-                                    y_shifts = cy - pos_xy[1] - abs(pacy)
+                                    x_shifts = cx - pos_xy[0] - pacx  # account for dithering, if any
+                                    y_shifts = cy - pos_xy[1] - pacy
                                     
                                     for zz in range(n_fr):  
                                         cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz])                                    
