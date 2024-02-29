@@ -443,7 +443,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         if isinstance(rec_met, list):
                             # PROCEED ONLY ON TEST CUBE
                             cube, header = open_fits(outpath+file_list[idx_test_cube[fi]]+filt+"_1bpcorr.fits", header=True)
-                            n_fr=cube.shape[0]
                             std_shift = []
                             for ii in range(len(rec_met_tmp)):
                                 if "2dfit" in rec_met_tmp[ii]:
@@ -648,6 +647,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             if ((fn>0 and fi==0) or fn>npsf-1) and use_cen_only:
                                 continue
                             cube, header = open_fits(outpath+filename+filt+"_1bpcorr.fits", header=True)
+                            pacx = header["ESO INS1 PAC X"][0]/18  # 18 microns -> pixels, ref SPHERE manual
+                            pacy = header["ESO INS1 PAC Y"][0]/18
                             n_fr=cube.shape[0]
                             if "2dfit" in rec_met_tmp:
                                 tmp = frame_filter_lowpass(np.median(cube,axis=0))
@@ -746,6 +747,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         y_shifts_cen_std[cc] = np.std(y_tmp)
                                         x_shifts_cen_std[cc] = np.std(x_tmp)
                                         write_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_2cen_sub.fits", cube_cen_sub, header=head_cc)
+                                        y_tmp -= abs(pacy)  # dithering, if any
+                                        x_tmp -= abs(pacx)
                                         cube_cen = cube_shift(cube_cen, y_tmp, x_tmp, nproc=nproc)
                                         write_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_2cen.fits", cube_cen, header=head_cc)
                                     
