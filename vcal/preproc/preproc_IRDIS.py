@@ -470,7 +470,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                      channels_peak=True)
                                     cy, cx = frame_center(cube[0])
                                     for zz in range(cube.shape[0]):
-                                        cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1])
+                                        cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1], imlib="opencv")
                                     #2. alignment with upsampling
                                     cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=None, negative=negative,
                                                                                             fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[ii][4:]),
@@ -487,7 +487,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                                 save_shifts=False, full_output=True, verbose=True,
                                                                                 debug=False, plot=plot)
                                     for zz in range(cube.shape[0]):
-                                        cube[zz] = frame_shift(cube[zz], y_shifts_tmp[0], x_shifts_tmp[0])
+                                        cube[zz] = frame_shift(cube[zz], y_shifts_tmp[0], x_shifts_tmp[0], imlib="opencv")
                                     y_shifts = y_shifts+y_shifts_tmp[0]
                                     x_shifts = x_shifts+x_shifts_tmp[0]                                              
                                     if debug:
@@ -582,7 +582,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         ## interpolate based on cen shifts                                                     
                                         y_shifts = float(np.interp([mjd],unique_mjd_cen,y_shifts_cen))  
                                         x_shifts = float(np.interp([mjd],unique_mjd_cen,x_shifts_cen))
-                                        cube = cube_shift(cube, y_shifts, x_shifts, nproc=nproc)
+                                        cube = cube_shift(cube, y_shifts, x_shifts, nproc=nproc, imlib="opencv")
                                         std_shift.append(np.sqrt((y_shifts_cen_err)**2+(x_shifts_cen_err)**2))                                                     
 #                                        if debug:
 #                                            plt.show()
@@ -672,7 +672,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                  channels_peak=True)
                                 cy, cx = frame_center(cube[0])
                                 for zz in range(cube.shape[0]):
-                                    cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1])
+                                    cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1], imlib="opencv")
                                 #2. alignment with upsampling
                                 cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=None, negative=False,
                                                                                         fwhm=4, subi_size=cen_box_sz[fi],
@@ -689,7 +689,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                             save_shifts=False, full_output=True, verbose=verbose,
                                                                             debug=False, plot=plot)
                                 for zz in range(cube.shape[0]):
-                                    cube[zz] = frame_shift(cube[zz], y_shifts_tmp[0], x_shifts_tmp[0])
+                                    cube[zz] = frame_shift(cube[zz], y_shifts_tmp[0], x_shifts_tmp[0], imlib="opencv")
                                 y_shifts = y_shifts+y_shifts_tmp[0]
                                 x_shifts = x_shifts+x_shifts_tmp[0]
                                 if debug:
@@ -747,7 +747,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         y_shifts_cen_std[cc] = np.std(y_tmp)
                                         x_shifts_cen_std[cc] = np.std(x_tmp)
                                         write_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_2cen_sub.fits", cube_cen_sub, header=head_cc)
-                                        cube_cen = cube_shift(cube_cen, y_tmp, x_tmp, nproc=nproc)
+                                        cube_cen = cube_shift(cube_cen, y_tmp, x_tmp, nproc=nproc, imlib="opencv")
                                         write_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_2cen.fits", cube_cen, header=head_cc)
                                     
                                        # pdb.set_trace()
@@ -842,7 +842,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     y_shifts = cy - pos_xy[1] - pacy
                                     
                                     for zz in range(n_fr):  
-                                        cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz])                                    
+                                        cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz], imlib="opencv")
                                     if plot and fn == 0:
                                         plt.show() # show whichever previous plot is in memory
                                         colors = ['k','r','b','y','c','m','g']
@@ -1475,7 +1475,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         subpx_shifts = (final_x_bkg[ii]-int(final_x_bkg[ii]),
                                                         final_y_bkg[ii]-int(final_y_bkg[ii]))
                                         subframe = frame_shift(subframe, subpx_shifts[1],
-                                                               subpx_shifts[0])
+                                                               subpx_shifts[0], imlib="opencv")
                                         _, flux_bkg[ii], _ = normalize_psf(subframe, fwhm=fwhm, 
                                                                            full_output=True, 
                                                                            verbose=verbose, debug=debug)
@@ -1741,7 +1741,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         # crop
                         if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
                             if crop_sz%2 != cube.shape[1]%2:
-                                cube = cube_shift(cube,0.5,0.5, nproc=nproc)
+                                cube = cube_shift(cube,0.5,0.5, nproc=nproc, imlib="opencv")
                                 cube = cube[:,1:,1:]
                             cube = cube_crop_frames(cube, crop_sz, verbose=verbose)
                         med_psf = np.median(cube,axis=0)
@@ -1827,7 +1827,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 psf_tmp[:psf_norm.shape[0],:psf_norm.shape[1]] = psf_norm*fluxes[cc,ss]
                             else:
                                 psf_tmp = psf_norm*fluxes[cc,ss]
-                            cube[cc] -= frame_shift(psf_tmp, y_tmp-cy_tmp, x_tmp-cx_tmp, border_mode='constant')
+                            cube[cc] -= frame_shift(psf_tmp, y_tmp-cy_tmp, x_tmp-cx_tmp, border_mode='constant', imlib="opencv")
                                 
                     if debug:
                         write_fits(outpath+"TMP_last_cube_cen-sat_spots.fits",cube[cc])
@@ -1886,9 +1886,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         # crop
                         if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
                             if crop_sz%2 != cube.shape[1]%2:
-                                cube = cube_shift(cube,0.5,0.5, nproc=nproc)
+                                cube = cube_shift(cube,0.5,0.5, nproc=nproc, imlib="opencv")
                                 cube = cube[:,1:,1:]
-                                cube_notrim = cube_shift(cube_notrim,0.5,0.5, nproc=nproc)
+                                cube_notrim = cube_shift(cube_notrim,0.5,0.5, nproc=nproc, imlib="opencv")
                                 cube_notrim = cube_notrim[:,1:,1:]
                             cube = cube_crop_frames(cube,crop_sz,verbose=verbose)
                             cube_notrim = cube_crop_frames(cube_notrim,crop_sz,verbose=verbose)
@@ -1961,7 +1961,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 ny, nx = frame.shape
                                 if ny_m>ny:
                                     if ny_m%2 != ny%2:
-                                        mask_scal = frame_shift(mask_scal, 0.5, 0.5)
+                                        mask_scal = frame_shift(mask_scal, 0.5, 0.5, imlib="opencv")
                                         mask_scal = mask_scal[1:,1:]
                                     mask_scal=frame_crop(mask_scal,ny)
                                 elif ny>ny_m:
@@ -1969,7 +1969,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     mask_scal_fin[:ny_m,:nx_m]=mask_scal
                                     mask_scal = frame_shift(mask_scal_fin, 
                                                             (ny-ny_m)/2, 
-                                                            (nx-nx_m)/2)
+                                                            (nx-nx_m)/2, imlib="opencv")
                             else:
                                 mask = np.ones_like(frame)
                                 if mask_scal[0]:
