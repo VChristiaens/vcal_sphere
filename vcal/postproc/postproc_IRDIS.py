@@ -386,7 +386,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                    adimsdi=adimsdi, ncomp=ncomp, svd_mode=svd_mode_all[cc], scaling=scaling,
                                                    mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                                    collapse='median', check_memory=True, full_output=True,
-                                                   verbose=verbose, nproc=nproc)
+                                                   verbose=verbose, nproc=nproc, imlib="opencv")
                             DBI_res = pca(algo_params=params_pca)
                             DBI, residuals, residuals_der = DBI_res.copy()
                             final_DBI[pp] = DBI
@@ -448,7 +448,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                               ncomp=(int(n_ch-1),None), svd_mode=svd_mode_all[cc], scaling=scaling,
                                               mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                               collapse='median', check_memory=True, full_output=False,
-                                              verbose=verbose, nproc=nproc)
+                                              verbose=verbose, nproc=nproc, imlib="opencv")
                             RDBI_res[i]= pca(algo_params=params_pca)
 
                         write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'PCA-RDBI_{}{}.fits'.format(adimsdi,test_pcs_str), 
@@ -470,7 +470,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                    ncomp=(int(n_ch-1),None), svd_mode=svd_mode_all[cc], scaling=scaling,
                                                    mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                                    collapse='median', check_memory=True, full_output=True,
-                                                   verbose=verbose, nproc=nproc)
+                                                   verbose=verbose, nproc=nproc, imlib="opencv")
                             DBI_res= pca(algo_params=params_pca)
                             RDBI_res[i], residuals, residuals_der = DBI_res
                             if npc < 5:
@@ -510,7 +510,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                         #ncomp=(int(n_ch-1),None), svd_mode=svd_mode_all[cc], scaling=scaling,
                                                         mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                                         collapse='median', check_memory=True, full_output=False,
-                                                        verbose=verbose, nproc=nproc)
+                                                        verbose=verbose, nproc=nproc, imlib="opencv")
                                     RDBI_res[i,ff,nn] = pca(algo_params=params_pca)
                                 if i ==0:
                                     write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'TMP_PCA-RDBIman_indiv_{}_npc{:.0f}_res_der_{}.fits'.format(adimsdi,npc, filt), 
@@ -1043,7 +1043,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                    cube_ref=ref_cube, scale_list=None, ncomp=int(npc),
                                                                    scaling=scaling, svd_mode=svd_mode_all[cc], mask_center_px=mask_IWA_px,
                                                                    delta_rot=delta_rot, fwhm=fwhm, collapse='median', check_memory=True,
-                                                                   full_output=False, verbose=verbose, nproc=nproc)
+                                                                   full_output=False, verbose=verbose, nproc=nproc, imlib="opencv")
                                             tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                                         tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                     else:
@@ -1057,7 +1057,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                scaling=scaling, mask_center_px=mask_IWA_px, delta_rot=delta_rot,
                                                                fwhm=fwhm, collapse='median', check_memory=True,
                                                                full_output=True, verbose=verbose, mask_rdi=mask_rdi,
-                                                               nproc=nproc)
+                                                               nproc=nproc, imlib="opencv")
                                         tmp_tmp[pp], pcs, recon, tmp_res, tmp = pca(algo_params=params_pca)
                                         if debug:
                                             write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+'npc{:.0f}'.format(npc)+label_filt+'_res.fits', tmp_res)
@@ -1137,7 +1137,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                        svd_mode=svd_mode_all[cc], scaling=scaling,
                                                                        mask_center_px=mask_IWA_px, delta_rot=1,
                                                                        fwhm=fwhm, collapse='median', check_memory=True,
-                                                                       full_output=False, verbose=verbose, nproc=nproc)
+                                                                       full_output=False, verbose=verbose, nproc=nproc,
+                                                                        imlib="opencv")
                                                 tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                                             tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                         else:
@@ -1146,7 +1147,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                    svd_mode=svd_mode_all[cc], scaling=scaling,
                                                                    mask_center_px=mask_IWA_px, delta_rot=1, fwhm=fwhm,
                                                                    collapse='median', check_memory=True,
-                                                                   full_output=False, verbose=verbose, nproc=nproc)
+                                                                   full_output=False, verbose=verbose, nproc=nproc,
+                                                                    imlib="opencv")
                                             tmp_tmp[pp] = pca(algo_params=params_pca)
                                         for ff in range(nfcp):
                                             xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
@@ -1191,7 +1193,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                    svd_mode=svd_mode_all[cc], scaling=scaling,
                                                                    mask_center_px=mask_IWA_px, delta_rot=delta_rot,
                                                                    fwhm=fwhm, collapse='median', check_memory=True,
-                                                                   full_output=False, verbose=verbose, nproc=nproc)
+                                                                   full_output=False, verbose=verbose, nproc=nproc,
+                                                                    imlib="opencv")
                                             tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                                         tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                     else:
@@ -1200,7 +1203,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                svd_mode=svd_mode_all[cc], scaling=scaling,
                                                                mask_center_px=mask_IWA_px, delta_rot=delta_rot,
                                                                fwhm=fwhm, collapse='median', check_memory=True,
-                                                               full_output=False, verbose=verbose, nproc=nproc)
+                                                               full_output=False, verbose=verbose, nproc=nproc,
+                                                                imlib="opencv")
                                         tmp_tmp[pp] = pca(algo_params=params_pca)
                                                       
                                 write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'.fits', tmp_tmp)
