@@ -2003,7 +2003,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             write_fits(outpath+"median_SDI.fits", 
                        mask_circle(sdi_frame,coro_sz))
             stim_map = compute_stim_map(derot_cube)
-            inv_stim_map = compute_inverse_stim_map(resc_cube_res_all, derot_angles)
+            inv_stim_map = compute_inverse_stim_map(resc_cube_res_all, derot_angles, nproc=nproc)
             thr = np.percentile(mask_circle(inv_stim_map,coro_sz), 99.9)
             norm_stim_map = stim_map/thr
             stim_maps = np.array([mask_circle(stim_map,coro_sz),
