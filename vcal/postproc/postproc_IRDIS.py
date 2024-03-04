@@ -388,7 +388,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                    collapse='median', check_memory=True, full_output=True,
                                                    verbose=verbose, nproc=nproc, imlib="opencv")
                             DBI_res = pca(algo_params=params_pca)
-                            DBI, residuals, residuals_der = DBI_res.copy()
+                            DBI, residuals, residuals_der = DBI_res
                             final_DBI[pp] = DBI
                             if do_stim_map[1] and adimsdi == 'double' and pp == 0:
                                 stim_map = compute_stim_map(residuals_der)
