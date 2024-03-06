@@ -306,14 +306,14 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     
     psfn = open_fits(inpath+final_psfname)
     starphot = open_fits(inpath+fluxes_name)[0]
-    
-    if final_scalefacname is not None:
+
+    if final_scalefacname is not None and isfile(inpath+final_scalefacname):
         scale_list = open_fits(inpath+final_scalefacname, verbose=debug)
         msg = ("\nUsing scaling factors from pre-processing. \n"
                "It is recommended these are checked to ensure that they make sense.\n")
         print(msg, flush=True)
     else:
-        scale_list = np.amax(lbdas)/lbdas
+        scale_list = np.amax(lbdas) / lbdas
         if verbose:
             msg = "\nUsing theoretical scaling factors.\n"
             print(msg, flush=True)

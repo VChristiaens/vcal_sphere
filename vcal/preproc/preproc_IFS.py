@@ -790,8 +790,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         plt.savefig(outpath+"Satspot_coordinates.pdf", bbox_inches="tight")
                                         plt.close("all")
 
-                                if fn == 0:
-                                    # find the scaling factors here
+                                # scaling factors
+                                if fn == 0 and scaling_by_satspots:
                                     spot_xy_predict = np.zeros((len(lbdas), 4, 2))  # fill with predictions
                                     spot_xcenters = np.zeros((len(lbdas), 4))  # measured
                                     spot_ycenters = np.zeros((len(lbdas), 4))  # measured
