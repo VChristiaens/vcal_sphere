@@ -158,6 +158,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     if isinstance(cen_box_sz, int):
         cen_box_sz = [cen_box_sz]*3
     true_ncen = params_preproc['true_ncen']# number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
+    scaling_from_satspots = params_preproc.get('scaling_from_satspots', 1)
     #distort_corr = params_preproc.get('distort_corr',True)
     bp_crop_sz = params_preproc.get('bp_crop_sz',261)         # crop size before bad pix correction for OBJ, PSF and CEN
     final_crop_sz = params_preproc.get('final_crop_sz',[257,256]) #361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
@@ -791,7 +792,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         plt.close("all")
 
                                 # scaling factors
-                                if fn == 0 and scaling_by_satspots:
+                                if fn == 0 and scaling_from_satspots:
                                     spot_xy_predict = np.zeros((len(lbdas), 4, 2))  # fill with predictions
                                     spot_xcenters = np.zeros((len(lbdas), 4))  # measured
                                     spot_ycenters = np.zeros((len(lbdas), 4))  # measured
