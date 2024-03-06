@@ -307,7 +307,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     psfn = open_fits(inpath+final_psfname)
     starphot = open_fits(inpath+fluxes_name)[0]
 
-    if final_scalefacname is not None and isfile(inpath+final_scalefacname):
+    if final_scalefacname is not None and isfile(inpath+final_scalefacname+".fits"):
         scale_list = open_fits(inpath+final_scalefacname, verbose=debug)
         msg = ("\nUsing scaling factors from pre-processing. \n"
                "It is recommended these are checked to ensure that they make sense.\n")
