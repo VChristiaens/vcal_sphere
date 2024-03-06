@@ -466,7 +466,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                scaling=None, mask_center_px=mask_IWA_px, adimsdi='double',
                                                crop_ifs=crop_ifs, delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
                                                check_memory=True, full_output=True, verbose=verbose, mask_rdi=mask_rdi,
-                                               nproc=nproc, imlib="opencv", imlib2="opencv")
+                                               nproc=nproc)
                         tmp[pp], tmp_tmp, tmp_tmp_der = pca(algo_params=params_pca)
                         if do_stim_map:
                             stim_map[pp] = compute_stim_map(tmp_tmp_der)
