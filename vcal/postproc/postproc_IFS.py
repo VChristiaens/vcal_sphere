@@ -156,6 +156,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     label_test = params_postproc.get('label_test', "")    # manually provide a test label
     
     ## Options
+    imlib = params_postproc.get("imlib", "vip-fft")  # image processing library to be used
     verbose = params_postproc.get("verbose",0)     # whether to print(more information during the reduction
     debug = params_postproc.get("debug",False)   
     #debug = True                        # whether to print(even more information, helpful for debugging
@@ -184,7 +185,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     wedge = tuple(params_postproc.get('wedge',[0,360])) # in which range of PA should the contrast curve be computed
 
     ## Post-processing
-    sadi_steps  =params_postproc.get('sadi_steps',1)
+    sadi_steps = params_postproc.get('sadi_steps',1)
     mask_IWA_px = params_postproc.get('mask_IWA',10)  # just show pca images beyond the provided mask radius (provide in pixels)
     do_snr_map = params_postproc.get('do_snr_map',[0,0,0]) # to plot the snr_map (warning: computer intensive); useful only when point-like features are seen in the image
     if not isinstance(do_snr_map, list):
@@ -332,7 +333,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
         label_stg = "ADI"
             
     if subtract_planet:
-        PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn)
+        PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn, imlib=imlib)
     if planet or fake_planet:
         cy, cx = frame_center(PCA_ASDI_cube_ori[0,0])
     if planet:
@@ -370,7 +371,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                             fwhm, plsc, starphot=starphot,
                                                             algo=pca, sigma=5., nbranch=1,
                                                             theta=0, inner_rad=1, wedge=(0,360),
-                                                            fc_snr=fc_snr,
+                                                            fc_snr=fc_snr, imlib=imlib,
                                                             student=True, transmission=transmission,
                                                             plot=True, dpi=100,
                                                             verbose=verbose, ncomp=int(npc), svd_mode=svd_mode,
@@ -417,7 +418,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                            derot_angles, flevel,
                                                            plsc, rad_dists=rad_arr[ff:ff+1],
                                                            n_branches=1, theta=(theta0+ff*th_step)%360,
-                                                           imlib='opencv', verbose=verbose, nproc=nproc)
+                                                           imlib=imlib, verbose=verbose, nproc=nproc, imlib=imlib)
                 write_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns), PCA_ASDI_cube)
                 #vip.fits.append_extension(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns), derot_angles)
         
@@ -466,15 +467,15 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                scaling=None, mask_center_px=mask_IWA_px, adimsdi='double',
                                                crop_ifs=crop_ifs, delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
                                                check_memory=True, full_output=True, verbose=verbose, mask_rdi=mask_rdi,
-                                               nproc=nproc)
+                                               nproc=nproc, imlib=imlib)
                         tmp[pp], tmp_tmp, tmp_tmp_der = pca(algo_params=params_pca)
                         if do_stim_map:
                             stim_map[pp] = compute_stim_map(tmp_tmp_der)
-                            inv_stim_map[pp] = compute_inverse_stim_map(tmp_tmp,derot_angles, nproc=nproc)
+                            inv_stim_map[pp] = compute_inverse_stim_map(tmp_tmp,derot_angles, nproc=nproc, imlib=imlib)
                             thr[pp] = np.amax(inv_stim_map[pp])
                         if planet:
-                            snr_tmp[pp] = snr(tmp[pp], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=exclude_negative_lobes,
-                                                          verbose=False)
+                            snr_tmp[pp] = snr(tmp[pp], source_xy=(xx_comp,yy_comp), fwhm_med, plot=False,
+                                              exclude_negative_lobes=exclude_negative_lobes, verbose=False)
                     write_fits(outpath+'final_PCA-SDI_'+test_pcs_str+label_test+'.fits', tmp)
                     if do_stim_map:
                         write_fits(outpath+'final_PCA-SDI_'+test_pcs_str+label_test+'_stimmap.fits', stim_map)
@@ -522,7 +523,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                        scaling=None, mask_center_px=mask_IWA_px,crop_ifs=crop_ifs,
                                                        delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
                                                        check_memory=True, adimsdi='double', full_output=False,
-                                                       verbose=verbose, nproc=nproc)
+                                                       verbose=verbose, nproc=nproc, imlib=imlib)
                                 tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                             tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                         else:
@@ -531,14 +532,14 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    scaling=None, mask_center_px=mask_IWA_px,crop_ifs=crop_ifs,
                                                    delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
                                                    check_memory=True, adimsdi='double', full_output=False,
-                                                   verbose=verbose, nproc=nproc)
+                                                   verbose=verbose, nproc=nproc, imlib=imlib)
                             tmp_tmp[pp] = pca(algo_params=params_pca)
                                     
                         for ff in range(nfcp):
                             xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
                             yy_fcp = cy + rad_arr[ff]*np.sin(np.deg2rad(theta0+ff*th_step))
-                            snr_tmp_tmp[ns,pp,ff] = snr(tmp_tmp[pp], (xx_fcp,yy_fcp), fwhm_med, plot=False, exclude_negative_lobes=exclude_negative_lobes,
-                                                                  verbose=True)   
+                            snr_tmp_tmp[ns,pp,ff] = snr(tmp_tmp[pp], source_xy=(xx_fcp,yy_fcp), fwhm_med, plot=False,
+                                                        exclude_negative_lobes=exclude_negative_lobes, verbose=True)
                     write_fits(outpath+'TMP_PCA-SDI_'+test_pcs_str+label_test+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)                                             
                 snr_fcp = np.median(snr_tmp_tmp, axis=0)
                 plt.close() 
@@ -577,7 +578,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    scaling=None, mask_center_px=mask_IWA_px, crop_ifs=crop_ifs,
                                                    delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
                                                    check_memory=True, adimsdi='double', full_output=False,
-                                                   verbose=verbose, nproc=nproc)
+                                                   verbose=verbose, nproc=nproc, imlib=imlib)
                             tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                         tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                     else:
@@ -586,7 +587,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                scaling=None, mask_center_px=mask_IWA_px, crop_ifs=crop_ifs,
                                                delta_rot=delta_rot, fwhm=fwhm_med, collapse='median', check_memory=True,
                                                adimsdi='double', full_output=False, verbose=verbose,
-                                               nproc=nproc)
+                                               nproc=nproc, imlib=imlib)
                         tmp_tmp[pp] = pca(algo_params=params_pca)
                         
                 write_fits(outpath+'final_PCA-SDI_image_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp_tmp)
@@ -628,7 +629,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                scale_list=None, ncomp=int(npc), svd_mode=svd_mode, scaling=scaling,
                                                mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                                collapse='median', check_memory=True,  full_output=False,
-                                               verbose=verbose, nproc=nproc)
+                                               verbose=verbose, nproc=nproc, imlib=imlib)
                         tmp[pp,zz] = pca(algo_params=params_pca)
                         if planet:
                             snr_tmp[pp,zz] = snr(tmp[pp,zz], (xx_comp,yy_comp), fwhm[zz], plot=False, exclude_negative_lobes=exclude_negative_lobes,
@@ -690,7 +691,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    scale_list=None, ncomp=int(npc), svd_mode=svd_mode, scaling=None,
                                                    mask_center_px=mask_IWA_px,crop_ifs=crop_ifs, delta_rot=delta_rot,
                                                    fwhm=fwhm_med, collapse='median', check_memory=True,
-                                                   adimsdi='double', full_output=False, verbose=verbose, nproc=nproc)
+                                                   adimsdi='double', full_output=False, verbose=verbose, nproc=nproc,
+                                                   imlib=imlib)
                             tmp[zz] = pca(algo_params=params_pca)
                         if debug:
                             write_fits(outpath+'TMP_PCA-ADI_full_npc{:.0f}{}_fcp_spi{:.0f}.fits'.format(npc,label_test,ns), tmp)
@@ -731,7 +733,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                scale_list=None, ncomp=(int(npc),None), svd_mode=svd_mode, scaling=None,
                                                mask_center_px=mask_IWA_px, crop_ifs=crop_ifs, delta_rot=delta_rot,
                                                fwhm=fwhm_med, collapse='median', check_memory=True, adimsdi='double',
-                                               full_output=False, verbose=verbose, nproc=nproc)
+                                               full_output=False, verbose=verbose, nproc=nproc, imlib=imlib)
                         tmp[zz] = pca(algo_params=params_pca)
                     if debug:
                         write_fits(outpath+'TMP_PCA-ADI_full_opt_npc{:.0f}{}_fcp_spi{:.0f}.fits'.format(npc,label_test,ns), tmp)
@@ -775,7 +777,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                             delta_rot=delta_rot_ann, ncomp=int(npc), svd_mode=svd_mode,
                                                             scale_list=None, min_frames_lib=max(npc,10),
                                                             max_frames_lib=max(max_fr,npc+1), collapse='median',
-                                                            full_output=False, verbose=verbose, nproc=nproc)
+                                                            full_output=False, verbose=verbose, nproc=nproc,
+                                                            imlib=imlib)
                             tmp[pp, zz] = pca_annular(algo_params=params_ann)
                             if planet:
                                 snr_tmp[pp, zz] = snr(tmp[pp,zz], (xx_comp,yy_comp), fwhm[zz], plot=False,
@@ -841,7 +844,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                             delta_rot=delta_rot_ann, ncomp=int(npc), svd_mode=svd_mode,
                                                             scale_list=None, min_frames_lib=max(npc,10),
                                                             max_frames_lib=max(max_fr,npc+1), collapse='median',
-                                                            full_output=False, verbose=verbose, nproc=nproc)
+                                                            full_output=False, verbose=verbose, nproc=nproc,
+                                                            imlib=imlib)
                             tmp[zz] = pca_annular(algo_params=params_ann)
                         if debug:
                             write_fits(outpath+'TMP_PCA-ADI_ann_npc{:.0f}{}_fcp_spi{:.0f}.fits'.format(npc,label_test_ann,ns), tmp)
@@ -883,7 +887,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                         delta_rot=delta_rot_ann, ncomp=int(npc), svd_mode=svd_mode,
                                                         scale_list=None, min_frames_lib=max(npc,10),
                                                         max_frames_lib=max(max_fr,npc+1), collapse='median',
-                                                        full_output=False, verbose=verbose, nproc=nproc)
+                                                        full_output=False, verbose=verbose, nproc=nproc,
+                                                        imlib=imlib)
                         tmp[zz] = pca_annular(algo_params=params_ann)
                     if debug:
                         write_fits(outpath+'TMP_PCA-ADI_ann_opt_npc{:.0f}{}_fcp_spi{:.0f}.fits'.format(npc,label_test_ann,ns), tmp)
@@ -936,14 +941,14 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
                                                    check_memory=True, ifs_collapse_range=ifs_collapse_range,
                                                    full_output=True, verbose=verbose, mask_rdi=mask_rdi,
-                                                   nproc=nproc)
+                                                   nproc=nproc, imlib=imlib)
                             tmp[pp], _, tmp_tmp = pca(algo_params=params_pca)
                             if debug:
                                 write_fits(outpath+'TMP_final_PCA-SADI1_full_npc{:.0f}_'.format(npc)+test_pcs_str+label_test+'.fits', tmp_tmp)
                             if do_stim_map:
-                                tmp_tmp_der = cube_derotate(tmp_tmp, derot_angles, imlib='opencv', nproc=nproc)
+                                tmp_tmp_der = cube_derotate(tmp_tmp, derot_angles, imlib=imlib, nproc=nproc)
                                 stim_map[pp] = compute_stim_map(tmp_tmp_der)
-                                inv_stim_map[pp] = compute_inverse_stim_map(tmp_tmp,derot_angles, nproc=nproc)
+                                inv_stim_map[pp] = compute_inverse_stim_map(tmp_tmp,derot_angles, nproc=nproc, imlib=imlib)
                                 thr[pp] = np.amax(inv_stim_map[pp])
                         if planet:
                             snr_tmp[pp] = snr(tmp[pp], (xx_comp,yy_comp), fwhm_med, plot=False, exclude_negative_lobes=exclude_negative_lobes,
@@ -1000,7 +1005,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                                delta_rot=1, fwhm=fwhm_med, collapse='median',
                                                                check_memory=True, adimsdi='single', full_output=False,
                                                                verbose=verbose, mask_rdi=mask_rdi,
-                                                               nproc=nproc)
+                                                               nproc=nproc, imlib=imlib)
                                         tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                                     tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                 else:
@@ -1010,7 +1015,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                            delta_rot=1, fwhm=fwhm_med, collapse='median',
                                                            check_memory=True, ifs_collapse_range=ifs_collapse_range,
                                                            full_output=False, verbose=verbose, mask_rdi=mask_rdi,
-                                                           nproc=nproc)
+                                                           nproc=nproc, imlib=imlib)
                                     tmp_tmp[pp] = pca(algo_params=params_pca)
                                 for ff in range(nfcp):
                                     xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
@@ -1053,7 +1058,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    ifs_collapse_range=ifs_collapse_range, delta_rot=1, fwhm=fwhm_med,
                                                    collapse='median', check_memory=True, adimsdi='single',
                                                    full_output=False, verbose=verbose, mask_rdi=mask_rdi,
-                                                   nproc=nproc)
+                                                   nproc=nproc, imlib=imlib)
                             tmp_tmp[pp] = pca(algo_params=params_pca)
                                               
                         write_fits(outpath+'final_PCA-SADI1_full_image_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp_tmp)
@@ -1115,11 +1120,12 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                        adimsdi='double', delta_rot=1, fwhm=fwhm_med, collapse='median',
                                                        check_memory=True, ifs_collapse_range=ifs_collapse_range,
                                                        full_output=True, verbose=verbose, mask_rdi=mask_rdi,
-                                                       nproc=nproc)
+                                                       nproc=nproc, imlib=imlib)
                                 tmp[counter], tmp_tmp, tmp_tmp_der = pca(algo_params=params_pca)
                                 if do_stim_map:
                                     stim_map[counter] = compute_stim_map(tmp_tmp_der)
-                                    inv_stim_map[counter] = compute_inverse_stim_map(tmp_tmp,derot_angles, nproc=nproc)
+                                    inv_stim_map[counter] = compute_inverse_stim_map(tmp_tmp,derot_angles, nproc=nproc,
+                                                                                     imlib=imlib)
                                     thr[counter] = np.amax(inv_stim_map[counter])                       
                 
                                 if planet:  
@@ -1170,7 +1176,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                            adimsdi='double', delta_rot=1, fwhm=fwhm_med,
                                                            collapse='median', check_memory=True,
                                                            ifs_collapse_range=ifs_collapse_range,  full_output=False,
-                                                           verbose=verbose, mask_rdi=mask_rdi, nproc=nproc)
+                                                           verbose=verbose, mask_rdi=mask_rdi, nproc=nproc,
+                                                           imlib=imlib)
                                     tmp_tmp[counter] = pca(algo_params=params_pca)
                                     for ff in range(nfcp):
                                         xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
@@ -1230,7 +1237,8 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    svd_mode=svd_mode, scaling=scal, ifs_collapse_range=ifs_collapse_range,
                                                    mask_center_px=mask_IWA_px, adimsdi='double', delta_rot=1,
                                                    fwhm=fwhm_med, collapse='median', check_memory=True,
-                                                   full_output=False, verbose=verbose, mask_rdi=mask_rdi, nproc=nproc)
+                                                   full_output=False, verbose=verbose, mask_rdi=mask_rdi, nproc=nproc,
+                                                   imlib=imlib)
                             tmp_tmp[pp] = pca(algo_params=params_pca)
                         write_fits(outpath+'final_PCA-SADI2_full_image_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test+'.fits', tmp_tmp)
                         write_fits(outpath+'final_PCA-SADI2_full_opt_npc_at_{}as'.format(test_rad_str)+label_test+'.fits', id_npc_full_df)
@@ -1288,11 +1296,13 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                                 scaling=scal, scale_list=scale_list,
                                                                 min_frames_lib=max(npc1,npc2,10),
                                                                 max_frames_lib=max(max_fr,npc1+1,npc2+1), collapse='median',
-                                                                full_output=True, verbose=verbose, nproc=nproc)
+                                                                full_output=True, verbose=verbose, nproc=nproc,
+                                                                imlib=imlib)
                                 tmp_tmp, tmp_tmp_der, tmp[counter] = pca_annular(algo_params=params_ann)
                                 if do_stim_map:
                                     stim_map[counter] = compute_stim_map(tmp_tmp_der)
-                                    inv_stim_map[counter] = compute_inverse_stim_map(tmp_tmp,derot_angles, nproc=nproc)
+                                    inv_stim_map[counter] = compute_inverse_stim_map(tmp_tmp,derot_angles, nproc=nproc,
+                                                                                     imlib=imlib)
                                     thr[counter] = np.amax(inv_stim_map[counter])
                 
                                 if planet:  
@@ -1345,7 +1355,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                                     min_frames_lib=max(npc1,npc2,10),
                                                                     max_frames_lib=max(max_fr,npc1+1,npc2+1),
                                                                     collapse='median', full_output=False, verbose=verbose,
-                                                                    nproc=nproc)
+                                                                    nproc=nproc, imlib=imlib)
                                     tmp_tmp[counter] = pca_annular(algo_params=params_ann)
                                     for ff in range(nfcp):
                                         xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
@@ -1407,7 +1417,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                             svd_mode=svd_mode, scale_list=scale_list,
                                                             ifs_collapse_range=ifs_collapse_range, collapse='median',
                                                             max_frames_lib=max(max_fr,max(idx_npc_ann)+1), full_output=False,
-                                                            verbose=verbose, nproc=nproc)
+                                                            verbose=verbose, nproc=nproc, imlib=imlib)
                             tmp_tmp[pp] = pca_annular(algo_params=params_ann)
                         write_fits(outpath+'final_PCA-SADI2_ann_image_{}_at_{}as'.format(test_pcs_str,test_rad_str)+label_test_ann+'.fits', tmp_tmp)
                         write_fits(outpath+'final_PCA-SADI2_ann_opt_npc_at_{}as'.format(test_rad_str)+label_test_ann+'.fits', id_npc_ann_df)
@@ -1431,7 +1441,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
         ######################### 10. Final contrast curves ###########################
         if planet and planet_parameter is not None:
             # SUBTRACT THE PLANET FROM THE CUBE
-            PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn)
+            PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn, imlib=imlib)
             label_emp = '_empty'
         else:
             label_emp = ''
@@ -1451,13 +1461,14 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         if svd_mode == 'randsvd':
                             for nr in range(3):
                                 pn_contr_curve_sdi_rr_tmp = contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
-                                                                                       fwhm, plsc, starphot=starphot, scaling=scal,
-                                                                                       algo=pca, sigma=5., nbranch=1,
-                                                                                       theta=0, inner_rad=1, wedge=(0,360),fc_snr=fc_snr,
-                                                                                       student=True, transmission=transmission, 
-                                                                                       plot=True, dpi=100, adimsdi='double',
-                                                                                       verbose=verbose, ncomp=(int(id_npc_full_df[rr]),None), 
-                                                                                       svd_mode=svd_mode, nproc=nproc)
+                                                                           fwhm, plsc, starphot=starphot, scaling=scal,
+                                                                           algo=pca, sigma=5., nbranch=1,
+                                                                           theta=0, inner_rad=1, wedge=(0,360),fc_snr=fc_snr,
+                                                                           student=True, transmission=transmission,
+                                                                           plot=True, dpi=100, adimsdi='double',
+                                                                           verbose=verbose, ncomp=(int(id_npc_full_df[rr]),None),
+                                                                           svd_mode=svd_mode, nproc=nproc,
+                                                                           imlib=imlib)
                                 rsvd_list.append(pn_contr_curve_sdi_rr_tmp)
                             pn_contr_curve_sdi_rr = pn_contr_curve_sdi_rr_tmp.copy()
                             for jj in range(pn_contr_curve_full_rr.shape[0]): 
@@ -1473,13 +1484,13 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                 pn_contr_curve_sdi_rr['sigma corr'][jj] = rsvd_list[idx_min]['sigma corr'][jj]
                         else:
                             pn_contr_curve_sdi_rr = contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
-                                                                               fwhm, plsc, starphot=starphot, scaling=scal,
-                                                                               algo=pca, sigma=5., nbranch=1,
-                                                                               theta=0, inner_rad=1, wedge=(0,360),fc_snr=fc_snr,
-                                                                               student=True, transmission=transmission, 
-                                                                               plot=True, dpi=100, adimsdi='double',
-                                                                               verbose=verbose, ncomp=(int(id_npc_full_df[rr]),None), 
-                                                                               svd_mode=svd_mode, nproc=nproc)
+                                                                   fwhm, plsc, starphot=starphot, scaling=scal,
+                                                                   algo=pca, sigma=5., nbranch=1,
+                                                                   theta=0, inner_rad=1, wedge=(0,360),fc_snr=fc_snr,
+                                                                   student=True, transmission=transmission,
+                                                                   plot=True, dpi=100, adimsdi='double',
+                                                                   verbose=verbose, ncomp=(int(id_npc_full_df[rr]),None),
+                                                                   svd_mode=svd_mode, nproc=nproc, imlib=imlib)
                         DF.to_csv(pn_contr_curve_sdi_rr, path_or_buf=outpath+'contrast_curve_PCA-SDI_optimal_at_{:.1f}as.csv'.format(rad*plsc), 
                                   sep=',', na_rep='', float_format=None)
                         df_list.append(pn_contr_curve_sdi_rr)
@@ -1526,7 +1537,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                                 student=True, transmission=transmission, scaling=scal,
                                                                 plot=True, dpi=100, adimsdi=adimsdi,
                                                                 verbose=verbose, ncomp=npc_opt, svd_mode=svd_mode,
-                                                                nproc=nproc)
+                                                                nproc=nproc, imlib=imlib)
                         DF.to_csv(pn_contr_curve_full_rr, 
                                   path_or_buf=outpath+'contrast_curve_PCA-SADI{:.0f}-full_optimal_at_{:.1f}as.csv'.format(sadi_steps,rad*plsc), 
                                   sep=',', na_rep='', float_format=None)
@@ -1559,15 +1570,15 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     df_list = []
                     for rr, rad in enumerate(rad_arr):
                         pn_contr_curve_ann_rr = contrast_curve(PCA_ASDI_cube_ori, derot_angles, psfn,
-                                                      fwhm, plsc, starphot=starphot, 
-                                                      algo=pca_annular, sigma=5., nbranch=1,
-                                                      theta=0, inner_rad=1, wedge=(0,360),fc_snr=fc_snr,
-                                                      student=True, transmission=transmission, 
-                                                      plot=True, dpi=100, scaling=scal,
-                                                      verbose=verbose, ncomp=(int(id_npc_ann_df[rr,0]),int(id_npc_ann_df[rr,1])), 
-                                                      svd_mode=svd_mode, 
-                                                      radius_int=mask_IWA_px, asize=asize, 
-                                                      delta_rot=delta_rot, nproc=nproc)
+                                                               fwhm, plsc, starphot=starphot,
+                                                               algo=pca_annular, sigma=5., nbranch=1,
+                                                               theta=0, inner_rad=1, wedge=(0,360),fc_snr=fc_snr,
+                                                               student=True, transmission=transmission,
+                                                               plot=True, dpi=100, scaling=scal,
+                                                               verbose=verbose, ncomp=(int(id_npc_ann_df[rr,0]),int(id_npc_ann_df[rr,1])),
+                                                               svd_mode=svd_mode,
+                                                               radius_int=mask_IWA_px, asize=asize,
+                                                               delta_rot=delta_rot, nproc=nproc, imlib=imlib)
                         DF.to_csv(pn_contr_curve_ann_rr, 
                                   path_or_buf=outpath+'contrast_curve_PCA-SADI2-ann_optimal_at_{:.1f}as.csv'.format(rad*plsc), 
                                   sep=',', na_rep='', float_format=None)

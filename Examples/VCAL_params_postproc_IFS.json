@@ -34,6 +34,7 @@
     "pcs_sadi_ann_sdi":[1,4,1],
     "pcs_sadi_ann_adi":[1,4,1],
     "max_fr_list":[50],
+    "imlib":"vip-fft",
     "verbose":1,
     "nproc":4,
     "overwrite_pp":0
