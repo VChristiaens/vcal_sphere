@@ -416,7 +416,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         flevel = starphot*sensitivity_5sig_full_rsvd_df[ff] # injected at ~3 sigma level instead of 5 sigma (rule is normalized at 0.5'', empirically it seems one has to be more conservative below 1'', hence division by radius)
                     PCA_ASDI_cube = cube_inject_companions(PCA_ASDI_cube, psfn,
                                                            derot_angles, flevel,
-                                                           plsc, rad_dists=rad_arr[ff:ff+1],
+                                                           plsc=plsc, rad_dists=rad_arr[ff:ff+1],
                                                            n_branches=1, theta=(theta0+ff*th_step)%360,
                                                            imlib=imlib, verbose=verbose, nproc=nproc)
                 write_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns), PCA_ASDI_cube)
