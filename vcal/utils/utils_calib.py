@@ -240,12 +240,12 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                         gain_list_IRDIS.append(fname)
 
                 if dit_psf_ifs is not None:
-                    if header['HIERARCH ESO DET SEQ1 DIT'] == dit_psf_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'OBJECT,FLUX' and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
+                    if header['HIERARCH ESO DET SEQ1 DIT'] == dit_psf_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'OBJECT,FLUX':
                         psf_list_ifs.append(fname)
                         psf_list_mjd_ifs.append(header['MJD-OBS'])
-                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_psf_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'SKY' and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
+                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_psf_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'SKY':
                         psf_sky_list_ifs.append(fname)
-                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_psf_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'DARK,BACKGROUND' and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
+                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_psf_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'DARK,BACKGROUND':
                         psf_ins_bg_list_ifs.append(fname)
 
                 if dit_psf_irdis is not None:
