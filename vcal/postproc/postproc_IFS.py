@@ -474,7 +474,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             inv_stim_map[pp] = compute_inverse_stim_map(tmp_tmp,derot_angles, nproc=nproc, imlib=imlib)
                             thr[pp] = np.amax(inv_stim_map[pp])
                         if planet:
-                            snr_tmp[pp] = snr(tmp[pp], source_xy=(xx_comp,yy_comp), fwhm_med, plot=False,
+                            snr_tmp[pp] = snr(tmp[pp], source_xy=(xx_comp,yy_comp), fwhm=fwhm_med, plot=False,
                                               exclude_negative_lobes=exclude_negative_lobes, verbose=False)
                     write_fits(outpath+'final_PCA-SDI_'+test_pcs_str+label_test+'.fits', tmp)
                     if do_stim_map:
@@ -538,8 +538,9 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         for ff in range(nfcp):
                             xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
                             yy_fcp = cy + rad_arr[ff]*np.sin(np.deg2rad(theta0+ff*th_step))
-                            snr_tmp_tmp[ns,pp,ff] = snr(tmp_tmp[pp], source_xy=(xx_fcp,yy_fcp), fwhm_med, plot=False,
-                                                        exclude_negative_lobes=exclude_negative_lobes, verbose=True)
+                            snr_tmp_tmp[ns,pp,ff] = snr(tmp_tmp[pp], source_xy=(xx_fcp,yy_fcp), fwhm=fwhm_med,
+                                                        plot=False, exclude_negative_lobes=exclude_negative_lobes,
+                                                        verbose=True)
                     write_fits(outpath+'TMP_PCA-SDI_'+test_pcs_str+label_test+'_fcp_spi{:.0f}.fits'.format(ns), tmp_tmp)                                             
                 snr_fcp = np.median(snr_tmp_tmp, axis=0)
                 plt.close() 
@@ -663,7 +664,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     plt.ylabel('SNR')
                     plt.xlabel('npc')
                     for pp, npc in enumerate(test_pcs_adi_full):
-                        snr_tmp[pp] = snr(tmp_tmp[pp], source_xy=(xx_comp,yy_comp), fwhm_med=fwhm_med, plot=False, exclude_negative_lobes=exclude_negative_lobes,
+                        snr_tmp[pp] = snr(tmp_tmp[pp], source_xy=(xx_comp,yy_comp), fwhm=fwhm_med, plot=False, exclude_negative_lobes=exclude_negative_lobes,
                                                       verbose=False)
                         if snr_tmp[pp] > 5:
                             marker = 'go'
