@@ -418,7 +418,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                            derot_angles, flevel,
                                                            plsc, rad_dists=rad_arr[ff:ff+1],
                                                            n_branches=1, theta=(theta0+ff*th_step)%360,
-                                                           imlib=imlib, verbose=verbose, nproc=nproc, imlib=imlib)
+                                                           imlib=imlib, verbose=verbose, nproc=nproc)
                 write_fits(outpath+'PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns), PCA_ASDI_cube)
                 #vip.fits.append_extension(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_test+'_fcp_spi{:.0f}.fits'.format(ns), derot_angles)
         
