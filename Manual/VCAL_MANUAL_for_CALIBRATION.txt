@@ -75,7 +75,7 @@ STEPS:
     "good_sky_list":  list of str or list of int, #which skies to use for IFS? If [-1]: just uses the first frame of the first sky at the end of the sequence (reproduce best the remanence effect, if any). If a list of indices: uses all frames from all those cubes. If ['all']: uses all.
     "good_psf_sky_list": same as above for psf sky of IFS data
     "pca_subtr": True, # whether to do a PCA sky subtraction for IRDIS images (never used for IFS)
-    "corner_coords": [(39,215),(72,42),(247,78),(216,250)], # x,y coords where the sky will be manually estimated for IFS # !!! ADAPT IF STAR NOT CENTERED
+    "corner_coords": [[39,215],[72,62],[247,78],[216,230]], # x,y coords where the sky will be manually estimated for IFS # !!! ADAPT IF STAR NOT CENTERED
     "msky_ap": 17, #aperture for manual sky level estimation in IFS data
     "corner_coords_psf": [(52,209)], # x,y coords where the sky will be manually estimated for IFS PSF# !!! ADAPT IF STAR NOT CENTERED (e.g. if star is off-centered, only provide one tuple corresponding to opposite corner)
     "msky_ap_psf": 20, #aperture for manual sky level estimation in IFS PSF ('FLUX') data
