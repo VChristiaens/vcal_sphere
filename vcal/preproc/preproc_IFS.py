@@ -1212,7 +1212,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 system(f"rm {outpath}*1bpcorr.fits")
 
         #************************* FINAL PSF + FLUX + FWHM ************************
-        if 5 in to_do and len(obj_psf_list)>1:
+        if 5 in to_do and (len(obj_psf_list) > 1 or not coro):  # can treat non-coro frames as PSF
             print('************* 5. FINAL PSF + FLUX + FWHM *************', flush=True)
             if isinstance(final_crop_szs[1], (float,int)):
                 crop_sz_list = [int(final_crop_szs[1])]
@@ -1220,10 +1220,13 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 crop_sz_list = final_crop_szs[1]
             else:
                 raise TypeError("final_crop_sz_psf should be either int or list of int")
-            # PSF ONLY
+            # PSF ONLY (or non-coro cubes if PSF frames were not taken)
             for crop_sz in crop_sz_list:
                 if not isfile(outpath+"3_final_psf_flux_med_{}{:.0f}.fits".format(psf_model,crop_sz)) or overwrite[4]:
-                    cube = open_fits(outpath+"2_master_psf_ASDIcube_clean_{}.fits".format("-".join(badfr_criteria_psf)), verbose=debug)
+                    if not coro and not npsf:  # non-coro and no PSF frames, use OBJ cube
+                        cube = open_fits(outpath+"2_master_ASDIcube_clean_{}.fits".format("-".join(badfr_criteria)), verbose=debug)
+                    else:
+                        cube = open_fits(outpath+"2_master_psf_ASDIcube_clean_{}.fits".format("-".join(badfr_criteria_psf)), verbose=debug)
                     # crop
                     if cube.shape[-2] > crop_sz or cube.shape[-1] > crop_sz:
                         if crop_sz%2 != cube.shape[-1]%2:
