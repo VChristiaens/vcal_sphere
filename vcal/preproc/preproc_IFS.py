@@ -243,6 +243,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         labels2.append('psf')
         final_crop_szs.append(final_crop_sz_psf)
 
+    if not coro and not npsf:  # OBJ will be used as PSF
+        final_crop_szs.append(final_crop_sz_psf)
+
     CEN_IFS_list = [x[:-5] for x in listdir(inpath) if x.startswith(prefix[2])]  # don't include ".fits"
     ncen = len(CEN_IFS_list)
     if ncen > 0:
