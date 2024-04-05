@@ -24,6 +24,7 @@ overwrite = [1,1,1,1,1,1,1,1]  # list of bools corresponding to parts of pre-pro
 debug = True # whether to print more info - useful for debugging
 save_space = False # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
 plot = 0  # whether to plot additional info (evo of: Strehl, cross-corr level, airmass, flux)
+imlib = "vip-fft" # Image processing library to be used. Default: vip-fft
 nproc = 1  # number of processors to use - default is cpu_count()/2 for efficiency
 
 # OBS

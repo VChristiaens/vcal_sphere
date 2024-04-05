@@ -109,6 +109,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
     debug = params_preproc.get('debug',0) # whether to print more info - useful for debugging
     save_space = params_preproc['save_space'] # whether to progressively delete intermediate products as new products are calculated (can save space but will make you start all over from the beginning in case of bug)
     plot = params_preproc['plot']
+    imlib = params_preproc.get("imlib", "vip-fft")  # image processing library to be used
     nproc = params_preproc.get('nproc', int(cpu_count()/2))  # number of processors to use - can also be set to cpu_count()/2 for efficiency
 
     if isinstance(overwrite, (int, bool)):
@@ -433,7 +434,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                                                                 save_shifts=False, full_output=True, verbose=True,
                                                                                 debug=False, plot=plot)
                                     for zz in range(cube.shape[0]):
-                                        cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0])
+                                        cube[zz] = frame_shift(cube[zz], y_shifts[0], x_shifts[0], imlib=imlib)
                                     if debug:
                                         write_fits(outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), cube, verbose=debug)
                                 except:
@@ -508,7 +509,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     for zz in range(n_z):
                                         y_shifts[zz] = np.interp([mjd],unique_mjd_cen,y_shifts_cen[:,zz])
                                         x_shifts[zz] = np.interp([mjd],unique_mjd_cen,x_shifts_cen[:,zz])
-                                        cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz])
+                                        cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz], imlib=imlib)
                                     std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))
                                     if debug:
                                         plt.show()
@@ -585,7 +586,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     if debug:
                                         print(f"dft{int(rec_met_tmp[4:])} + 2dfit centering: xshift: {x_shifts[0]} px, "
                                               f"yshift: {y_shifts[0]} px for cube {filename}_1bpcorr.fits", flush=True)
-                                    cube = cube_shift(cube_dft, shift_y=y_shifts[0], shift_x=x_shifts[0], nproc=nproc)
+                                    cube = cube_shift(cube_dft, shift_y=y_shifts[0], shift_x=x_shifts[0], nproc=nproc,
+                                                      imlib=imlib)
                                 except:
                                     y_shifts, x_shifts = np.zeros(cube.shape[0]), np.zeros(cube.shape[0])
                                     print(f"\nWARNING: DFT upsampling and 2d fit failed for cube {filename}_1bpcorr.fits\n"
@@ -753,7 +755,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                     for zz in range(n_z):  # interpolate based on cen shifts
                                         y_shifts[zz] = np.interp(x=[mjd], xp=unique_mjd_cen, fp=y_shifts_cen[:, zz])
                                         x_shifts[zz] = np.interp(x=[mjd], xp=unique_mjd_cen, fp=x_shifts_cen[:, zz])
-                                    cube = cube_shift(cube, shift_y=y_shifts, shift_x=x_shifts, nproc=nproc)
+                                    cube = cube_shift(cube, shift_y=y_shifts, shift_x=x_shifts, nproc=nproc,
+                                                      imlib=imlib)
 
                                     if plot and fn == 0:
                                         # two plots are made here, first shows x-y shifts in each channel, the second
@@ -1243,7 +1246,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 if cube.shape[-2] > crop_sz or cube.shape[-1] > crop_sz:
                     if crop_sz % 2 != cube.shape[-1] % 2:
                         for zz in range(cube.shape[0]):
-                            cube[zz] = cube_shift(cube[zz], shift_y=0.5, shift_x=0.5, nproc=nproc)
+                            cube[zz] = cube_shift(cube[zz], shift_y=0.5, shift_x=0.5, nproc=nproc, imlib=imlib)
                         cube = cube[:, :, 1:, 1:]
                     cube = cube_crop_frames(cube, size=crop_sz, verbose=debug)
 
@@ -1321,8 +1324,9 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     if cube.shape[-2] > crop_sz or cube.shape[-1] > crop_sz:
                         if crop_sz%2 != cube.shape[-1]%2:
                             for zz in range(cube.shape[0]):
-                                cube[zz] = cube_shift(cube[zz],0.5,0.5, nproc=nproc)
-                                cube_notrim[zz] = cube_shift(cube_notrim[zz],0.5,0.5, nproc=nproc)
+                                cube[zz] = cube_shift(cube[zz],0.5,0.5, nproc=nproc, imlib=imlib)
+                                cube_notrim[zz] = cube_shift(cube_notrim[zz],0.5,0.5, nproc=nproc,
+                                                             imlib=imlib)
                             #cube = cube_shift(cube,0.5,0.5)
                             cube = cube[:,:,1:,1:]
                             cube_notrim = cube_notrim[:,:,1:,1:]
@@ -1414,15 +1418,13 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         _, ny, nx = cube_ff.shape
                         if ny_m>ny:
                             if ny_m%2 != ny%2:
-                                mask_scal = frame_shift(mask_scal, 0.5, 0.5)
+                                mask_scal = frame_shift(mask_scal, 0.5, 0.5, imlib=imlib)
                                 mask_scal = mask_scal[1:,1:]
                             mask_scal=frame_crop(mask_scal,ny)
                         elif ny>ny_m:
                             mask_scal_fin = np.zeros_like(cube_ff[0])
                             mask_scal_fin[:ny_m,:nx_m]=mask_scal
-                            mask_scal = frame_shift(mask_scal_fin,
-                                                    (ny-ny_m)/2,
-                                                    (nx-nx_m)/2)
+                            mask_scal = frame_shift(mask_scal_fin, (ny-ny_m)/2, (nx-nx_m)/2, imlib=imlib)
                     else:
                         mask = np.ones_like(cube_ff[0])
                         if mask_scal[0]:
