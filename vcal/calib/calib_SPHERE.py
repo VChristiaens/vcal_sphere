@@ -1723,10 +1723,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     tmp[zz] -= avg
                 hdul[0].data = tmp
                 hdul.writeto(prod, output_verify="ignore", overwrite=True)
-                if pp==0:
+                if pp == 0:
                     im = np.median(hdul[0].data, axis=0)
                     plot_frames(im, cmap="inferno", dpi=300, circle=tuple(corner_coords), circle_radius=msky_ap,
-                                log=True, save=outpath_ifs_fits+f"Manual_sky_{filetype}.pdf")
+                                log=True, vmin=0, vmax=np.percentile(im, q=99.5),
+                                save=outpath_ifs_fits+f"Manual_sky_{filetype}.pdf")
         
         # REDUCE OBJECT
         lab_distort="" # no distortion correction possible for ifs in pipeline
