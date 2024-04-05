@@ -1394,7 +1394,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 flat_fits.append(open_fits(outpath_ifs_fits + "master_flat_det_l4.fits", verbose=False))
             flat_fits.append(open_fits(outpath_ifs_fits + "master_flat_det_l5.fits", verbose=False))
             # label for each plot saying laser number
-            labels = ["Laser" + s for s in [str(f) for f in range(1, len(flat_fits))]]
+            labels = ["Laser " + s for s in [str(f) for f in range(1, len(flat_fits))]]
             labels.append("BB")
             vmax = tuple(np.percentile(frame, q=99) for frame in flat_fits)
             vmin = tuple(np.percentile(frame, q=1) for frame in flat_fits)
