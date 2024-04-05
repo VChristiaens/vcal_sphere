@@ -1386,8 +1386,21 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     command+= " {}master_flat_det_BB.sof".format(outpath_ifs_sof)
                     os.system(command)
         
-            os.system("rm {}tmp*.fits".format(outpath_ifs_fits)) 
-    
+            os.system("rm {}tmp*.fits".format(outpath_ifs_fits))
+
+            # open each flat and plot them. laser 1 - 3 and BB is always taken, 4 only in YJH
+            flat_fits = [open_fits(outpath_ifs_fits + "master_flat_det_l{:.0f}.fits".format(f), verbose=False) for f in range(1, 4)]
+            if isfile(outpath_ifs_fits + "master_flat_det_l4.fits"):
+                flat_fits.append(open_fits(outpath_ifs_fits + "master_flat_det_l4.fits", verbose=False))
+            flat_fits.append(open_fits(outpath_ifs_fits + "master_flat_det_l5.fits", verbose=False))
+            # label for each plot saying laser number
+            labels = ["Laser" + s for s in [str(f) for f in range(1, len(flat_fits))]]
+            labels.append("BB")
+            vmax = tuple(np.percentile(frame, q=99) for frame in flat_fits)
+            vmin = tuple(np.percentile(frame, q=1) for frame in flat_fits)
+            plot_frames(tuple(flat_fits), vmax=vmax, vmin=vmin, label=tuple(labels),
+                        cmap="inferno", dpi=300, save=f"{outpath_ifs_fits}master_flat_det_l1-5.pdf")
+
         # SPECTRA POSITIONS
         if 13 in to_do:
             if verbose:
