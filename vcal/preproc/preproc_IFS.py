@@ -1370,23 +1370,25 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     ASDI_cube = open_fits(outpath+"3_final_cube_all_bin{:.0f}_{:.0f}.fits".format(bin_fac, crop_sz), verbose=debug)
                     for ff in range(n_z):
                         write_fits(outpath_ADIcubes+'ADI_cube_ch{:.0f}_bin{:.0f}_{:.0f}.fits'.format(ff,bin_fac, crop_sz), ASDI_cube[ff], verbose=debug)
-            # PSFs
-            if isinstance(final_crop_szs[1], (float,int)):
-                crop_sz_list = [int(final_crop_szs[1])]
-            elif isinstance(final_crop_szs[1], list):
-                crop_sz_list = final_crop_szs[1]
-            else:
-                raise TypeError("final_crop_sz_psf should be either int or list of int")
-            outpath_PSFframes = outpath+"PSF_frames/"
-            if not isdir(outpath_PSFframes):
-                system("mkdir "+outpath_PSFframes)
-            if not isfile(outpath_PSFframes+"PSF_frame_ch{:.0f}.fits".format(n_z-1)) or overwrite[6]:
-                #for bb, bin_fac in enumerate(bin_fac_list):
-                for cc, crop_sz in enumerate(crop_sz_list):
-                #ASDI_cube = open_fits(outpath+final_cubename)
-                    PSF_cube = open_fits(outpath+"3_final_psf_med_{}_norm{:.0f}.fits".format(psf_model,crop_sz), verbose=debug)
-                    for ff in range(n_z):
-                        write_fits(outpath_PSFframes+'PSF_frame_ch{:.0f}_{:.0f}.fits'.format(ff, crop_sz), PSF_cube[ff], verbose=debug)
+
+            if npsf > 0:
+                # PSFs
+                if isinstance(final_crop_szs[1], (float,int)):
+                    crop_sz_list = [int(final_crop_szs[1])]
+                elif isinstance(final_crop_szs[1], list):
+                    crop_sz_list = final_crop_szs[1]
+                else:
+                    raise TypeError("final_crop_sz_psf should be either int or list of int")
+                outpath_PSFframes = outpath+"PSF_frames/"
+                if not isdir(outpath_PSFframes):
+                    system("mkdir "+outpath_PSFframes)
+                if not isfile(outpath_PSFframes+"PSF_frame_ch{:.0f}.fits".format(n_z-1)) or overwrite[6]:
+                    #for bb, bin_fac in enumerate(bin_fac_list):
+                    for cc, crop_sz in enumerate(crop_sz_list):
+                    #ASDI_cube = open_fits(outpath+final_cubename)
+                        PSF_cube = open_fits(outpath+"3_final_psf_med_{}_norm{:.0f}.fits".format(psf_model,crop_sz), verbose=debug)
+                        for ff in range(n_z):
+                            write_fits(outpath_PSFframes+'PSF_frame_ch{:.0f}_{:.0f}.fits'.format(ff, crop_sz), PSF_cube[ff], verbose=debug)
 
         if save_space:
             system("rm {}*1bpcorr.fits".format(outpath))
