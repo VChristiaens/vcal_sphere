@@ -36,8 +36,8 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit,
                              frame_center_satspots, cube_recenter_satspots,
                              cube_recenter_radon, cube_recenter_via_speckles,
                              frame_shift, cube_crop_frames, frame_crop,
-                             cube_derotate, find_scal_vector, cube_subsample)
-from vip_hci.preproc.rescaling import _cube_resc_wave
+                             cube_derotate, find_scal_vector, cube_subsample,
+                             cube_rescaling)
 from vip_hci.var import frame_filter_lowpass, get_annulus_segments, mask_circle, frame_center, cart_to_pol
 from ..utils.utils_preproc import scaling_by_satspots
 
