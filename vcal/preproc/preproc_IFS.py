@@ -656,12 +656,12 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         for i in range(iterations):
                                             # rescale CEN (and OBJ), median combine to improve satspot flux, find
                                             # satspot center, use new center to improve rescaling
-                                            cube_cen_sub = _cube_resc_wave(cube_cen, scaling_list=scale_list,
-                                                                           ref_xy=ref_xy, imlib="opencv")
+                                            cube_cen_sub = cube_rescaling(cube_cen, scaling_list=scale_list,
+                                                                          ref_xy=ref_xy, imlib="opencv")
                                             if not use_cen_only:
                                                 # rescale both the sci and cen cubes using theoretical scaling factors
-                                                cube_near = _cube_resc_wave(cube_near, scaling_list=scale_list,
-                                                                            ref_xy=ref_xy, imlib="opencv")
+                                                cube_near = cube_rescaling(cube_near, scaling_list=scale_list,
+                                                                           ref_xy=ref_xy, imlib="opencv")
                                                 cube_cen_sub -= cube_near
 
                                             cube_cen_sub = np.median(cube_cen_sub, axis=0)  # median collapse channels
@@ -1453,7 +1453,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 resc_cube = master_cube[fg:lg,i].copy()
                 for ch, z in enumerate(range(fg,lg)):
                     resc_cube[ch]*=flux_fac_vec[z]
-                resc_cube = _cube_resc_wave(resc_cube, scal_vector[fg:lg])
+                resc_cube = cube_rescaling(resc_cube, scal_vector[fg:lg])
                 resc_cube_res = np.zeros([lg-fg+1,master_cube.shape[-2],master_cube.shape[-1]])
                 resc_cube_res[:-1] = resc_cube
                 # how many channels to median combine before simple SDI

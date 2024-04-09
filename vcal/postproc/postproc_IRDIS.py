@@ -27,8 +27,7 @@ from vip_hci.fits import open_fits, write_fits
 from vip_hci.metrics import snrmap, contrast_curve, snr
 from vip_hci.metrics import stim_map as compute_stim_map
 from vip_hci.metrics import inverse_stim_map as compute_inverse_stim_map
-from vip_hci.preproc import cube_shift, frame_shift, cube_crop_frames, cube_recenter_via_speckles
-from vip_hci.preproc.rescaling import _cube_resc_wave
+from vip_hci.preproc import cube_shift, frame_shift, cube_crop_frames, cube_recenter_via_speckles, cube_rescaling
 from vip_hci.var import mask_circle, cube_filter_highpass, frame_center, frame_filter_lowpass
 from vip_hci.psfsub import median_sub, pca, pca_annular, nmf, MEDIAN_SUB_Params, PCA_Params, PCA_ANNULAR_Params, NMF_Params
 from vip_hci.psfsub.utils_pca import pca_annulus
@@ -499,8 +498,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 tmp_tmp[ff] = open_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+'npc{:.0f}'.format(test_pcs_full[i])+label_filt+'_res.fits')
                             for ff, filt in enumerate(filters):
                                 # scale the other one
-                                cube_ref = _cube_resc_wave(tmp_tmp[ff-1], ref_xy=None, 
-                                                           scaling_list=[scale_list[ff-1]/scale_list[ff]]*n_cubes)
+                                cube_ref = cube_rescaling(tmp_tmp[ff-1], ref_xy=None,
+                                                          scaling_list=[scale_list[ff-1]/scale_list[ff]]*n_cubes)
                                 #cube_ref_tmp = np.zeros([1,cube_ref.shape[1],cube_ref.shape[2]])
                                 for nn in range(n_cubes):
                                     #cube_ref_tmp[0] = 

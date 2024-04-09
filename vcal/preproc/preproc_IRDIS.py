@@ -35,8 +35,7 @@ from vip_hci.preproc import (cube_fix_badpix_clump, cube_recenter_2dfit, cube_re
                              cube_detect_badfr_ellipticity, cube_detect_badfr_correlation,
                              frame_crop, cube_recenter_satspots, cube_recenter_radon,
                              cube_recenter_via_speckles, cube_crop_frames, check_pa_vector,
-                             cube_shift, find_scal_vector, cube_derotate)
-from vip_hci.preproc.rescaling import _cube_resc_wave
+                             cube_shift, find_scal_vector, cube_derotate, cube_rescaling)
 from vip_hci.psfsub import median_sub, MEDIAN_SUB_Params
 from vip_hci.var import (frame_center, fit_2dmoffat, get_annulus_segments,
                          mask_circle, frame_filter_lowpass)
@@ -1021,11 +1020,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         cube, header = open_fits(outpath+"1_master{}_cube_{}.fits".format(labels[fi],filters[ff]), 
                                                  header=True)
                         if distort_corr:
-                            cube = _cube_resc_wave(cube, scaling_list=None, ref_xy=None, 
-                                                   imlib="opencv", #Note: FFT unusable because scaling_y!=scaling_x
-                                                   interpolation='lanczos4', 
-                                                   scaling_y=scal_y_distort, 
-                                                   scaling_x=scal_x_distort)
+                            cube = cube_rescaling(cube, scaling_list=None, ref_xy=None,
+                                                  imlib="opencv", #Note: FFT unusable because scaling_y!=scaling_x
+                                                  interpolation='lanczos4',
+                                                  scaling_y=scal_y_distort,
+                                                  scaling_x=scal_x_distort)
                         write_fits(outpath+"2_master{}_cube_{}{}.fits".format(labels[fi],filters[ff],dist_lab_tmp), 
                                    cube, header=header)
                     if fi!=1:
@@ -1989,7 +1988,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 resc_cube = master_cube.copy()
                 for z in range(resc_cube.shape[0]):
                     resc_cube[z]*=flux_fac_vec[i,z]
-                resc_cube = _cube_resc_wave(resc_cube, scal_vector[i])
+                resc_cube = cube_rescaling(resc_cube, scal_vector[i])
                 resc_cube_res = np.zeros([master_cube.shape[0]+1,master_cube.shape[1],master_cube.shape[2]])
                 resc_cube_res[:-1] = resc_cube
                 resc_cube_res[-1] = resc_cube[-1]-resc_cube[0]
