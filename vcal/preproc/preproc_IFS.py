@@ -1012,7 +1012,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 else:
                     fi_tmp = 1
                 # Determine fwhm
-                if not isfile(outpath+f"TMP_fwhm{labels[fi_tmp]}.fits"):
+                if not isfile(outpath+f"TMP_fwhm{labels[fi_tmp]}.fits") or overwrite[3]:
                     cube = open_fits(outpath+f"1_master_ASDIcube{labels[fi_tmp]}.fits", verbose=debug)
                     fwhm = np.zeros(n_z)
                     # if a list of crops are given, use the last odd one
