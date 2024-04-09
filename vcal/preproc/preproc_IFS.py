@@ -1219,7 +1219,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 system(f"rm {outpath}*1bpcorr.fits")
 
         #************************* FINAL PSF + FLUX + FWHM ************************
-        if 5 in to_do and not isfile(outpath+final_fwhmname+".fits") or overwrite[4]:
+        if 5 in to_do and (not isfile(outpath+final_fwhmname+".fits") or overwrite[4]):
             print('************* 5. FINAL PSF + FLUX + FWHM *************', flush=True)
             # use the PSF frames if available, otherwise use non-coro OBJ frames
             if npsf > 0:
