@@ -1196,6 +1196,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         plot_frames(tuple(reference_frames), rows=8, cmap="inferno", dpi=300, log=log,
                                     label=tuple(["Channel " + str(x) for x in range(1, 40)]),
                                     save=outpath+f"badfr_corr_all_ref_frames{labels[fi]}.pdf")
+                        plt.close("all")
+                        del reference_frames
 
                     cube = cube[:, final_good_index_list]
                     write_fits(outpath+f"2_master{labels[fi]}_ASDIcube_clean_{bad_str}.fits", cube, verbose=debug)
