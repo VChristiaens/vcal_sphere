@@ -1188,7 +1188,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
                         print(f"At the end of channel {zz+1}, we kept {len(final_good_index_list)}/{ngood_fr_ch} ({100*(len(final_good_index_list)/ngood_fr_ch):.0f}%) frames\n", flush=True)
 
-                    if "corr" in badfr_critn_tmp:  # save plots of all reference frames in the case of correlation
+                    if "corr" in badfr_critn_tmp and debug:  # save plots of all reference frames in the case of correlation
                         reference_frames = cube_crop_frames(np.median(cube, axis=1), size=crop_size, verbose=debug)
                         log = False
                         if not coro or fi == 1:  # if no coronagraph the image needs to be log scale
