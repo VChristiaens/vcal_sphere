@@ -635,14 +635,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                                         # SUBTRACT NEAREST OBJ CUBE to find sat spots
                                         if not use_cen_only:
                                             mjd_mean = []
-                                            pa_sci_ini = []
-                                            pa_sci_fin = []
                                             for fn_tmp, filename_tmp in enumerate(file_list):
                                                 head_tmp = open_header(inpath+OBJ_IFS_list[fn_tmp])
                                                 mjd_tmp = float(head_tmp["MJD-OBS"])
                                                 mjd_mean.append(mjd_tmp)
-                                                pa_sci_ini.append(float(head_tmp["HIERARCH ESO TEL PARANG START"]))
-                                                pa_sci_fin.append(float(head_tmp["HIERARCH ESO TEL PARANG END"]))
                                             m_idx = find_nearest(mjd_mean, mjd_cen[cc])
                                             cube_near = open_fits(outpath+file_list[m_idx]+"_1bpcorr.fits", verbose=debug)
                                             if cube_near.ndim == 4:
