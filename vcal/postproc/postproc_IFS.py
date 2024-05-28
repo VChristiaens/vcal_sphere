@@ -252,7 +252,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     all_markers= ['ro','yo','bo','go','ko','co','mo']*nspi # for plotting the snr of the fcps (should contain at least as many elements as fcps)
 
     if coro:
-        transmission_name = vcal_path[0] + "/../Static/" + "SPHERE_IRDIS_ALC_transmission_px.fits"
+        transmission_name = vcal_path[0] + "/../Static/" + "SPHERE_IFS_ALC_transmission_px.fits"
         transmission = open_fits(transmission_name)
         transmission = (transmission[1],transmission[0])
     else:
