@@ -1003,9 +1003,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 for lr in lab_ird:
                     products_list = [x for x in file_list if (x.startswith(instr) and x.endswith(f"{lr}.fits"))]
                     for pp, prod in enumerate(products_list):
-                        hdul = fits.open(outpath_irdis_fits+prod)
-                        tmp = hdul[0].data
-                        head_tmp = hdul[0].header
+                        tmp, head_tmp = open_fits(outpath_irdis_fits+prod, header=True, verbose=False)
                         if head_tmp['HIERARCH ESO DET SEQ1 DIT']==dit_irdis and (not manual_sky_irdis and pca_subtr):
                             continue
                         elif head_tmp['HIERARCH ESO DET SEQ1 DIT']==dit_psf_irdis and (not manual_sky_irdis_psf and pca_subtr_psf):
@@ -1050,8 +1048,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                 _, avg, _ = sigma_clipped_stats(masked_data)     
                                 
                             tmp[zz] = tmp[zz] - avg
-                        hdul[0].data = tmp                                            
-                        hdul.writeto(prod, output_verify='ignore', overwrite=True)
+                        write_fits(fitsfilename=prod, array=tmp, verbose=False)
     
     # 10-19 IFS
     if do_ifs:
