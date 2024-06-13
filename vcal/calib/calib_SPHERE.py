@@ -1048,7 +1048,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                 _, avg, _ = sigma_clipped_stats(masked_data)     
                                 
                             tmp[zz] = tmp[zz] - avg
-                        write_fits(fitsfilename=prod, array=tmp, verbose=False)
+                        write_fits(prod, tmp, header=head_tmp, verbose=False)
     
     # 10-19 IFS
     if do_ifs:
