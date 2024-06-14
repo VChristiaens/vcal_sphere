@@ -550,7 +550,6 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             for sk in range(master_sci_sky_tmp.shape[0]):
                                 master_sci_sky_tmp[sk] -= med_sky
                             # ACTUAL PCA SUBTRACTION
-                            set_trace()
                             sci_cube_tmp = cube_subtract_sky_pca(sci_cube_tmp,
                                                                  sky_cube=master_sci_sky_tmp, 
                                                                  masks=mask_arr[ii][s],
