@@ -459,7 +459,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             if n_sci>0:
                 # bad pixel maps
                 bp_map = open_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
-                # SKY PCA-SUBTR
+                # SKY PCA-SUBTR, need more than one sky frame for PCA-based subtraction
                 if isfile("{}master_sky_cube.fits".format(outpath_irdis_fits)) and pca_subtr:
                     
                     master_sky = open_fits("{}master_sky_cube.fits".format(outpath_irdis_fits))
@@ -875,14 +875,14 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                 for ii in range(len(sky_list_irdis)):
                                     f.write(inpath+sky_list_irdis[ii]+'\t'+'IRD_SKY_BG_RAW\n')
                             ## IF THERE is no SKY AT ALL => take INS BG (automatic calibration, but can have up to 20% flux difference level - e.g. J1900-3645 K band dataset)   
-                            elif len(ins_bg_list_irdis)>0:
-                                for ii in range(len(ins_bg_list_irdis)):
-                                    f.write(inpath+ins_bg_list_irdis[ii]+'\t'+'IRD_INS_BG_RAW\n')
+                            elif len(psf_ins_bg_list_irdis)>0:
+                                for ii in range(len(psf_ins_bg_list_irdis)):
+                                    f.write(inpath+psf_ins_bg_list_irdis[ii]+'\t'+'IRD_INS_BG_RAW\n')
                             else:
                                 print("WARNING: NO SKY NOR INS BG - PROXY SKY SUBTR AFTER REDUCTION WILL BE PERFORMED", flush=True)
                                 #raise ValueError("There is no appropriate sky nor ins bg")
                             f.write("{}master_badpixelmap.fits".format(outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
-                    if len(sky_list_irdis)>0:
+                    if len(psf_sky_list_irdis)>0:
                         if not isfile(outpath_irdis_fits+"psf_sky_bg.fits") or overwrite_sof or overwrite_fits:
                             command = "esorex sph_ird_sky_bg"
                             command+= " --ird.sky_bg.save_addprod=TRUE"
@@ -892,7 +892,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             command = "esorex sph_ird_ins_bg"
                             command+= " --ird.ins_bg.save_addprod=TRUE"
                             command+= " --ird.ins_bg.outfilename={}psf_sky_bg.fits".format(outpath_irdis_fits)
-                    command+= " {}master_bg.sof".format(outpath_irdis_sof)
+                    command+= " {}master_bg_psf.sof".format(outpath_irdis_sof)
                     os.system(command)
 
         # REDUCE
