@@ -1116,10 +1116,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         else:
                             raise TypeError("good_cen_idx can only be int, list or None")
                         write_fits(outpath+"TMP_good_frame_for_fine_centering.fits", good_frame)
-                        if ff ==0:
-                            debug = False
-                        else:
-                            debug=True
+
+                        if verbose:
+                            print("\nATTENTION: It is recommended to check the position matches with the blob"
+                                  " in TMP_good_frame_for_fine_centering.fits\n")
+
                         master_cube, shifts, sunc = cube_recenter_bkg(master_cube, 
                                                         derot_angles, 
                                                         fwhm=1.2*resel[ff], 
@@ -1135,7 +1136,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                         convolve=convolve_bkg, 
                                                         path_debug=outpath,
                                                         full_output=True,
-                                                        debug=debug,
+                                                        debug=False,
                                                         nproc=nproc)
                         n_fr = master_cube.shape[0]
                         final_shifts = np.zeros([4,n_fr])
