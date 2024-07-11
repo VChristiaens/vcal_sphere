@@ -717,7 +717,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             x_shifts_cen_std = np.zeros([ncen])
                                         mjd_cen[cc] = float(head_cc['MJD-OBS'])+(nfr_tmp*dits[-1]/2.)/(3600*24) # MJD-OBS corresponds to start of exposure
                                         # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots)
-                                        cube_cen_sub = cube_cen.copy()
+                                        cube_cen_sub = np.array(cube_cen, copy=True)
                                         if not use_cen_only:
                                             m_idx = find_nearest(mjd_mean,mjd_cen[cc])
                                             cube_near = open_fits(outpath+file_list[m_idx]+filt+"_1bpcorr.fits")
