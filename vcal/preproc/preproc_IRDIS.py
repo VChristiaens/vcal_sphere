@@ -732,13 +732,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                      full_output=True)
                                         cube_cen_sub, y_tmp, x_tmp, sat_y, sat_x = res
                                         if plot:
-                                            fig, ax = plot_frames(cube_cen_sub, dpi=300, cmap="inferno",
+                                            plot_frames(cube_cen_sub, dpi=300, cmap="inferno",
                                                         vmin=np.percentile(cube_cen_sub, q=1),
                                                         vmax=np.percentile(cube_cen_sub, q=99.9),
                                                         label=f"Subtracted \n{cen_cube_names[cc]}{filt}_1bpcorr.fits",
-                                                        label_size=8, return_fig_ax=True)
-                                            ax.scatter(sat_x, sat_y, s=50, c='red', marker='x')
-                                            plt.savefig(outpath+f"Detected_satspots_{cen_cube_names[cc]}{filt}.pdf")
+                                                        label_size=8, save=outpath+f"Detected_satspots_{cen_cube_names[cc]}{filt}.pdf")
+                                            plt.savefig()
                                             plt.close("all")
 
                                         y_shifts_cen_tmp.append(y_tmp)
