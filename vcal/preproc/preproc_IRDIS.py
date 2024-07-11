@@ -726,17 +726,20 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                   f"CEN cube {cen_cube_names[cc]}{filters_lab[ff]}_1bpcorr.fits\n", flush=True)
                                         diff = int((ori_sz-bp_crop_sz)/2)
                                         xy_spots_tmp = tuple([(xy_spots[ff][i][0]-diff,xy_spots[ff][i][1]-diff) for i in range(len(xy_spots[ff]))])
-                                        cube_cen_sub, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[2], 
-                                                                                                  sigfactor=sigfactor, plot=plot,
-                                                                                                  fit_type='moff', lbda=None, 
-                                                                                                  debug=debug, verbose=verbose, 
-                                                                                                  full_output=True)
+                                        res = cube_recenter_satspots(cube_cen_sub, xy_spots_tmp, subi_size=cen_box_sz[2],
+                                                                     sigfactor=sigfactor, plot=plot, fit_type='moff',
+                                                                     lbda=None, debug=debug, verbose=verbose,
+                                                                     full_output=True)
+                                        cube_cen_sub, y_tmp, x_tmp, sat_y, sat_x = res
                                         if plot:
-                                            plot_frames(cube_cen_sub, dpi=300, cmap="inferno",
+                                            fig, ax = plot_frames(cube_cen_sub, dpi=300, cmap="inferno",
                                                         vmin=np.percentile(cube_cen_sub, q=1),
                                                         vmax=np.percentile(cube_cen_sub, q=99.9),
                                                         label=f"Subtracted \n{cen_cube_names[cc]}{filt}_1bpcorr.fits",
-                                                        label_size=8, save=outpath+f"Detected_satspots_{cen_cube_names[cc]}{filt}.pdf")
+                                                        label_size=8, return_fig_ax=True)
+                                            ax.scatter(sat_x, sat_y, s=50, c='red', marker='x')
+                                            plt.savefig(outpath+f"Detected_satspots_{cen_cube_names[cc]}{filt}.pdf")
+                                            plt.close("all")
 
                                         y_shifts_cen_tmp.append(y_tmp)
                                         x_shifts_cen_tmp.append(x_tmp)
