@@ -925,6 +925,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             for ff, filt in enumerate(filters_lab):
                 for fi,file_list in enumerate(obj_psf_list):
                     print("fi:", fi)
+                    set_trace()
                     if fi == 0 and use_cen_only:
                         continue
                     if fi == 1 and npsf == 0:
