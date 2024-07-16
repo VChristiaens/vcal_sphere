@@ -259,18 +259,18 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     labels = ['']
     labels2 = ['obj']
     final_crop_szs = [final_crop_sz]
-    if npsf>0:
-        obj_psf_list.append(PSF_IRDIS_list)
-        labels.append('_psf')
-        labels2.append('psf')
-        final_crop_szs.append(final_crop_sz_psf)
-    else:
-        obj_psf_list.append(False)  # no PSF frames
-    if ncen>0:
-        obj_psf_list.append(CEN_IRDIS_list)
-        labels.append('_cen')
-        labels2.append('cen')
-        final_crop_szs.append(final_crop_sz)
+    # if npsf>0:
+    obj_psf_list.append(PSF_IRDIS_list)
+    labels.append('_psf')
+    labels2.append('psf')
+    final_crop_szs.append(final_crop_sz_psf)
+    # else:
+    #     obj_psf_list.append(False)  # no PSF frames
+    # if ncen>0:
+    obj_psf_list.append(CEN_IRDIS_list)
+    labels.append('_cen')
+    labels2.append('cen')
+    final_crop_szs.append(final_crop_sz)
     
     #if len(prefix) == 3:
     #    CEN_IRDIS_list = [x[:-5] for x in os.listdir(inpath) if x.startswith(prefix[2])]  # don't include ".fits"
@@ -431,11 +431,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     negative=coro
                     rec_met_tmp = rec_met
                 elif fi == 1:
-                    if npsf == 0:
-                        continue  # move on if there are no PSF cubes
-                    else:
-                        negative=False
-                        rec_met_tmp = rec_met_psf
+                    negative=False
+                    rec_met_tmp = rec_met_psf
                 else:
                     break  # CEN # Note: they are centered at the same time as OBJ (when dealing with the first OBJ cube more specifically)
                 if not file_list:
@@ -927,8 +924,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             for ff, filt in enumerate(filters_lab):
                 for fi,file_list in enumerate(obj_psf_list):
                     if fi == 0 and use_cen_only:
-                        continue
-                    if fi == 1 and npsf == 0:
                         continue
                     elif fi == 2 and not "satspots" in rec_met:
                         msg = "Are you sure you do not want to use the satellite spots for centering?"
