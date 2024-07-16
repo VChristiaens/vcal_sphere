@@ -264,6 +264,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         labels.append('_psf')
         labels2.append('psf')
         final_crop_szs.append(final_crop_sz_psf)
+    else:
+        obj_psf_list.append(False)  # no PSF frames
     if ncen>0:
         obj_psf_list.append(CEN_IRDIS_list)
         labels.append('_cen')
