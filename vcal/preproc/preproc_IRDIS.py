@@ -430,8 +430,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     negative=coro
                     rec_met_tmp = rec_met
                 elif fi == 1:
-                    negative=False
-                    rec_met_tmp = rec_met_psf
+                    if npsf == 0:
+                        break
+                    else:
+                        negative=False
+                        rec_met_tmp = rec_met_psf
                 else:
                     break  # CEN # Note: they are centered at the same time as OBJ (when dealing with the first OBJ cube more specifically)
                 if not file_list:
