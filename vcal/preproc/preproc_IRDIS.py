@@ -259,7 +259,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     labels = ['']
     labels2 = ['obj']
     final_crop_szs = [final_crop_sz]
-    set_trace()
     if npsf>0:
         obj_psf_list.append(PSF_IRDIS_list)
         labels.append('_psf')
