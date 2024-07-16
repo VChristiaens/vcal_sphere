@@ -430,7 +430,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     rec_met_tmp = rec_met
                 elif fi == 1:
                     if npsf == 0:
-                        break
+                        continue  # move on if there are no PSF cubes
                     else:
                         negative=False
                         rec_met_tmp = rec_met_psf
@@ -924,7 +924,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             print('************* 3. MASTER CUBES *************', flush=True)
             for ff, filt in enumerate(filters_lab):
                 for fi,file_list in enumerate(obj_psf_list):
-                    if fi == 0 and use_cen_only or fi == 1 and npsf == 0:
+                    if fi == 0 and use_cen_only:
+                        continue
+                    if fi == 1 and npsf == 0:
                         continue
                     elif fi == 2 and not "satspots" in rec_met:
                         msg = "Are you sure you do not want to use the satellite spots for centering?"
