@@ -821,8 +821,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         mjd_ori = float(header['MJD-OBS'])
 
                                         for zz in range(n_fr):
-                                            y_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,y_shifts_cen) - pacx
-                                            x_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,x_shifts_cen) - pacy
+                                            y_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,y_shifts_cen) - pacy
+                                            x_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,x_shifts_cen) - pacx
                                     else:
                                         ## NEW: "circular" interpolation based on cen shifts
                                         cy, cx = frame_center(cube)
