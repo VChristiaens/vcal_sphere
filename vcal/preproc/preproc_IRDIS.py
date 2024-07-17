@@ -645,6 +645,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             if ((fn>0 and fi==0) or fn>npsf-1) and use_cen_only:
                                 continue
                             cube, header = open_fits(outpath+filename+filt+"_1bpcorr.fits", header=True)
+                            cube = np.nan_to_num(cube, copy=False)  # check for nans
                             pacx = header["ESO INS1 PAC X"]/18  # 18 microns -> pixels, ref SPHERE manual
                             pacy = header["ESO INS1 PAC Y"]/18
                             n_fr=cube.shape[0]
