@@ -844,7 +844,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     
                                     for zz in range(n_fr):  
                                         cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz], imlib="opencv")
-                                    set_trace()
                                     if plot and fn == 0:
                                         plt.show() # show whichever previous plot is in memory
                                         colors = ['k','r','b','y','c','m','g']
