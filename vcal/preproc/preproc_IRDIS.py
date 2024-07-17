@@ -812,34 +812,35 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         set_trace()
                                         
                                 if not use_cen_only:
-                                    # APPLY THEM TO OBJ CUBES
+                                    # APPLY THEM TO OBJ CUBES and account for dithering
                                     
-                                    ## OLD: linear interpolation based on cen shifts  
-                                    #y_shifts = np.zeros(n_fr)
-                                    #x_shifts = np.zeros(n_fr)
-                                    #mjd_ori = float(header['MJD-OBS'])           
-                                    
-                                    #for zz in range(n_fr):     
-                                        #y_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,y_shifts_cen)    
-                                        #x_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,x_shifts_cen)                                                       
-                                        
-                                    ## NEW: "circular" interpolation based on cen shifts
-                                    cy, cx = frame_center(cube)
-                                    cen_xy = (cx, cy)
-                                    rot_x, rot_y, r, th0 = find_rot_cen(cen_xy, 
-                                                                        y_shifts_cen, 
-                                                                        x_shifts_cen, 
-                                                                        unique_pa_cen,
-                                                                        verbose=verbose)
-                                    rot_xy = (rot_x, rot_y)
-                                    pos_xy = circ_interp(n_fr, rot_xy, r, th0,
-                                                         unique_pa_cen, 
-                                                         pa_sci_ini[fn],
-                                                         pa_sci_fin[fn])
-                                    if verbose:
-                                        print(pos_xy, flush=True)
-                                    x_shifts = cx - pos_xy[0] - pacx  # account for dithering, if any
-                                    y_shifts = cy - pos_xy[1] - pacy
+                                    ## OLD: linear interpolation based on cen shifts (if only one CEN cube)
+                                    if len(unique_pa_cen) == 1:
+                                        y_shifts = np.zeros(n_fr)
+                                        x_shifts = np.zeros(n_fr)
+                                        mjd_ori = float(header['MJD-OBS'])
+
+                                        for zz in range(n_fr):
+                                            y_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,y_shifts_cen) - pacx
+                                            x_shifts[zz] = np.interp([mjd_ori+(dits[fi]*zz/n_fr)/(3600*24)],unique_mjd_cen,x_shifts_cen) - pacy
+                                    else:
+                                        ## NEW: "circular" interpolation based on cen shifts
+                                        cy, cx = frame_center(cube)
+                                        cen_xy = (cx, cy)
+                                        rot_x, rot_y, r, th0 = find_rot_cen(cen_xy,
+                                                                            y_shifts_cen,
+                                                                            x_shifts_cen,
+                                                                            unique_pa_cen,
+                                                                            verbose=verbose)
+                                        rot_xy = (rot_x, rot_y)
+                                        pos_xy = circ_interp(n_fr, rot_xy, r, th0,
+                                                             unique_pa_cen,
+                                                             pa_sci_ini[fn],
+                                                             pa_sci_fin[fn])
+                                        if verbose:
+                                            print(f"pos_xy: {pos_xy}", flush=True)
+                                        x_shifts = cx - pos_xy[0] - pacx
+                                        y_shifts = cy - pos_xy[1] - pacy
                                     
                                     for zz in range(n_fr):  
                                         cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz], imlib="opencv")
