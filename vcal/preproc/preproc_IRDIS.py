@@ -259,18 +259,17 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     labels = ['']
     labels2 = ['obj']
     final_crop_szs = [final_crop_sz]
-    # if npsf>0:
-    obj_psf_list.append(PSF_IRDIS_list)
-    labels.append('_psf')
-    labels2.append('psf')
-    final_crop_szs.append(final_crop_sz_psf)
-    # else:
-    #     obj_psf_list.append(False)  # no PSF frames
-    # if ncen>0:
-    obj_psf_list.append(CEN_IRDIS_list)
-    labels.append('_cen')
-    labels2.append('cen')
-    final_crop_szs.append(final_crop_sz)
+    if npsf>0:
+        obj_psf_list.append(PSF_IRDIS_list)
+        labels.append('_psf')
+        labels2.append('psf')
+        final_crop_szs.append(final_crop_sz_psf)
+
+    if ncen>0:
+        obj_psf_list.append(CEN_IRDIS_list)
+        labels.append('_cen')
+        labels2.append('cen')
+        final_crop_szs.append(final_crop_sz)
     
     #if len(prefix) == 3:
     #    CEN_IRDIS_list = [x[:-5] for x in os.listdir(inpath) if x.startswith(prefix[2])]  # don't include ".fits"
