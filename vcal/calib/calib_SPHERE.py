@@ -619,6 +619,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         
                 # ELSE: we compute the master sky with sph sky recipe, which will then be passed to the reduction recipe
                 else:
+                    sky_list_irdis = dico_lists['sky_list_irdis']
                     if not isfile(outpath_irdis_sof+"master_bg.sof") or overwrite_sof:
                         ins_bg_list_irdis = dico_lists['ins_bg_list_irdis']
                         with open(outpath_irdis_sof+"master_bg.sof", 'w+') as f:
