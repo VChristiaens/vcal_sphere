@@ -748,8 +748,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             plt.close("all")
 
                                         # account for any dithering in the CEN cubes
-                                        y_tmp += pacy_cen
-                                        x_tmp += pacx_cen
+                                        y_tmp -= pacy_cen
+                                        x_tmp -= pacx_cen
 
                                         y_shifts_cen_tmp.append(y_tmp)
                                         x_shifts_cen_tmp.append(x_tmp)
