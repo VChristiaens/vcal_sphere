@@ -710,7 +710,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         pacx_cen = head_cc["ESO INS1 PAC X"]/18
                                         pacy_cen = head_cc["ESO INS1 PAC Y"]/18
                                         if abs(pacx_cen) > 0.5 or abs(pacy_cen) > 0.5:
-                                            print("ATTENTION: Dithering detected in CEN cubes. This will be accounted for.", flush=True)
+                                            print("\nATTENTION: Dithering detected in CEN cubes. This will be accounted for.\n", flush=True)
 
                                         pa_cen.append(float(head_cc["HIERARCH ESO TEL PARANG START"]))
                                         cube_cen = open_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_1bpcorr.fits")
