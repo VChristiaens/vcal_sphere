@@ -709,7 +709,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         # intersection of the sat spots is not at the center of the star in OBJ cubes
                                         pacx_cen = head_cc["ESO INS1 PAC X"]/18
                                         pacy_cen = head_cc["ESO INS1 PAC Y"]/18
-                                        if abs(pacx_cen) > 1 or abs(pacy_cen) > 1:
+                                        if abs(pacx_cen) > 0.5 or abs(pacy_cen) > 0.5:
                                             print("ATTENTION: Dithering detected in CEN cubes. This will be accounted for.", flush=True)
 
                                         pa_cen.append(float(head_cc["HIERARCH ESO TEL PARANG START"]))
