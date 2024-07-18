@@ -703,8 +703,15 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     mjd_cen = np.zeros(ncen)
                                     pa_cen = []
                                     for cc in range(ncen):
-                                        ### first get the MJD time of each cube     
+                                        ### first get the MJD time of each cube
                                         head_cc = open_header(inpath+cen_cube_names[cc]+filters_lab[ff])
+                                        # rare chance a CEN cube can have a dither value of 1 px or more, meaning the
+                                        # intersection of the sat spots is not at the center of the star in OBJ cubes
+                                        pacx_cen = head_cc["ESO INS1 PAC X"]/18
+                                        pacy_cen = head_cc["ESO INS1 PAC Y"]/18
+                                        if abs(pacx_cen) > 1 or abs(pacy_cen) > 1:
+                                            print("ATTENTION: Dithering detected in CEN cubes. This will be accounted for.", flush=True)
+
                                         pa_cen.append(float(head_cc["HIERARCH ESO TEL PARANG START"]))
                                         cube_cen = open_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_1bpcorr.fits")
                                         nfr_tmp = cube_cen.shape[0]
@@ -731,7 +738,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                      sigfactor=sigfactor, plot=plot, fit_type='moff',
                                                                      lbda=None, debug=debug, verbose=verbose,
                                                                      full_output=True)
-                                        cube_cen_sub, y_tmp, x_tmp, sat_y, sat_x = res
+                                        cube_cen_sub, y_tmp, x_tmp, _, _ = res
                                         if plot:
                                             plot_frames(cube_cen_sub, dpi=300, cmap="inferno",
                                                         vmin=np.percentile(cube_cen_sub, q=1),
@@ -739,6 +746,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                         label=f"Subtracted \n{cen_cube_names[cc]}{filt}_1bpcorr.fits",
                                                         label_size=8, save=outpath+f"Detected_satspots_{cen_cube_names[cc]}{filt}.pdf")
                                             plt.close("all")
+
+                                        # account for any dithering in the CEN cubes
+                                        y_tmp -= pacy_cen
+                                        x_tmp -= pacx_cen
 
                                         y_shifts_cen_tmp.append(y_tmp)
                                         x_shifts_cen_tmp.append(x_tmp)
