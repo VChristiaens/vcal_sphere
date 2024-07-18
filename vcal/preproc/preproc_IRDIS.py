@@ -747,7 +747,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                         label_size=8, save=outpath+f"Detected_satspots_{cen_cube_names[cc]}{filt}.pdf")
                                             plt.close("all")
 
-                                        # account for any dithering in the CEN cubes
+                                        # account for any dithering in the CEN cubes (extremely rare). if not accounted
+                                        # for, the satspot intersection won't correspond to the same position in OBJ cubes
                                         y_tmp += pacy_cen
                                         x_tmp += pacx_cen
 
