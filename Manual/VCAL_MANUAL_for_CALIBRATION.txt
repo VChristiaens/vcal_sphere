@@ -105,7 +105,7 @@ STEPS:
 
     ## sky
     "sky": True, # for IFS only, whether to manually subtract sky before reduction
-    "manual_sky": True, # for EITHER IRDIS or IFS, whether to subtract residual bkg level manually *after* reduction (recommended). Note: for IRDIS, the value is irrelevant if pca_subtr is set to True.
+    "manual_sky": True, # for IFS, whether to subtract residual bkg level manually *after* reduction (recommended). Note: for IRDIS, the value is irrelevant if pca_subtr is set to True.
     "mask_pca_sky_sub": only relevant for IRDIS data when pca_subtr is True. Default: [200,400,4,20,[40,142,180+40,180+142]]" #params for ringed spider mask, respectively: 
 	- inner rad of annulus in pixels, 
 	- outer rad of annulus in pixels, 
