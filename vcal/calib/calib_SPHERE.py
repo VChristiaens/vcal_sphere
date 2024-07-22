@@ -638,12 +638,14 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         if not isfile(outpath_irdis_fits+"sky_bg_fit.fits") or overwrite_sof or overwrite_fits:
                             command = "esorex sph_ird_sky_bg"
                             command+= " --ird.sky_bg.save_addprod=TRUE"
-                            command+= " --ird.sky_bg.outfilename={}sky_bg.fits".format(outpath_irdis_fits)                  
+                            command+= " --ird.sky_bg.outfilename={}sky_bg.fits".format(outpath_irdis_fits)
+                            command+= " --ird.sky_bg.lsf_outfilename={}sky_bg_fit.fits".format(outpath_irdis_fits)
                     else:
                         if not isfile(outpath_irdis_fits+"ins_bg_fit.fits") or overwrite_sof or overwrite_fits:
                             command = "esorex sph_ird_ins_bg"
                             command+= " --ird.ins_bg.save_addprod=TRUE"
                             command+= " --ird.ins_bg.outfilename={}ins_bg.fits".format(outpath_irdis_fits)
+                            command+= " --ird.ins_bg.lsf_outfilename={}ins_bg_fit.fits".format(outpath_irdis_fits)
                     command+= " {}master_bg.sof".format(outpath_irdis_sof)
                     os.system(command)
                 
@@ -887,12 +889,14 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         if not isfile(outpath_irdis_fits+"psf_sky_bg.fits") or overwrite_sof or overwrite_fits:
                             command = "esorex sph_ird_sky_bg"
                             command+= " --ird.sky_bg.save_addprod=TRUE"
-                            command+= " --ird.sky_bg.outfilename={}psf_sky_bg.fits".format(outpath_irdis_fits)                 
+                            command+= " --ird.sky_bg.outfilename={}psf_sky_bg.fits".format(outpath_irdis_fits)
+                            command+= " --ird.sky_bg.lsf_outfilename={}psf_sky_bg_fit.fits".format(outpath_irdis_fits)
                     else:
                         if not isfile(outpath_irdis_fits+"psf_sky_bg.fits") or overwrite_sof or overwrite_fits:
                             command = "esorex sph_ird_ins_bg"
                             command+= " --ird.ins_bg.save_addprod=TRUE"
-                            command+= " --ird.ins_bg.outfilename={}psf_sky_bg.fits".format(outpath_irdis_fits)
+                            command+= " --ird.ins_bg.outfilename={}psf_ins_bg.fits".format(outpath_irdis_fits)
+                            command+= " --ird.ins_bg.lsf_outfilename={}psf_ins_bg_fit.fits".format(outpath_irdis_fits)
                     command+= " {}master_bg_psf.sof".format(outpath_irdis_sof)
                     os.system(command)
 
