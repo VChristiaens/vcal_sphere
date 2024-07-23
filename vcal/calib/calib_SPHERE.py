@@ -931,8 +931,10 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             else:
                                 if isfile("{}sky_bg.fits".format(outpath_irdis_fits)):
                                     f.write("{}sky_bg.fits".format(outpath_irdis_fits)+'\t'+'IRD_SKY_BG\n')
+                                    f.write("{}sky_bg_fit.fits".format(outpath_irdis_fits)+'\t'+'IRD_SKY_BG_FIT\n')
                                 elif isfile("{}ins_bg.fits".format(outpath_irdis_fits)):
                                     f.write("{}ins_bg.fits".format(outpath_irdis_fits)+'\t'+'IRD_INS_BG\n')
+                                    f.write("{}ins_bg_fit.fits".format(outpath_irdis_fits)+'\t'+'IRD_INS_BG_FIT\n')
                                 else:
                                     f.write("{}master_dark.fits".format(outpath_irdis_fits)+' \t'+'IRD_MASTER_DARK\n')
                             f.write("{}master_flat.fits".format(outpath_irdis_fits)+'\t'+'IRD_FLAT_FIELD\n')
@@ -956,8 +958,10 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             else:
                                 if isfile("{}sky_bg.fits".format(outpath_irdis_fits)):
                                     f.write("{}sky_bg.fits".format(outpath_irdis_fits)+'\t'+'IRD_SKY_BG\n')
+                                    f.write("{}sky_bg_fit.fits".format(outpath_irdis_fits) + '\t' + 'IRD_SKY_BG_FIT\n')
                                 elif isfile("{}ins_bg.fits".format(outpath_irdis_fits)):
                                     f.write("{}ins_bg.fits".format(outpath_irdis_fits)+'\t'+'IRD_INS_BG\n')
+                                    f.write("{}ins_bg_fit.fits".format(outpath_irdis_fits)+'\t'+'IRD_INS_BG_FIT\n')
                                 else:
                                     f.write("{}master_dark.fits".format(outpath_irdis_fits)+' \t'+'IRD_MASTER_DARK\n')
                             f.write("{}master_flat.fits".format(outpath_irdis_fits)+'\t'+'IRD_FLAT_FIELD\n')
@@ -981,8 +985,10 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             else:
                                 if isfile("{}psf_sky_bg.fits".format(outpath_irdis_fits)):
                                     f.write("{}psf_sky_bg.fits".format(outpath_irdis_fits)+'\t'+'IRD_SKY_BG\n')
+                                    f.write("{psf_sky_bg_fit.fits".format(outpath_irdis_fits)+'\t'+'IRD_SKY_BG_FIT\n')
                                 elif isfile("{}psf_ins_bg.fits".format(outpath_irdis_fits)):
                                     f.write("{}psf_ins_bg.fits".format(outpath_irdis_fits)+'\t'+'IRD_INS_BG\n')
+                                    f.write("{}psf_ins_bg_fit.fits".format(outpath_irdis_fits)+'\t'+'IRD_INS_BG_FIT\n')
                                 else:
                                     f.write("{}master_dark.fits".format(outpath_irdis_fits)+'\t'+'IRD_MASTER_DARK\n')
                             f.write("{}master_flat.fits".format(outpath_irdis_fits)+'\t'+'IRD_FLAT_FIELD\n')
