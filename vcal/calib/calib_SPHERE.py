@@ -635,17 +635,13 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                 #raise ValueError("There is no appropriate sky nor ins bg")
                             f.write("{}master_badpixelmap.fits".format(outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
                     if len(sky_list_irdis)>0:
-                        if not isfile(outpath_irdis_fits+"sky_bg_fit.fits") or overwrite_sof or overwrite_fits:
+                        if not isfile(outpath_irdis_fits+"sky_bg.fits") or overwrite_sof or overwrite_fits:
                             command = "esorex sph_ird_sky_bg"
-                            command+= " --ird.sky_bg.save_addprod=TRUE"
                             command+= " --ird.sky_bg.outfilename={}sky_bg.fits".format(outpath_irdis_fits)
-                            command+= " --ird.sky_bg.lsf_outfilename={}sky_bg_fit.fits".format(outpath_irdis_fits)
                     else:
-                        if not isfile(outpath_irdis_fits+"ins_bg_fit.fits") or overwrite_sof or overwrite_fits:
+                        if not isfile(outpath_irdis_fits+"ins_bg.fits") or overwrite_sof or overwrite_fits:
                             command = "esorex sph_ird_ins_bg"
-                            command+= " --ird.ins_bg.save_addprod=TRUE"
                             command+= " --ird.ins_bg.outfilename={}ins_bg.fits".format(outpath_irdis_fits)
-                            command+= " --ird.ins_bg.lsf_outfilename={}ins_bg_fit.fits".format(outpath_irdis_fits)
                     command+= " {}master_bg.sof".format(outpath_irdis_sof)
                     os.system(command)
                 
@@ -888,15 +884,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     if len(psf_sky_list_irdis)>0:
                         if not isfile(outpath_irdis_fits+"psf_sky_bg.fits") or overwrite_sof or overwrite_fits:
                             command = "esorex sph_ird_sky_bg"
-                            command+= " --ird.sky_bg.save_addprod=TRUE"
                             command+= " --ird.sky_bg.outfilename={}psf_sky_bg.fits".format(outpath_irdis_fits)
-                            command+= " --ird.sky_bg.lsf_outfilename={}psf_sky_bg_fit.fits".format(outpath_irdis_fits)
                     else:
                         if not isfile(outpath_irdis_fits+"psf_sky_bg.fits") or overwrite_sof or overwrite_fits:
                             command = "esorex sph_ird_ins_bg"
-                            command+= " --ird.ins_bg.save_addprod=TRUE"
                             command+= " --ird.ins_bg.outfilename={}psf_ins_bg.fits".format(outpath_irdis_fits)
-                            command+= " --ird.ins_bg.lsf_outfilename={}psf_ins_bg_fit.fits".format(outpath_irdis_fits)
                     command+= " {}master_bg_psf.sof".format(outpath_irdis_sof)
                     os.system(command)
 
@@ -931,10 +923,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             else:
                                 if isfile("{}sky_bg.fits".format(outpath_irdis_fits)):
                                     f.write("{}sky_bg.fits".format(outpath_irdis_fits)+'\t'+'IRD_SKY_BG\n')
-                                    f.write("{}sky_bg_fit.fits".format(outpath_irdis_fits)+'\t'+'IRD_SKY_BG_FIT\n')
                                 elif isfile("{}ins_bg.fits".format(outpath_irdis_fits)):
                                     f.write("{}ins_bg.fits".format(outpath_irdis_fits)+'\t'+'IRD_INS_BG\n')
-                                    f.write("{}ins_bg_fit.fits".format(outpath_irdis_fits)+'\t'+'IRD_INS_BG_FIT\n')
                                 else:
                                     f.write("{}master_dark.fits".format(outpath_irdis_fits)+' \t'+'IRD_MASTER_DARK\n')
                             f.write("{}master_flat.fits".format(outpath_irdis_fits)+'\t'+'IRD_FLAT_FIELD\n')
@@ -958,10 +948,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             else:
                                 if isfile("{}sky_bg.fits".format(outpath_irdis_fits)):
                                     f.write("{}sky_bg.fits".format(outpath_irdis_fits)+'\t'+'IRD_SKY_BG\n')
-                                    f.write("{}sky_bg_fit.fits".format(outpath_irdis_fits) + '\t' + 'IRD_SKY_BG_FIT\n')
                                 elif isfile("{}ins_bg.fits".format(outpath_irdis_fits)):
                                     f.write("{}ins_bg.fits".format(outpath_irdis_fits)+'\t'+'IRD_INS_BG\n')
-                                    f.write("{}ins_bg_fit.fits".format(outpath_irdis_fits)+'\t'+'IRD_INS_BG_FIT\n')
                                 else:
                                     f.write("{}master_dark.fits".format(outpath_irdis_fits)+' \t'+'IRD_MASTER_DARK\n')
                             f.write("{}master_flat.fits".format(outpath_irdis_fits)+'\t'+'IRD_FLAT_FIELD\n')
@@ -985,10 +973,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             else:
                                 if isfile("{}psf_sky_bg.fits".format(outpath_irdis_fits)):
                                     f.write("{}psf_sky_bg.fits".format(outpath_irdis_fits)+'\t'+'IRD_SKY_BG\n')
-                                    f.write("{psf_sky_bg_fit.fits".format(outpath_irdis_fits)+'\t'+'IRD_SKY_BG_FIT\n')
                                 elif isfile("{}psf_ins_bg.fits".format(outpath_irdis_fits)):
                                     f.write("{}psf_ins_bg.fits".format(outpath_irdis_fits)+'\t'+'IRD_INS_BG\n')
-                                    f.write("{}psf_ins_bg_fit.fits".format(outpath_irdis_fits)+'\t'+'IRD_INS_BG_FIT\n')
                                 else:
                                     f.write("{}master_dark.fits".format(outpath_irdis_fits)+'\t'+'IRD_MASTER_DARK\n')
                             f.write("{}master_flat.fits".format(outpath_irdis_fits)+'\t'+'IRD_FLAT_FIELD\n')
