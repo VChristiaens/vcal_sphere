@@ -1071,6 +1071,9 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             with open(outpath_ifs_sof+"master_dark.sof", 'w+') as f:
                 for ii in range(len(dark_list_ifs)):
                     dark_cube, dark_head = open_fits(inpath+dark_list_ifs[ii], header=True, verbose=False)
+                    if dark_head['HIERARCH ESO DET SEQ1 DIT'].round(2) == 1.65:
+                        # if it's 1.65s, replace with the super dark
+                        dark_list_ifs[ii] = vcal_path[0][:-4] + "Static/ifs_super_dark_1.65s.fits"
                     f.write(inpath+dark_list_ifs[ii]+'\t'+'IFS_DARK_RAW\n')
                     if dark_cube.ndim == 3:
                         if ii == 0:
@@ -1129,6 +1132,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             dark_cube, fdark_head = open_fits(inpath+fdark_list_ifs[dd], header=True, verbose=False)
                             dit_fdark = fdark_head['HIERARCH ESO DET SEQ1 DIT']
                             if dit_fdark == fdit:
+                                if dit_fdark.round(2) == 1.65:
+                                    fdark_list_ifs[dd] = vcal_path[0][:-4] + "Static/ifs_super_dark_1.65s.fits"
                                 f.write(inpath+fdark_list_ifs[dd]+'\t'+'IFS_DARK_RAW\n')
                                 master_dark_cube[counter:counter+dark_cube.shape[0]] = np.copy(dark_cube)
                                 counter += dark_cube.shape[0]
