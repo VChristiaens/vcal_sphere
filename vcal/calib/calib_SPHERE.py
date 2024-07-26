@@ -1071,7 +1071,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             with open(outpath_ifs_sof+"master_dark.sof", 'w+') as f:
                 for ii in range(len(dark_list_ifs)):
                     dark_cube, dark_head = open_fits(inpath+dark_list_ifs[ii], header=True, verbose=False)
-                    if np.round(dark_head['HIERARCH ESO DET SEQ1 DIT'], decimals=2) == 1.65 and dark_head["MJD"] < 58852:
+                    if np.round(dark_head['HIERARCH ESO DET SEQ1 DIT'], decimals=2) == 1.65 and dark_head["MJD-OBS"] < 58852:
                         # if it's 1.65s and before the shutdown, replace with the super dark
                         dark_list_ifs[ii] = "ifs_super_dark_1.65s.fits"
                         os.system("cp {} {}".format(vcal_path[0][:-4] + "Static/ifs_super_dark_1.65s.fits", inpath))
