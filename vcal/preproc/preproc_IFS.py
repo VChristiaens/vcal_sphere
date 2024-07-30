@@ -1023,7 +1023,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         _, _, fwhm[zz] = normalize_psf(np.median(cube[zz], axis=0), fwhm="fit", size=final_crop_sz_psf_tmp,
                                                        threshold=None, mask_core=None, model=psf_model, imlib="opencv",
                                                        interpolation="lanczos4", force_odd=True, full_output=True,
-                                                       verbose=debug, debug=False)
+                                                       verbose=debug, debug=False, correct_outliers=True)
                     write_fits(outpath+f"TMP_fwhm{labels[fi_tmp]}.fits", fwhm, verbose=debug)
                 else:
                     fwhm = open_fits(outpath+f"TMP_fwhm{labels[fi_tmp]}.fits", verbose=debug)
