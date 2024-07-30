@@ -561,6 +561,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             else:
                                 xy = None
                             if "2dfit" in rec_met_tmp:
+                                set_trace()
                                 cube, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=xy, fwhm=1.2*max_resel, subi_size=cen_box_sz[fi], model=rec_met_tmp[:-6],
                                                                            nproc=nproc, imlib='opencv', interpolation='lanczos4',
                                                                            offset=None, negative=negative, threshold=False,
