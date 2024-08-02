@@ -973,14 +973,19 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             true_ndit = open_fits(inpath + "../fits/true_ndit_obj.fits", verbose=debug)
                         elif fi == 2:
                             true_ndit = open_fits(inpath + "../fits/true_ndit_cen.fits", verbose=debug)
-                        for nn in range(len(file_list)):
+                        frame_index = 0
+                        for nn, num_frames in enumerate(true_ndit):
                             x = parang_st[nn]
                             y = parang_nd[nn]
-                            parang = x +(y-x)*(0.5+(nn%true_ndit[nn]))/true_ndit[nn]
-                            final_derot_angles[nn] = parang + TN + pup_off + ifs_off #+ posang[nn]
-                            final_par_angles[nn] = parang
-                        write_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]), final_derot_angles, verbose=debug)
-                        write_fits(outpath+"1_master_par_angles{}.fits".format(labels[fi]), final_par_angles, verbose=debug)
+                            for frame in range(num_frames):
+                                parang = x + (y - x) * (0.5 + (frame % true_ndit[nn])) / true_ndit[nn]
+                                final_derot_angles[frame_index] = parang + TN + pup_off + ifs_off
+                                final_par_angles[frame_index] = parang
+                                frame_index += 1
+                        write_fits(outpath + "1_master_derot_angles{}.fits".format(labels[fi]), final_derot_angles,
+                                   verbose=debug)
+                        write_fits(outpath + "1_master_par_angles{}.fits".format(labels[fi]), final_par_angles,
+                                   verbose=debug)
 
         #********************* PLOTS + TRIM BAD FRAMES OUT ************************
 
