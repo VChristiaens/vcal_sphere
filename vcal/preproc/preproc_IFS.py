@@ -970,22 +970,20 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         final_derot_angles = np.zeros(len(file_list))
                         final_par_angles = np.zeros(len(file_list))
                         if fi == 0:
-                            true_ndit = open_fits(inpath + "../fits/true_ndit_obj.fits", verbose=debug)
+                            true_ndit = open_fits(inpath + "../fits/true_ndit_obj.fits", verbose=debug, precision=int)
                         elif fi == 2:
-                            true_ndit = open_fits(inpath + "../fits/true_ndit_cen.fits", verbose=debug)
+                            true_ndit = open_fits(inpath + "../fits/true_ndit_cen.fits", verbose=debug, precision=int)
                         frame_index = 0
                         for nn, num_frames in enumerate(true_ndit):
                             x = parang_st[nn]
                             y = parang_nd[nn]
-                            for frame in range(num_frames):
+                            for frame in range(num_frames):  # extra loop to deal with NDIT being inconsistent sometimes
                                 parang = x + (y - x) * (0.5 + (frame % true_ndit[nn])) / true_ndit[nn]
                                 final_derot_angles[frame_index] = parang + TN + pup_off + ifs_off
                                 final_par_angles[frame_index] = parang
                                 frame_index += 1
-                        write_fits(outpath + "1_master_derot_angles{}.fits".format(labels[fi]), final_derot_angles,
-                                   verbose=debug)
-                        write_fits(outpath + "1_master_par_angles{}.fits".format(labels[fi]), final_par_angles,
-                                   verbose=debug)
+                        write_fits(outpath + "1_master_derot_angles{}.fits".format(labels[fi]), final_derot_angles, verbose=debug)
+                        write_fits(outpath + "1_master_par_angles{}.fits".format(labels[fi]), final_par_angles, verbose=debug)
 
         #********************* PLOTS + TRIM BAD FRAMES OUT ************************
 
