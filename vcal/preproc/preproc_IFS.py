@@ -267,7 +267,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
         else:  # case there are only CEN files
             cube, header = open_fits(inpath+CEN_IFS_list[0]+".fits", header=True, verbose=debug)
         dit_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
-        ndit_ifs = float(header['HIERARCH ESO DET NDIT'])
         #filt1 = header['HIERARCH ESO INS1 FILT NAME']
         #filt2 = header['HIERARCH ESO INS1 OPTI2 NAME']
         lbda_0 = float(header['CRVAL3'])
@@ -286,13 +285,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             nd_transmission_SCI = [1]*len(nd_wavelen)
 
         nd_trans = [nd_transmission_SCI]
-        dits = [dit_ifs]
-        ndits = [ndit_ifs]
 
         if npsf > 0:
             header = open_header(inpath+PSF_IFS_list[0]+'.fits')
             dit_psf_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
-            ndit_psf_ifs = float(header['HIERARCH ESO DET NDIT'])
             nd_filter_PSF = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
             try:
                 nd_transmission_PSF = nd_file[nd_filter_PSF]
@@ -300,26 +296,19 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                 nd_transmission_PSF = [1]*len(nd_wavelen)
 
             nd_trans.append(nd_transmission_PSF)
-            dits.append(dit_psf_ifs)
-            ndits.append(ndit_psf_ifs)
 
         if not coro and not npsf:  # OBJ will be used as PSF
             final_crop_szs.append(final_crop_sz_psf)
-            dit_psf_ifs = dit_ifs
 
         # Check that transmission is correct
         if ncen > 0:
             header = open_header(inpath+CEN_IFS_list[0]+'.fits')
-            dit_cen_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
-            ndit_cen_ifs = float(header['HIERARCH ESO DET NDIT'])
             nd_filter_CEN = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
             try:
                 nd_transmission_CEN = nd_file[nd_filter_CEN]
             except:
                 nd_transmission_CEN = [1]*len(nd_wavelen)
             nd_trans.append(nd_transmission_CEN)
-            dits.append(dit_cen_ifs)
-            ndits.append(ndit_cen_ifs)
 
         resels = lbdas*0.206265/(plsc*diam)
         max_resel = np.amax(resels)
@@ -344,10 +333,10 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         cube[mask == 2] = 0  # set values of 2 (empty data) in the mask to 0 in the image
                         if cube.shape[1] % 2 == 0 and cube.shape[2] % 2 == 0:
                             cube = cube[:, 1:, 1:]
-                            header["NAXIS1"] = cube.shape[1]
-                            header["NAXIS2"] = cube.shape[2]
                         if 0 < bp_crop_sz < cube.shape[1]:
                             cube = cube_crop_frames(cube, bp_crop_sz, verbose=debug)
+                        header["NAXIS1"] = cube.shape[1]
+                        header["NAXIS2"] = cube.shape[2]
                         cube = cube_fix_badpix_clump(cube, bpm_mask=None, cy=None, cx=None, fwhm=1.2*resels,
                                                      sig=6, protect_mask=0, verbose=full_output,
                                                      half_res_y=False, max_nit=max_bpix_nit, full_output=full_output,
@@ -943,13 +932,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
             print("\n************* 3. MASTER CUBES *************\n", flush=True)
             for fi,file_list in enumerate(obj_psf_list):
                 if fi == 0 and use_cen_only:
-                    continue
-                if not isfile(outpath+"1_master_ASDIcube{}.fits".format(labels[fi])) or not isfile(outpath+"1_master_derot_angles.fits") or overwrite[2]:
-                    #master_cube = np.zeros([n_z,len(file_list),final_crop_szs[fi],final_crop_szs[fi]])
+                    continue  # skip OBJ
+                if (not isfile(outpath+"1_master_ASDIcube{}.fits".format(labels[fi])) or not isfile(outpath+"1_master_derot_angles.fits") or overwrite[2]):
                     if fi!=1:
                         parang_st = []
                         parang_nd = []
-                        #posang = []
                     for nn, filename in enumerate(file_list):
                         cube, header = open_fits(outpath+filename+"_2cen.fits", header=True, verbose=debug)
                         if nn == 0:
@@ -982,10 +969,14 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     if fi!=1:
                         final_derot_angles = np.zeros(len(file_list))
                         final_par_angles = np.zeros(len(file_list))
+                        if fi == 0:
+                            true_ndit = open_fits(inpath + "../fits/true_ndit_obj.fits", verbose=debug)
+                        elif fi == 2:
+                            true_ndit = open_fits(inpath + "../fits/true_ndit_cen.fits", verbose=debug)
                         for nn in range(len(file_list)):
                             x = parang_st[nn]
                             y = parang_nd[nn]
-                            parang = x +(y-x)*(0.5+(nn%ndits[fi]))/ndits[fi]
+                            parang = x +(y-x)*(0.5+(nn%true_ndit[nn]))/true_ndit[nn]
                             final_derot_angles[nn] = parang + TN + pup_off + ifs_off #+ posang[nn]
                             final_par_angles[nn] = parang
                         write_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]), final_derot_angles, verbose=debug)
