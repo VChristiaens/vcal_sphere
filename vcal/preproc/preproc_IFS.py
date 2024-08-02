@@ -972,13 +972,15 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         # open real ndit from calibration
                         true_ndit = open_fits(inpath + f"../fits/true_ndit_{labels2[fi]}.fits", verbose=debug, precision=int)
 
+                        counter = 0
                         for nn, ndit in enumerate(true_ndit):
                             set_trace()
-                            x = parang_st[ndit-1]
-                            y = parang_nd[ndit-1]
+                            x = parang_st[counter]
+                            y = parang_nd[counter]
                             parang = x + (y - x) * (0.5 + np.arange(ndit)) / ndit
                             final_derot_angles.extend(list(parang + TN + pup_off + ifs_off))
                             final_par_angles.extend(list(parang))
+                            counter += ndit
                         write_fits(outpath + "1_master_derot_angles{}.fits".format(labels[fi]), np.array(final_derot_angles), verbose=debug)
                         write_fits(outpath + "1_master_par_angles{}.fits".format(labels[fi]), np.array(final_par_angles), verbose=debug)
 
