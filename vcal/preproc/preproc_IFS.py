@@ -973,6 +973,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         true_ndit = open_fits(inpath + f"../fits/true_ndit_{labels2[fi]}.fits", verbose=debug, precision=int)
 
                         for nn, ndit in enumerate(true_ndit):
+                            set_trace()
                             x = parang_st[ndit-1]
                             y = parang_nd[ndit-1]
                             parang = x + (y - x) * (0.5 + np.arange(ndit)) / ndit
