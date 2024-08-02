@@ -1750,6 +1750,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 print("*** 18. IFS: Reduce all OBJECT datacubes ***", flush=True)
             # MANUAL SKY SUBTRACTION BEF REDUCTION
             sci_list_ifs = dico_lists['sci_list_ifs']
+            true_ndit = np.zeros(len(sci_list_ifs), dtype=int)
             hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), ignore_missing_end=False,
                                    memmap=True)
         
@@ -1758,6 +1759,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 hdul = fits.open(inpath+sci_list_ifs[ii])
                 cube = hdul[0].data
                 cube = np.array(cube, dtype=np.float32)
+                true_ndit[ii] = hdul[0].header['HIERARCH ESO DET NDIT']
                 
                 if sky:
                     tmp_tmp = open_fits("{}master_sky.fits".format(outpath_ifs_fits))
@@ -1847,12 +1849,14 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
                 os.system("mv {} {}.".format(lab_bp+instr+'*.fits',outpath_ifs_calib))
                 os.system("rm {}{}".format(outpath_ifs_fits,"tmp*.fits"))
+            write_fits(outpath_ifs_fits + "true_ndit_obj.fits", true_ndit, verbose=False)
 
         # REDUCE CEN
         if 19 in to_do:
             if verbose:
                 print("*** 19. IFS: Reduce all CEN data cubes ***", flush=True)
             cen_list_ifs = dico_lists['cen_list_ifs']
+            true_ndit = np.zeros(len(cen_list_ifs), dtype=int)
             hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), ignore_missing_end=False,
                                    memmap=True)
         
@@ -1861,6 +1865,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 hdul = fits.open(inpath+cen_list_ifs[ii])
                 cube = hdul[0].data
                 cube = np.array(cube, dtype=np.float32)
+                true_ndit[ii] = hdul[0].header['HIERARCH ESO DET NDIT']
                 
                 if sky:
                     tmp_tmp = open_fits("{}master_sky.fits".format(outpath_ifs_fits))
@@ -1950,7 +1955,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     
                 os.system("mv {} {}.".format(lab_bp+instr+'*.fits',outpath_ifs_calib))
                 os.system("rm {}{}".format(outpath_ifs_fits,"tmp*.fits"))
-           
+            write_fits(outpath_ifs_fits + "true_ndit_cen.fits", true_ndit, verbose=False)
            
         # REDUCE PSF
         if 20 in to_do:
