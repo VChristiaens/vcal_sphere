@@ -974,7 +974,6 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
                         counter = 0
                         for nn, ndit in enumerate(true_ndit):
-                            set_trace()
                             x = parang_st[counter]
                             y = parang_nd[counter]
                             parang = x + (y - x) * (0.5 + np.arange(ndit)) / ndit
