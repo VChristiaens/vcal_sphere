@@ -1335,6 +1335,7 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                         write_fits(outpath+final_cubename_norm+".fits", cube_norm, verbose=debug)
                         write_fits(outpath+final_anglename+".fits", derot_angles, verbose=debug)
                         if plot:
+                            plt.close("all")
                             plt.plot(derot_angles)  # plot the first one from each cube
                             plt.xlabel('Science cube')
                             plt.ylabel('Derotation angle [deg]')
