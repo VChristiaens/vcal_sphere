@@ -978,8 +978,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             parang = x + (y - x) * (0.5 + np.arange(ndit)) / ndit
                             final_derot_angles.extend(list(parang + TN + pup_off + ifs_off))
                             final_par_angles.extend(list(parang))
-                        write_fits(outpath + "1_master_derot_angles{}.fits".format(labels[fi]), final_derot_angles, verbose=debug)
-                        write_fits(outpath + "1_master_par_angles{}.fits".format(labels[fi]), final_par_angles, verbose=debug)
+                        write_fits(outpath + "1_master_derot_angles{}.fits".format(labels[fi]), np.array(final_derot_angles), verbose=debug)
+                        write_fits(outpath + "1_master_par_angles{}.fits".format(labels[fi]), np.array(final_par_angles), verbose=debug)
 
         #********************* PLOTS + TRIM BAD FRAMES OUT ************************
 
