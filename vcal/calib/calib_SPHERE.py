@@ -897,18 +897,20 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             if verbose:
                 print("*** 6. IRDIS: Reduce all datacubes ***", flush=True)
 
+            # check if classical imaging or dual band imaging
+            if science_mode == "CI":
+                recipe = "imaging"
+                label_method = "IMAGING"
+            elif science_mode == "DBI":
+                recipe = "dbi"
+                label_method = "DBI"
+
             def _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, science_mode, file_type):
                 """
                 Short block to run the esorex command for IRDIS reduction.
                 """
                 if file.endswith(".fits"):
                     file = file[:-5]
-
-                # check if classical imaging or dual band imaging
-                if science_mode == "CI":
-                    recipe = "imaging"
-                elif science_mode == "DBI":
-                    recipe = "dbi"
 
                 command = f"esorex sph_ird_science_{recipe}"
                 command += f" --ird.science_{recipe}.outfilename={outpath_irdis_fits}{file}_total.fits"
@@ -924,7 +926,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 for ii, file in enumerate(sci_list_irdis):
                     if not isfile(outpath_irdis_sof+"OBJECT{:.0f}.sof".format(ii)) or overwrite_sof:
                         with open(outpath_irdis_sof+"OBJECT{:.0f}.sof".format(ii), 'w') as f:
-                            f.write(inpath+label_ss+sci_list_irdis[ii]+'\t'+'IRD_SCIENCE_DBI_RAW\n')
+                            f.write(inpath+label_ss+sci_list_irdis[ii]+'\t'+f'IRD_SCIENCE_{label_method}_RAW\n')
                             if pca_subtr:
                                 f.write("{}{}master_dark.fits".format(outpath_irdis_fits,label_fd)+' \t'+'IRD_MASTER_DARK\n')
                             else:
@@ -949,7 +951,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 for ii, file in enumerate(cen_list_irdis):
                     if not isfile(outpath_irdis_sof+"CEN{:.0f}.sof".format(ii)) or overwrite_sof:
                         with open(outpath_irdis_sof+"CEN{:.0f}.sof".format(ii), 'w') as f:
-                            f.write(inpath+label_ss+cen_list_irdis[ii]+'\t'+'IRD_SCIENCE_DBI_RAW\n')
+                            f.write(inpath+label_ss+cen_list_irdis[ii]+'\t'+f'IRD_SCIENCE_{label_method}_RAW\n')
                             if pca_subtr:
                                 f.write("{}{}master_dark.fits".format(outpath_irdis_fits,label_fd)+' \t'+'IRD_MASTER_DARK\n')
                             else:
@@ -974,7 +976,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 for ii, file in enumerate(psf_list_irdis):
                     if not isfile(outpath_irdis_sof+"PSF{:.0f}.sof".format(ii)) or overwrite_sof:  
                         with open(outpath_irdis_sof+"PSF{:.0f}.sof".format(ii), 'w') as f:
-                            f.write(inpath+label_ss+psf_list_irdis[ii]+'\t'+'IRD_SCIENCE_DBI_RAW\n')
+                            f.write(inpath+label_ss+psf_list_irdis[ii]+'\t'+f'IRD_SCIENCE_{label_method}_RAW\n')
                             if pca_subtr_psf:
                                 f.write("{}{}master_dark.fits".format(outpath_irdis_fits,label_fd)+' \t'+'IRD_MASTER_DARK\n')
                             else:
