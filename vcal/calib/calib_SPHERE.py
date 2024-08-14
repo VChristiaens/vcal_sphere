@@ -1074,7 +1074,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         f.write(f"{outpath_irdis_fits}master_flat.fits"+'\t'+'IRD_FLAT_FIELD\n')
                 command = "esorex sph_ird_flux_calib"
                 command += f" --ird.flux_calib.outfilename={outpath_irdis_fits}flux_calib.fits"
-                command += f" {outpath_irdis_sof}FLUX_CALIB.sof"
+                command += f" {outpath_irdis_sof}flux_calib.sof"
                 os.system(command)
 
     # 10-19 IFS
