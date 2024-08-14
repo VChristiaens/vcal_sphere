@@ -1060,10 +1060,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             tmp[zz] = tmp[zz] - avg
                         write_fits(outpath_irdis_fits + prod, tmp, header=head_tmp, verbose=False)
 
-            # calibrate the effect of the coronagraph
-            if len(dico_lists['sci_list_irdis']) > 0 and len(dico_lists['psf_list_irdis']) > 0:
-                command = "esorex sph_ird_flux_calib"
-                command += f"--ird.flux_calib.outfilename={outpath_irdis_fits}flux_calib.fits"
+            # # calibrate the effect of the coronagraph
+            # if len(dico_lists['sci_list_irdis']) > 0 and len(dico_lists['psf_list_irdis']) > 0:
+            #     command = "esorex sph_ird_flux_calib"
+            #     command += f"--ird.flux_calib.outfilename={outpath_irdis_fits}flux_calib.fits"
+            #     command += f" {outpath_irdis_sof}FLUX_CALIB.sof"
 
 
     
