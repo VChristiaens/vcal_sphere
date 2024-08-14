@@ -905,7 +905,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 recipe = "dbi"
                 label_method = "DBI"
 
-            def _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, science_mode, file_type):
+            def _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, file_type):
                 """
                 Short block to run the esorex command for IRDIS reduction.
                 """
@@ -943,7 +943,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, science_mode, file_type="OBJECT", )
+                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, file_type="OBJECT", )
                     
             # CEN
             cen_list_irdis = dico_lists['cen_list_irdis']
@@ -968,7 +968,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, science_mode, file_type="CEN")
+                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, file_type="CEN")
                     
             # PSF
             psf_list_irdis = dico_lists['psf_list_irdis']
@@ -993,7 +993,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, science_mode, file_type="PSF")
+                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, file_type="PSF")
 
             # remove the stacked left and right sides called "_total"
             os.system(f"rm {outpath_irdis_fits}*_total.fits")
