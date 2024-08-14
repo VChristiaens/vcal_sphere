@@ -447,7 +447,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 print("*** 5. IRDIS: Compiling SKY cubes ***", flush=True)
             # OBJECT  
             sci_list_irdis = dico_lists['sci_list_irdis']
-            n_sci =  len(sci_list_irdis)
+            n_sci = len(sci_list_irdis)
             
             n_s = 2
             # below is old version - likely wrong as even for CI, we want both detectors (?)
@@ -1014,10 +1014,12 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             continue
                         elif head_tmp['HIERARCH ESO DET SEQ1 DIT']==dit_psf_irdis and (not manual_sky_irdis_psf and pca_subtr_psf):
                             continue
-                        if tmp.ndim == 3:
-                            tmp_med = np.median(tmp, axis=0)
-                        elif tmp.ndim == 2:
-                            tmp_med = tmp.copy()
+
+                        # enforce a 3D cube
+                        if tmp.ndim == 2:
+                            tmp = np.zeros([1, tmp.shape[-2], tmp.shape[-1]], dtype=np.float32)
+                            tmp[0] = tmp
+                        tmp_med = np.median(tmp, axis=0)
                         # estimate star coords in median frame
                         peak_y, peak_x = peak_coordinates(tmp_med, fwhm=4,
                                                           approx_peak=None,
@@ -1058,6 +1060,13 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                 
                             tmp[zz] = tmp[zz] - avg
                         write_fits(outpath_irdis_fits + prod, tmp, header=head_tmp, verbose=False)
+
+            # calibrate the effect of the coronagraph
+            if len(dico_lists['sci_list_irdis']) > 0 and len(dico_lists['psf_list_irdis']) > 0:
+                command = "esorex sph_ird_flux_calib"
+                command += f"--ird.flux_calib.outfilename={outpath_irdis_fits}flux_calib.fits"
+
+
     
     # 10-19 IFS
     if do_ifs:
