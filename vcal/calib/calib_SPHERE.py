@@ -1014,7 +1014,10 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             continue
                         elif head_tmp['HIERARCH ESO DET SEQ1 DIT']==dit_psf_irdis and (not manual_sky_irdis_psf and pca_subtr_psf):
                             continue
-                        tmp_med = np.median(tmp,axis=0)
+                        if tmp.ndim == 3:
+                            tmp_med = np.median(tmp, axis=0)
+                        elif tmp.ndim == 2:
+                            tmp_med = tmp.copy()
                         # estimate star coords in median frame
                         peak_y, peak_x = peak_coordinates(tmp_med, fwhm=4,
                                                           approx_peak=None,
