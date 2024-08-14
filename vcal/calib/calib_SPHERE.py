@@ -1017,8 +1017,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
                         # enforce a 3D cube
                         if tmp.ndim == 2:
-                            tmp = np.zeros([1, tmp.shape[-2], tmp.shape[-1]], dtype=np.float32)
-                            tmp[0] = tmp
+                            tmp = np.expand_dims(tmp, axis=0)
                         tmp_med = np.median(tmp, axis=0)
                         # estimate star coords in median frame
                         peak_y, peak_x = peak_coordinates(tmp_med, fwhm=4,
