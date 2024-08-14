@@ -897,17 +897,24 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             if verbose:
                 print("*** 6. IRDIS: Reduce all datacubes ***", flush=True)
 
-            def _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type):
+            def _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, science_mode, file_type):
                 """
                 Short block to run the esorex command for IRDIS reduction.
                 """
                 if file.endswith(".fits"):
                     file = file[:-5]
-                command = f"esorex sph_ird_science_dbi"
-                command += f" --ird.science_dbi.outfilename={outpath_irdis_fits}{file}_total.fits"
-                command += f" --ird.science_dbi.outfilename_left={outpath_irdis_fits}{file}_left.fits"
-                command += f" --ird.science_dbi.outfilename_right={outpath_irdis_fits}{file}_right.fits"
-                command += f" --ird.science_dbi.save_addprod=TRUE"
+
+                # check if classical imaging or dual band imaging
+                if science_mode == "CI":
+                    recipe = "imaging"
+                elif science_mode == "DBI":
+                    recipe = "dbi"
+
+                command = f"esorex sph_ird_science_{recipe}"
+                command += f" --ird.science_{recipe}.outfilename={outpath_irdis_fits}{file}_total.fits"
+                command += f" --ird.science_{recipe}.outfilename_left={outpath_irdis_fits}{file}_left.fits"
+                command += f" --ird.science_{recipe}.outfilename_right={outpath_irdis_fits}{file}_right.fits"
+                command += f" --ird.science_{recipe}.save_addprod=TRUE"
                 command += f" {outpath_irdis_sof}{file_type}{ii}.sof"
                 os.system(command)
 
@@ -934,7 +941,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type="OBJECT")
+                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, science_mode, file_type="OBJECT", )
                     
             # CEN
             cen_list_irdis = dico_lists['cen_list_irdis']
@@ -959,7 +966,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type="CEN")
+                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, science_mode, file_type="CEN")
                     
             # PSF
             psf_list_irdis = dico_lists['psf_list_irdis']
@@ -984,7 +991,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, file_type="PSF")
+                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, science_mode, file_type="PSF")
 
             # remove the stacked left and right sides called "_total"
             os.system(f"rm {outpath_irdis_fits}*_total.fits")
