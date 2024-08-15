@@ -229,10 +229,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
     else:
         dico_lists = {}
-        csv_file = reader(open(path+'dico_files.csv', 'r'))
-        for row in csv_file:
-             dico_lists[row[0]] = literal_eval(row[1])
-        csv_file.close()
+        with open(path + "dico_files.csv", 'r') as csvfile:
+            csv_file = reader(csvfile)
+            for row in csv_file:
+                dico_lists[row[0]] = literal_eval(row[1])
+        csvfile.close()
 
         
     ## 1-5 IRDIS
