@@ -239,9 +239,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     
     # List of OBJ and PSF files
     dico_lists = {}
-    dico_files = reader(open(path+'dico_files.csv', 'r'))
-    for row in dico_files:
-         dico_lists[row[0]] = literal_eval(row[1])
+    with open(path + "dico_files.csv", 'r') as csvfile:
+        csv_file = reader(csvfile)
+        for row in csv_file:
+            dico_lists[row[0]] = literal_eval(row[1])
+    csvfile.close()
         
     # SEPARATE LISTS FOR OBJ AND PSF
     OBJ_IRDIS_list = dico_lists['sci_list_irdis']
