@@ -675,7 +675,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 for zz in range(cube.shape[0]):
                                     cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1], imlib="opencv")
                                 #2. alignment with upsampling
-                                set_trace()
                                 cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=None, negative=False,
                                                                                         fwhm=4, subi_size=cen_box_sz[fi],
                                                                                         upsample_factor=int(rec_met_tmp[4:]),
