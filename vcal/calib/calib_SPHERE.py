@@ -1616,7 +1616,6 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 if poly_order_wc != 2:
                     command += " --ifs.wave_calib.polyfit_order={:.0f}".format(poly_order_wc)
                 command += " --ifs.wave_calib.outfilename={}wave_calib.fits".format(outpath_ifs_fits)
-                command += " --ifs.wave_calib.save_addprod=TRUE"
                 command += " {}wave_calib.sof".format(outpath_ifs_sof)
                 os.system(command)
 
