@@ -468,7 +468,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                scale_list=scale_list,  ncomp=(int(npc),None), svd_mode=svd_mode,
                                                scaling=None, mask_center_px=mask_IWA_px, adimsdi='double',
                                                crop_ifs=crop_ifs, delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
-                                               check_memory=True, full_output=True, verbose=verbose, mask_rdi=mask_rdi,
+                                               check_memory=False, full_output=True, verbose=verbose, mask_rdi=mask_rdi,
                                                nproc=nproc, imlib=imlib, source_xy=source_xy)
                         tmp[pp], tmp_tmp, tmp_tmp_der = pca(algo_params=params_pca)
                         if do_stim_map:
@@ -524,7 +524,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                        scale_list=scale_list, ncomp=(int(npc),None), svd_mode=svd_mode,
                                                        scaling=None, mask_center_px=mask_IWA_px,crop_ifs=crop_ifs,
                                                        delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
-                                                       check_memory=True, adimsdi='double', full_output=False,
+                                                       check_memory=False, adimsdi='double', full_output=False,
                                                        verbose=verbose, nproc=nproc, imlib=imlib, source_xy=source_xy)
                                 tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                             tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
@@ -533,7 +533,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    scale_list=scale_list, ncomp=(int(npc),None), svd_mode=svd_mode,
                                                    scaling=None, mask_center_px=mask_IWA_px,crop_ifs=crop_ifs,
                                                    delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
-                                                   check_memory=True, adimsdi='double', full_output=False,
+                                                   check_memory=False, adimsdi='double', full_output=False,
                                                    verbose=verbose, nproc=nproc, imlib=imlib, source_xy=source_xy)
                             tmp_tmp[pp] = pca(algo_params=params_pca)
                                     
@@ -580,7 +580,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    scale_list=scale_list, ncomp=(int(npc),None), svd_mode=svd_mode,
                                                    scaling=None, mask_center_px=mask_IWA_px, crop_ifs=crop_ifs,
                                                    delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
-                                                   check_memory=True, adimsdi='double', full_output=False,
+                                                   check_memory=False, adimsdi='double', full_output=False,
                                                    verbose=verbose, nproc=nproc, imlib=imlib)
                             tmp_tmp_tmp[nr] = pca(algo_params=params_pca, source_xy=source_xy)
                         tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
@@ -588,7 +588,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         params_pca = PCA_Params(cube=PCA_ASDI_cube_ori, angle_list=derot_angles, cube_ref=None,
                                                scale_list=scale_list, ncomp=(int(npc),None), svd_mode=svd_mode,
                                                scaling=None, mask_center_px=mask_IWA_px, crop_ifs=crop_ifs,
-                                               delta_rot=delta_rot, fwhm=fwhm_med, collapse='median', check_memory=True,
+                                               delta_rot=delta_rot, fwhm=fwhm_med, collapse='median', check_memory=False,
                                                adimsdi='double', full_output=False, verbose=verbose,
                                                nproc=nproc, imlib=imlib, source_xy=source_xy)
                         tmp_tmp[pp] = pca(algo_params=params_pca)
@@ -631,7 +631,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         params_pca = PCA_Params(cube=PCA_ASDI_cube[zz], angle_list=derot_angles, cube_ref=ref_cube[zz],
                                                scale_list=None, ncomp=int(npc), svd_mode=svd_mode, scaling=scaling,
                                                mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
-                                               collapse='median', check_memory=True,  full_output=False,
+                                               collapse='median', check_memory=False, full_output=False,
                                                verbose=verbose, nproc=nproc, imlib=imlib, source_xy=source_xy)
                         tmp[pp,zz] = pca(algo_params=params_pca)
                         if planet:
@@ -693,7 +693,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             params_pca = PCA_Params(cube=PCA_ASDI_cube[zz], angle_list=derot_angles, cube_ref=None,
                                                    scale_list=None, ncomp=int(npc), svd_mode=svd_mode, scaling=None,
                                                    mask_center_px=mask_IWA_px,crop_ifs=crop_ifs, delta_rot=delta_rot,
-                                                   fwhm=fwhm_med, collapse='median', check_memory=True,
+                                                   fwhm=fwhm_med, collapse='median', check_memory=False,
                                                    adimsdi='double', full_output=False, verbose=verbose, nproc=nproc,
                                                    imlib=imlib, source_xy=source_xy)
                             tmp[zz] = pca(algo_params=params_pca)
@@ -735,7 +735,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         params_pca = PCA_Params(cube=PCA_ASDI_cube_ori[zz], angle_list=derot_angles, cube_ref=None,
                                                scale_list=None, ncomp=(int(npc),None), svd_mode=svd_mode, scaling=None,
                                                mask_center_px=mask_IWA_px, crop_ifs=crop_ifs, delta_rot=delta_rot,
-                                               fwhm=fwhm_med, collapse='median', check_memory=True, adimsdi='double',
+                                               fwhm=fwhm_med, collapse='median', check_memory=False, adimsdi='double',
                                                full_output=False, verbose=verbose, nproc=nproc, imlib=imlib,
                                                 source_xy=source_xy)
                         tmp[zz] = pca(algo_params=params_pca)
@@ -943,7 +943,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    scale_list=scale_list, ncomp=int(npc), svd_mode=svd_mode,
                                                    scaling=scal, mask_center_px=mask_IWA_px, adimsdi='single',
                                                    delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
-                                                   check_memory=True, ifs_collapse_range=ifs_collapse_range,
+                                                   check_memory=False, ifs_collapse_range=ifs_collapse_range,
                                                    full_output=True, verbose=verbose, mask_rdi=mask_rdi,
                                                    nproc=nproc, imlib=imlib, source_xy=source_xy)
                             tmp[pp], _, tmp_tmp = pca(algo_params=params_pca)
@@ -1007,7 +1007,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                                mask_center_px=mask_IWA_px, crop_ifs=crop_ifs,
                                                                ifs_collapse_range=ifs_collapse_range,
                                                                delta_rot=1, fwhm=fwhm_med, collapse='median',
-                                                               check_memory=True, adimsdi='single', full_output=False,
+                                                               check_memory=False, adimsdi='single', full_output=False,
                                                                verbose=verbose, mask_rdi=mask_rdi,
                                                                nproc=nproc, imlib=imlib, source_xy=source_xy)
                                         tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
@@ -1017,7 +1017,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                            scale_list=scale_list, ncomp=int(npc), svd_mode=svd_mode,
                                                            scaling=None, mask_center_px=mask_IWA_px, adimsdi='single',
                                                            delta_rot=1, fwhm=fwhm_med, collapse='median',
-                                                           check_memory=True, ifs_collapse_range=ifs_collapse_range,
+                                                           check_memory=False, ifs_collapse_range=ifs_collapse_range,
                                                            full_output=False, verbose=verbose, mask_rdi=mask_rdi,
                                                            nproc=nproc, imlib=imlib, source_xy=source_xy)
                                     tmp_tmp[pp] = pca(algo_params=params_pca)
@@ -1060,7 +1060,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    scale_list=scale_list, ncomp=int(npc), svd_mode=svd_mode,
                                                    scaling=None, mask_center_px=mask_IWA_px, crop_ifs=crop_ifs,
                                                    ifs_collapse_range=ifs_collapse_range, delta_rot=1, fwhm=fwhm_med,
-                                                   collapse='median', check_memory=True, adimsdi='single',
+                                                   collapse='median', check_memory=False, adimsdi='single',
                                                    full_output=False, verbose=verbose, mask_rdi=mask_rdi,
                                                    nproc=nproc, imlib=imlib, source_xy=source_xy)
                             tmp_tmp[pp] = pca(algo_params=params_pca)
@@ -1122,7 +1122,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                        scale_list=scale_list, ncomp=(int(npc1),int(npc2)),
                                                        svd_mode=svd_mode, scaling=scal, mask_center_px=mask_IWA_px,
                                                        adimsdi='double', delta_rot=1, fwhm=fwhm_med, collapse='median',
-                                                       check_memory=True, ifs_collapse_range=ifs_collapse_range,
+                                                       check_memory=False, ifs_collapse_range=ifs_collapse_range,
                                                        full_output=True, verbose=verbose, mask_rdi=mask_rdi,
                                                        nproc=nproc, imlib=imlib, source_xy=source_xy)
                                 tmp[counter], tmp_tmp, tmp_tmp_der = pca(algo_params=params_pca)
@@ -1178,7 +1178,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                            scale_list=scale_list, ncomp=(int(npc1),int(npc2)),
                                                            svd_mode=svd_mode, scaling=scal, mask_center_px=mask_IWA_px,
                                                            adimsdi='double', delta_rot=1, fwhm=fwhm_med,
-                                                           collapse='median', check_memory=True,
+                                                           collapse='median', check_memory=False,
                                                            ifs_collapse_range=ifs_collapse_range,  full_output=False,
                                                            verbose=verbose, mask_rdi=mask_rdi, nproc=nproc,
                                                            imlib=imlib, source_xy=source_xy)
@@ -1240,7 +1240,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    scale_list=scale_list, ncomp=(int(npc1), int(npc2)),
                                                    svd_mode=svd_mode, scaling=scal, ifs_collapse_range=ifs_collapse_range,
                                                    mask_center_px=mask_IWA_px, adimsdi='double', delta_rot=1,
-                                                   fwhm=fwhm_med, collapse='median', check_memory=True,
+                                                   fwhm=fwhm_med, collapse='median', check_memory=False,
                                                    full_output=False, verbose=verbose, mask_rdi=mask_rdi, nproc=nproc,
                                                    imlib=imlib, source_xy=source_xy)
                             tmp_tmp[pp] = pca(algo_params=params_pca)
