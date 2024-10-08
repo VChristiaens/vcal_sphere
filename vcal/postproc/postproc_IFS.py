@@ -629,6 +629,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                 tmp = np.zeros([ntest_pcs,nz,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                 for pp, npc in enumerate(test_pcs_adi_full):
                     for zz in range(nz):
+                        set_trace()
                         params_pca = PCA_Params(cube=PCA_ASDI_cube[zz], angle_list=derot_angles, cube_ref=ref_cube[zz],
                                                scale_list=None, ncomp=int(npc), svd_mode=svd_mode, scaling=scaling,
                                                mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
@@ -691,7 +692,6 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     tmp = np.zeros([nz,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                     for pp, npc in enumerate(test_pcs_adi_full):
                         for zz in range(nz):
-                            set_trace()
                             params_pca = PCA_Params(cube=PCA_ASDI_cube[zz], angle_list=derot_angles, cube_ref=None,
                                                    scale_list=None, ncomp=int(npc), svd_mode=svd_mode, scaling=None,
                                                    mask_center_px=mask_IWA_px,crop_ifs=crop_ifs, delta_rot=delta_rot,
