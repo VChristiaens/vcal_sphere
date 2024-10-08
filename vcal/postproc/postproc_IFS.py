@@ -33,6 +33,7 @@ import numpy as np
 from os.path import isfile, isdir
 import os
 from pandas.core.frame import DataFrame as DF
+from pdb import set_trace
 
 from vip_hci.psfsub import pca, pca_annular, PCA_Params, PCA_ANNULAR_Params
 from vip_hci.metrics import stim_map as compute_stim_map
@@ -690,6 +691,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     tmp = np.zeros([nz,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                     for pp, npc in enumerate(test_pcs_adi_full):
                         for zz in range(nz):
+                            set_trace()
                             params_pca = PCA_Params(cube=PCA_ASDI_cube[zz], angle_list=derot_angles, cube_ref=None,
                                                    scale_list=None, ncomp=int(npc), svd_mode=svd_mode, scaling=None,
                                                    mask_center_px=mask_IWA_px,crop_ifs=crop_ifs, delta_rot=delta_rot,
