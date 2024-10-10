@@ -945,7 +945,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                    delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
                                                    check_memory=False, ifs_collapse_range=ifs_collapse_range,
                                                    full_output=True, verbose=verbose, mask_rdi=mask_rdi,
-                                                   nproc=nproc, imlib=imlib, source_xy=source_xy)
+                                                   nproc=nproc, imlib=imlib, source_xy=source_xy, delta_sep=0.5)
                             tmp[pp], _, tmp_tmp = pca(algo_params=params_pca)
                             if debug:
                                 write_fits(outpath+'TMP_final_PCA-SADI1_full_npc{:.0f}_'.format(npc)+test_pcs_str+label_test+'.fits', tmp_tmp)
@@ -1124,7 +1124,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                        adimsdi='double', delta_rot=1, fwhm=fwhm_med, collapse='median',
                                                        check_memory=False, ifs_collapse_range=ifs_collapse_range,
                                                        full_output=True, verbose=verbose, mask_rdi=mask_rdi,
-                                                       nproc=nproc, imlib=imlib, source_xy=source_xy)
+                                                       nproc=nproc, imlib=imlib, source_xy=source_xy, delta_sep=0.5)
                                 tmp[counter], tmp_tmp, tmp_tmp_der = pca(algo_params=params_pca)
                                 if do_stim_map:
                                     stim_map[counter] = compute_stim_map(tmp_tmp_der)
