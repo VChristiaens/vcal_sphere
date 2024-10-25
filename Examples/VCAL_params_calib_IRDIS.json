@@ -22,4 +22,5 @@
     "overwrite_sof": 1,
     "overwrite_fits": 1,
     "nproc": 1
+    "com_esorex": "esorex"
 }

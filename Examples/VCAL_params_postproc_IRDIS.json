@@ -1,8 +1,7 @@
 {
-    "source":"MWC758",
     "sourcename":"MWC 758",
     "details":" (IRDIS 2018/12/17)",
-    "label_test":"_newscal1.05",
+    "label_test":"",
     "do_adi":1,
     "do_pca_sann":0,
     "do_pca_full":1,
