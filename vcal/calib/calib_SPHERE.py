@@ -1244,7 +1244,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             with open(outpath_ifs_sof+"master_dark.sof", 'w+') as f:
                 for ii in range(len(dark_list_ifs)):
                     dark_cube, dark_head = open_fits(inpath+dark_list_ifs[ii], header=True, verbose=False)
-                    if np.round(dark_head['HIERARCH ESO DET SEQ1 DIT'], decimals=2) == 1.65 and dark_head["MJD-OBS"] < 58852:
+                    if np.round(dark_head['HIERARCH ESO DET SEQ1 DIT'], decimals=2) == 1.65 and dark_head["MJD-OBS"] < 0:
                         # if it's 1.65s and before the shutdown, replace with the super dark
                         dark_list_ifs[ii] = "ifs_super_dark_1.65s.fits"
                         os.system("cp {} {}".format(vcal_path[0][:-4] + "Static/ifs_super_dark_1.65s.fits", inpath))
@@ -1299,8 +1299,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     nd_fr = dark_cube.shape[0]
                     counter = 0
                     nmd_fr = int(nd_fr*nfd)
-                    master_dark_cube = np.zeros(
-                        [nmd_fr,dark_cube.shape[1],dark_cube.shape[2]])
+                    master_dark_cube = np.zeros([nmd_fr,dark_cube.shape[1],dark_cube.shape[2]])
                     fdit_list_nn.append((nn, fdit))
 
                     # CREATE master DARK for each DIT of raw FLAT
@@ -1311,7 +1310,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             dark_cube, fdark_head = open_fits(inpath+fdark_list_ifs[dd], header=True, verbose=False)
                             dit_fdark = fdark_head['HIERARCH ESO DET SEQ1 DIT']
                             if dit_fdark == fdit:
-                                if np.round(dit_fdark, decimals=2) == 1.65 and fdark_head["MJD-OBS"] < 58852:
+                                if np.round(dit_fdark, decimals=2) == 1.65 and fdark_head["MJD-OBS"] < 0:
                                     fdark_list_ifs[dd] = "ifs_super_dark_1.65s.fits"
                                     os.system("cp {} {}".format(vcal_path[0][:-4] + "Static/ifs_super_dark_1.65s.fits", inpath))
                                 f.write(inpath+fdark_list_ifs[dd]+'\t'+'IFS_DARK_RAW\n')
