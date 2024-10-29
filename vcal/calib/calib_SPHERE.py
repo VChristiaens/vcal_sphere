@@ -1202,22 +1202,22 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         write_fits(outpath_irdis_fits + prod, tmp, header=head_tmp, verbose=False)
 
             # calibrate the effect of the coronagraph on the number of counts
-            if len(dico_lists['sci_list_irdis']) > 0 and len(dico_lists['psf_list_irdis']) > 0:
-                # get the name of each OBJ and each PSF file and add them to the sof with appropriate tag. also add
-                # the master dark and master flat. all of these files are required
-                if not isfile(outpath_irdis_sof+"flux_calib.sof") or overwrite_sof:
-                    with open(outpath_irdis_sof+"flux_calib.sof", 'w') as f:
-                        for ii, file in enumerate(dico_lists['sci_list_irdis']):
-                            f.write(inpath+label_ss+file+'\t'+'IRD_FLUX_CALIB_CORO_RAW\n')
-                        for ii, file in enumerate(dico_lists['psf_list_irdis']):
-                            f.write(inpath+label_ss+file+'\t'+'IRD_FLUX_CALIB_NO_CORO_RAW\n')
-                        f.write(f"{outpath_irdis_fits}master_dark.fits"+'\t'+'IRD_MASTER_DARK\n')
-                        f.write(f"{outpath_irdis_fits}master_flat.fits"+'\t'+'IRD_FLAT_FIELD\n')
-                command = "esorex sph_ird_flux_calib"
-                command += f" --ird.flux_calib.outfilename={outpath_irdis_fits}flux_calib.fits"
-                command += " --ird.flux_calib.coll_alg=1"
-                command += f" {outpath_irdis_sof}flux_calib.sof"
-                os.system(command)
+            # if len(dico_lists['sci_list_irdis']) > 0 and len(dico_lists['psf_list_irdis']) > 0:
+            #     # get the name of each OBJ and each PSF file and add them to the sof with appropriate tag. also add
+            #     # the master dark and master flat. all of these files are required
+            #     if not isfile(outpath_irdis_sof+"flux_calib.sof") or overwrite_sof:
+            #         with open(outpath_irdis_sof+"flux_calib.sof", 'w') as f:
+            #             for ii, file in enumerate(dico_lists['sci_list_irdis']):
+            #                 f.write(inpath+label_ss+file+'\t'+'IRD_FLUX_CALIB_CORO_RAW\n')
+            #             for ii, file in enumerate(dico_lists['psf_list_irdis']):
+            #                 f.write(inpath+label_ss+file+'\t'+'IRD_FLUX_CALIB_NO_CORO_RAW\n')
+            #             f.write(f"{outpath_irdis_fits}master_dark.fits"+'\t'+'IRD_MASTER_DARK\n')
+            #             f.write(f"{outpath_irdis_fits}master_flat.fits"+'\t'+'IRD_FLAT_FIELD\n')
+            #     command = "esorex sph_ird_flux_calib"
+            #     command += f" --ird.flux_calib.outfilename={outpath_irdis_fits}flux_calib.fits"
+            #     command += " --ird.flux_calib.coll_alg=1"
+            #     command += f" {outpath_irdis_sof}flux_calib.sof"
+            #     os.system(command)
 
     # 10-19 IFS
     if do_ifs:
