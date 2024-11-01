@@ -301,29 +301,33 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
         # GAINS
         if 2 in to_do:
-            if verbose:
-                print("*** 2. IRDIS: Calculating gains ***", flush=True)
-            # OBJECT
-            if not isfile(outpath_irdis_sof+"master_gain.sof") or overwrite_sof:
-                gain_list_irdis = dico_lists['gain_list_irdis']
-                with open(outpath_irdis_sof+"master_gain.sof", 'w+') as f:
-                    for ii in range(len(gain_list_irdis)):
-                        f.write(
-                            inpath+gain_list_irdis[ii]+'\t'+'IRD_GAIN_RAW\n')
-                    f.write("{}master_badpixelmap.fits".format(
-                        outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP\n')
-            if not isfile(outpath_irdis_fits+"master_gain.fits") or overwrite_sof or overwrite_fits:
-                command = "{} sph_ird_gain".format(com_esorex)
-                command += " --ird.gain.save_addprod=TRUE"
-                command += " --ird.gain.outfilename={}master_gain_map.fits".format(
-                    outpath_irdis_fits)
-                command += " --ird.gain.nonlin_filename={}nonlin_map.fits".format(
-                    outpath_irdis_fits)
-                command += " --ird.gain.nonlin_bpixname={}nonlin_badpixelmap.fits".format(
-                    outpath_irdis_fits)
-                command += " --ird.gain.vacca=TRUE"
-                command += " {}master_gain.sof".format(outpath_irdis_sof)
-                os.system(command)
+            gain_list_irdis = dico_lists['gain_list_irdis']
+            if len(gain_list_irdis) > 0:
+                if verbose:
+                    print("*** 2. IRDIS: Calculating gains ***", flush=True)
+                # OBJECT
+                if not isfile(outpath_irdis_sof+"master_gain.sof") or overwrite_sof:
+                    with open(outpath_irdis_sof+"master_gain.sof", 'w+') as f:
+                        for ii in range(len(gain_list_irdis)):
+                            f.write(
+                                inpath+gain_list_irdis[ii]+'\t'+'IRD_GAIN_RAW\n')
+                        f.write("{}master_badpixelmap.fits".format(
+                            outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP\n')
+                if not isfile(outpath_irdis_fits+"master_gain.fits") or overwrite_sof or overwrite_fits:
+                    command = "{} sph_ird_gain".format(com_esorex)
+                    command += " --ird.gain.save_addprod=TRUE"
+                    command += " --ird.gain.outfilename={}master_gain_map.fits".format(
+                        outpath_irdis_fits)
+                    command += " --ird.gain.nonlin_filename={}nonlin_map.fits".format(
+                        outpath_irdis_fits)
+                    command += " --ird.gain.nonlin_bpixname={}nonlin_badpixelmap.fits".format(
+                        outpath_irdis_fits)
+                    command += " --ird.gain.vacca=TRUE"
+                    command += " {}master_gain.sof".format(outpath_irdis_sof)
+                    os.system(command)
+            elif len(gain_list_irdis) == 0:
+                if verbose:
+                    print("*** 2. IRDIS: No GAIN files found, this optional step will be skipped", flush=True)
 
         # Identify good SKY BKG / INS BKG (in order of priority)
         if 3 in to_do or 4 in to_do:
