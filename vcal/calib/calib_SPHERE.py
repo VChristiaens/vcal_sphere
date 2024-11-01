@@ -1045,7 +1045,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 command += f" --ird.science_{recipe}.outfilename={outpath_irdis_fits}{file}_total.fits"
                 command += f" --ird.science_{recipe}.outfilename_left={outpath_irdis_fits}{file}_left.fits"
                 command += f" --ird.science_{recipe}.outfilename_right={outpath_irdis_fits}{file}_right.fits"
-                command += f" --ird.science_{recipe}.save_addprod=TRUE"
+                # command += f" --ird.science_{recipe}.save_addprod=TRUE"
                 command += f" {outpath_irdis_sof}{file_type}{ii}.sof"
                 os.system(command)
 
@@ -1076,7 +1076,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
                         _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, file_type="OBJECT")
-                    
+
             # CEN
             cen_list_irdis = dico_lists['cen_list_irdis']
             if len(cen_list_irdis) > 0:
@@ -1102,16 +1102,16 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             if isfile(inpath_filt_table+"sph_ird_filt_table.fits"):
                                 f.write(inpath_filt_table+"sph_ird_filt_table.fits"+'\t'+'IRD_FILTER_TABLE\n')
                             f.write("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
-                            
+
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
                         _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, file_type="CEN")
-                    
+
             # PSF
             psf_list_irdis = dico_lists['psf_list_irdis']
             if len(psf_list_irdis)>0:
                 for ii, file in enumerate(psf_list_irdis):
-                    if not isfile(outpath_irdis_sof+"PSF{:.0f}.sof".format(ii)) or overwrite_sof:  
+                    if not isfile(outpath_irdis_sof+"PSF{:.0f}.sof".format(ii)) or overwrite_sof:
                         with open(outpath_irdis_sof+"PSF{:.0f}.sof".format(ii), 'w') as f:
                             f.write(inpath+label_ss+psf_list_irdis[ii]+'\t'+f'IRD_SCIENCE_{label_method}_RAW\n')
                             if pca_subtr_psf:
@@ -1128,9 +1128,9 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                     f.write("{}master_dark.fits".format(outpath_irdis_fits)+'\t'+'IRD_MASTER_DARK\n')
                             f.write("{}master_flat.fits".format(outpath_irdis_fits)+'\t'+'IRD_FLAT_FIELD\n')
                             if isfile(inpath_filt_table+"sph_ird_filt_table.fits"):
-                                f.write(inpath_filt_table+"sph_ird_filt_table.fits"+'\t'+'IRD_FILTER_TABLE\n')                            
+                                f.write(inpath_filt_table+"sph_ird_filt_table.fits"+'\t'+'IRD_FILTER_TABLE\n')
                             f.write("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits)+'\t'+'IRD_STATIC_BADPIXELMAP')
-                            
+
                     if (not isfile(outpath_irdis_fits+f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits+f"{file}_right.fits") or overwrite_sof or overwrite_fits):
                         _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, file_type="PSF")
