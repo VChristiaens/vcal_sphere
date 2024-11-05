@@ -16,7 +16,7 @@ from csv import writer, reader
 from glob import glob
 from json import load
 from multiprocessing import cpu_count
-from os.path import isfile, isdir
+from os.path import isfile, isdir, join
 
 from matplotlib import use as mpl_backend
 import numpy as np
@@ -118,31 +118,36 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
     dit_irdis = params_calib.get('dit_irdis', None)
     dit_psf_ifs = params_calib.get('dit_psf_ifs', None)
     dit_psf_irdis = params_calib.get('dit_psf_irdis', None)
-    dit_cen_ifs = params_calib.get('dit_cen_ifs', None)  # or None if there is no CEN cube
-    dit_cen_irdis = params_calib.get('dit_cen_irdis', None)  # or None if there is no CEN cube
+    # or None if there is no CEN cube
+    dit_cen_ifs = params_calib.get('dit_cen_ifs', None)
+    # or None if there is no CEN cube
+    dit_cen_irdis = params_calib.get('dit_cen_irdis', None)
 
     # !! When no filters, filt is written as 'CLEAR' instead of None
     filt1 = filt_spec['IRFW1']  # 'INS1.FILT.NAME' IRFW1
     filt2 = filt_spec['IRFW2']  # 'INS1.OPTI2.NAME' IRFW2
-    filters = filt_spec['filters']  # DBI filters (list of 2 elements) or CI filter (single string)
+    # DBI filters (list of 2 elements) or CI filter (single string)
+    filters = filt_spec['filters']
 
     # Reduction params
-    ## Check the sky cubes by eye to select appropriate value for params below:
-    good_sky_irdis = params_calib.get('good_sky_irdis', [
-        "all"])  # 'all' or list of indices. If empty, will either use_ins_bg or just subtract the dark.
-    good_sky_list = params_calib.get('good_sky_list', [
-        "all"])  # which skies to use for IFS? If [-1]: just uses the first frame of the first sky, if a list of good skies: uses all frames from all those cubes, if ['all']: uses them all.
+    # Check the sky cubes by eye to select appropriate value for params below:
+    # 'all' or list of indices. If empty, will either use_ins_bg or just subtract the dark.
+    good_sky_irdis = params_calib.get('good_sky_irdis', ["all"])
+    # which skies to use for IFS? If [-1]: just uses the first frame of the first sky, if a list of good skies: uses all frames from all those cubes, if ['all']: uses them all.
+    good_sky_list = params_calib.get('good_sky_list', ["all"])
     good_psf_sky_list = params_calib.get('good_psf_sky_list', ["all"])
     good_psf_sky_irdis = params_calib.get('good_psf_sky_irdis', ["all"])
-    manual_sky = params_calib.get('manual_sky',
-                                  1)  # the sky evolves quickly with time, in case of poor sky sampling during sequence the background level after sky subtraction can be anywhere between -15 and +15 instead of 0
+    # the sky evolves quickly with time, in case of poor sky sampling during sequence the background level after sky subtraction can be anywhere between -15 and +15 instead of 0
+    manual_sky = params_calib.get('manual_sky', 1)
     mask_pca_sky_sub = params_calib.get('mask_pca_sky_sub', [250, 420, 0, 0, 0])
-    # => First try with manual_sky set to False (no need to change params below then). If average background level different than 0 => re-run by setting it to True (possibly adapt values below -- in partciular for the psf): this will subtract manually the average pixel values measured at the provided coords (ideally corners far from star)
-    corner_coords = params_calib.get('corner_coords', [[39, 215], [72, 62], [247, 78], [216,
-                                                                                        230]])  # x,y coords where the sky will be manually estimated # !!! CAREFUL IF STAR NOT CENTERED => adapt
-    msky_ap = params_calib.get('msky_ap', 15)  # aperture for manual sky level estimation
-    corner_coords_psf = params_calib.get('corner_coords_psf', [
-        [98, 88]])  # x,y coords where the sky will be manually estimated # !!! CAREFUL IF STAR NOT CENTERED => adapt
+    # => First try with manual_sky set to False (no need to change params below then). If average background level different than 0 => re-run by setting it to True (possibly adaot values below -- in partciular for the psf): this will subtract manually the average pixel values measured at the provided coords (ideally corners far from star)
+    # x,y coords where the sky will be manually estimated # !!! CAREFUL IF STAR NOT CENTERED => adapt
+    corner_coords = params_calib.get(
+        'corner_coords', [[39, 215], [72, 42], [247, 78], [216, 250]])
+    # aperture for manual sky level estimation
+    msky_ap = params_calib.get('msky_ap', 15)
+    # x,y coords where the sky will be manually estimated # !!! CAREFUL IF STAR NOT CENTERED => adapt
+    corner_coords_psf = params_calib.get('corner_coords_psf', [[98, 88]])
     msky_ap_psf = params_calib.get('msky_ap_psf', 20)
 
     ############### PARAMS THAT WILL LIKELY NOT NEED TO BE CHANGED ################
@@ -164,18 +169,19 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
         dit_irdis = None
 
     # 0. file list for both instruments
-    ## 1-6. IRDIS
+    # 1-6. IRDIS
     # 1. master dark
     # 2. calculate gains
     # 3. good SKY BKG or INS BG (in order of priority)
     # 4. make master SKY BKG or INS BG (or pca sky subtr)
     # 5. master flat
     # 6. actual reduction
-    ## 10-19 IFS
+    # 10-19 IFS
 
     instr = params_calib['instr']  # instrument name in file name
     science_mode = filt_spec['mode']  # current choice between {'DBI','CI'}
-    mode = params_calib.get('mode', 'YJH')  # only matters for IFS data calibration
+    # only matters for IFS data calibration
+    mode = params_calib.get('mode', 'YJH')
 
     overwrite_sof = params_calib['overwrite_sof']
     overwrite_fits = params_calib['overwrite_fits']
@@ -186,35 +192,44 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
     # crop_sz_psf_ifs = 0
 
     illum_pattern_corr = params_calib.get('illum_pattern_corr', 1)
-    flat_fit = params_calib.get('flat_fit', 1)  # whether to fit flat with polynomial
-    large_scale_flat = params_calib.get('large_scale_flat',
-                                        0)  # choice between 'all' (v1.38 manual), 'some' (v1.40? cf. dr recipe), False (not used, v1.40? cf. flat recipe)
-    flat_smooth_method_idx = params_calib.get('flat_smooth_method_idx',
-                                              1)  # default 1 in esorex recipe (0: CPL filter, 1: FFT filter)
-    flat_smooth_length = params_calib.get('flat_smooth_length', 10)
-    specpos_distort_corr = params_calib.get('specpos_distort_corr', 1)  # default is True
-    specpos_nonlin_corr = params_calib.get('specpos_nonlin_corr', 1)  # default is True (cfr. D. Mesa 2015)
-    xtalk_corr = params_calib.get('xtalk_corr', 0)  # whether cross talk should be corrected
-    pca_subtr = params_calib.get('pca_subtr', 1)  # whether to subtract dark and sky using pca
+    # whether to fit flat with polynomial
+    flat_fit = params_calib.get('flat_fit', 1)
+    # choice between 'all' (v1.38 manual), 'some' (v1.40? cf. dr recipe), False (not used, v1.40? cf. flat recipe)
+    large_scale_flat = params_calib.get('large_scale_flat', "some")
+    # default 1 in esorex recipe (0: CPL filter, 1: FFT filter)
+    flat_smooth_method_idx = params_calib.get('flat_smooth_method_idx', 1)
+    flat_smooth_length = params_calib.get('flat_smooth_length', 5)
+    specpos_distort_corr = params_calib.get(
+        'specpos_distort_corr', 1)  # default is True
+    # default is True (cfr. D. Mesa 2015)
+    specpos_nonlin_corr = params_calib.get('specpos_nonlin_corr', 1)
+    # whether cross talk should be corrected
+    xtalk_corr = params_calib.get('xtalk_corr', 0)
+    # whether to subtract dark and sky using pca
+    pca_subtr = params_calib.get('pca_subtr', 1)
     npc = params_calib.get('npc', 1)
     npc_psf = params_calib.get('npc_psf', npc)
-    dark_ifs = params_calib.get('dark_ifs', [
-        None])  # list containing either False or any combination of 'OBJ', 'PSF', 'CEN' and 'FLAT'. Tells whether to subtract the MASTER dark, and if so for which type of files. Recommended: either [False] or ['FLAT'] (in most cases a SKY is available for OBJ, CEN or PSF which already includes a DARK). If ['FLAT'] just provide a DARK file with the min DIT among FLATs in the raw folder (and remove the DARK of the OBJ!).
-    indiv_fdark = params_calib.get('indiv_fdark', 1)  # whether subtract individual dark to each flat
-    poly_order_wc = params_calib.get('poly_order_wc', 0)  # used to find wavelength model
+    # list containing either False or any combination of 'OBJ', 'PSF', 'CEN' and 'FLAT'. Tells whether to subtract the MASTER dark, and if so for which type of files. Recommended: either [False] or ['FLAT'] (in most cases a SKY is available for OBJ, CEN or PSF which already includes a DARK). If ['FLAT'] just provide a DARK file with the min DIT among FLATs in the raw folder (and remove the DARK of the OBJ!).
+    dark_ifs = params_calib.get('dark_ifs', [None])
+    # whether subtract individual dark to each flat
+    indiv_fdark = params_calib.get('indiv_fdark', 1)
+    # used to find wavelength model
+    poly_order_wc = params_calib.get('poly_order_wc', 0)
     if poly_order_wc == 0:
         if mode == "YJ":
             poly_order_wc = 2
         elif mode == "YJH":
             poly_order_wc = 3
-    wc_win_sz = params_calib.get('wc_win_sz', 4)  # default: 4
-    sky = params_calib.get('sky',
-                           1)  # for IFS only, will subtract the sky before the science_dr recipe (corrects also for dark, incl. bias, and vast majority of bad pixels!!)
+    wc_win_sz = params_calib.get('wc_win_sz', 2)  # default: 4
+    # for IFS only, will subtract the sky before the science_dr recipe (corrects also for dark, incl. bias, and vast majority of bad pixels!!)
+    sky = params_calib.get('sky', 1)
     verbose = params_calib.get('verbose', 1)
     nproc = params_calib.get('nproc',
                              int(cpu_count() / 2))  # number of processors to use, default cpu_count()/2 for efficiency
+    # call command esorex
+    com_esorex = params_calib.get('com_esorex', 'esorex')
 
-    ### Formatting
+    # Formatting
     skysub_lab_IRD = "skysub/"
     skysub_lab_IFS = "skycorr_IFS/"
     bpcorr_lab_IFS = "bpcorr_IFS/"
@@ -224,9 +239,12 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
     if 0 in to_do or not isfile(path + "dico_files.csv"):
         if verbose:
             print("*** 0. Creating list of dictionaries with different file types ***", flush=True)
-        dico_lists = make_lists(inpath, outpath_filenames, dit_ifs=dit_ifs, dit_irdis=dit_irdis,
-                                dit_psf_ifs=dit_psf_ifs, dit_psf_irdis=dit_psf_irdis, dit_cen_ifs=dit_cen_ifs,
-                                dit_cen_irdis=dit_cen_irdis, filt1=filt1, filt2=filt2)
+        dico_lists = make_lists(inpath, outpath_filenames, dit_ifs=dit_ifs,
+                                dit_irdis=dit_irdis, dit_psf_ifs=dit_psf_ifs,
+                                dit_psf_irdis=dit_psf_irdis,
+                                dit_cen_ifs=dit_cen_ifs,
+                                dit_cen_irdis=dit_cen_irdis, filt1=filt1,
+                                filt2=filt2)
         with open(path + "dico_files.csv", 'w') as dico_file:
             w = writer(dico_file)
             for key, val in dico_lists.items():
@@ -260,48 +278,60 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
         if 1 in to_do:
             if verbose:
                 print("*** 1. IRDIS: Collating darks (not used if SKY observations were made) ***", flush=True)
-            ## OBJECT
+            # OBJECT
             if not isfile(outpath_irdis_sof + "master_dark.sof") or overwrite_sof:
                 dark_list_irdis = dico_lists['dark_list_irdis']
                 with open(outpath_irdis_sof + "master_dark.sof", 'w+') as f:
                     for ii in range(len(dark_list_irdis)):
-                        f.write(inpath + dark_list_irdis[ii] + '\t' + 'IRD_DARK_RAW\n')
+                        f.write(
+                            inpath + dark_list_irdis[ii] + '\t' + 'IRD_DARK_RAW\n')
             if not isfile(outpath_irdis_fits + "master_dark.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ird_master_dark"
+                command = "{} sph_ird_master_dark".format(com_esorex)
                 command += " --ird.master_dark.sigma_clip=10.0"
                 command += " --ird.master_dark.save_addprod=TRUE"
-                command += " --ird.master_dark.outfilename={}master_dark.fits".format(outpath_irdis_fits)
-                command += " --ird.master_dark.badpixfilename={}master_badpixelmap.fits".format(outpath_irdis_fits)
+                command += " --ird.master_dark.outfilename={}master_dark.fits".format(
+                    outpath_irdis_fits)
+                command += " --ird.master_dark.badpixfilename={}master_badpixelmap.fits".format(
+                    outpath_irdis_fits)
                 command += " {}master_dark.sof".format(outpath_irdis_sof)
                 os.system(command)
 
         # GAINS
         if 2 in to_do:
-            if verbose:
-                print("*** 2. IRDIS: Calculating gains ***", flush=True)
-            ## OBJECT
-            if not isfile(outpath_irdis_sof + "master_gain.sof") or overwrite_sof:
-                gain_list_irdis = dico_lists['gain_list_irdis']
-                with open(outpath_irdis_sof + "master_gain.sof", 'w+') as f:
-                    for ii in range(len(gain_list_irdis)):
-                        f.write(inpath + gain_list_irdis[ii] + '\t' + 'IRD_GAIN_RAW\n')
-                    f.write("{}master_badpixelmap.fits".format(outpath_irdis_fits) + '\t' + 'IRD_STATIC_BADPIXELMAP\n')
-            if not isfile(outpath_irdis_fits + "master_gain.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ird_gain"
-                command += " --ird.gain.save_addprod=TRUE"
-                command += " --ird.gain.outfilename={}master_gain_map.fits".format(outpath_irdis_fits)
-                command += " --ird.gain.nonlin_filename={}nonlin_map.fits".format(outpath_irdis_fits)
-                command += " --ird.gain.nonlin_bpixname={}nonlin_badpixelmap.fits".format(outpath_irdis_fits)
-                command += " --ird.gain.vacca=TRUE"
-                command += " {}master_gain.sof".format(outpath_irdis_sof)
-                os.system(command)
+            gain_list_irdis = dico_lists['gain_list_irdis']
+            if len(gain_list_irdis) > 0:
+                if verbose:
+                    print("*** 2. IRDIS: Calculating gains ***", flush=True)
+                # OBJECT
+                if not isfile(outpath_irdis_sof + "master_gain.sof") or overwrite_sof:
+                    with open(outpath_irdis_sof + "master_gain.sof", 'w+') as f:
+                        for ii in range(len(gain_list_irdis)):
+                            f.write(
+                                inpath + gain_list_irdis[ii] + '\t' + 'IRD_GAIN_RAW\n')
+                        f.write("{}master_badpixelmap.fits".format(
+                            outpath_irdis_fits) + '\t' + 'IRD_STATIC_BADPIXELMAP\n')
+                if not isfile(outpath_irdis_fits + "master_gain.fits") or overwrite_sof or overwrite_fits:
+                    command = "{} sph_ird_gain".format(com_esorex)
+                    command += " --ird.gain.save_addprod=TRUE"
+                    command += " --ird.gain.outfilename={}master_gain_map.fits".format(
+                        outpath_irdis_fits)
+                    command += " --ird.gain.nonlin_filename={}nonlin_map.fits".format(
+                        outpath_irdis_fits)
+                    command += " --ird.gain.nonlin_bpixname={}nonlin_badpixelmap.fits".format(
+                        outpath_irdis_fits)
+                    command += " --ird.gain.vacca=TRUE"
+                    command += " {}master_gain.sof".format(outpath_irdis_sof)
+                    os.system(command)
+            elif len(gain_list_irdis) == 0:
+                if verbose:
+                    print("*** 2. IRDIS: No GAIN files found, this optional step will be skipped", flush=True)
 
         # Identify good SKY BKG / INS BKG (in order of priority)
         if 3 in to_do or 4 in to_do:
             if verbose:
                 print("*** 3. IRDIS: Compiling SKY backgrounds ***", flush=True)
             # OBJ
-            ## sky or ins bg list?
+            # sky or ins bg list?
             sky_list_irdis = dico_lists['sky_list_irdis']
             ins_bg_list_irdis = dico_lists['ins_bg_list_irdis']
             if len(sky_list_irdis) > 0 and good_sky_irdis is not None:
@@ -309,8 +339,9 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     tmp = open_fits(inpath + sky_list_irdis[0])
                     master_sky = np.zeros([1, tmp.shape[1], tmp.shape[2]])
                     master_sky[0] = tmp[0]
-                    write_fits("{}master_sky_cube.fits".format(outpath_irdis_fits),
-                               master_sky)  # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    write_fits("{}master_sky_cube.fits".format(
+                        outpath_irdis_fits), master_sky)
                     sky_list_irdis = [sky_list_irdis[0]]
                 elif 'all' in good_sky_irdis:
                     counter = 0
@@ -318,12 +349,14 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     for gg in range(nsky):
                         tmp = open_fits(inpath + sky_list_irdis[gg])
                         if counter == 0:
-                            master_sky = np.zeros([nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
+                            master_sky = np.zeros(
+                                [nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
                         master_sky[counter:counter + tmp.shape[0]] = tmp
                         counter += tmp.shape[0]
                     # master_sky = np.median(master_sky,axis=0)
-                    write_fits("{}master_sky_cube.fits".format(outpath_irdis_fits), master_sky[
-                                                                                    :counter])  # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    write_fits("{}master_sky_cube.fits".format(
+                        outpath_irdis_fits), master_sky[:counter])
                 elif len(good_sky_irdis) > 0:
                     counter = 0
                     nsky = len(good_sky_irdis)
@@ -331,13 +364,15 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     for gg in good_sky_irdis:
                         tmp = open_fits(inpath + sky_list_irdis[gg])
                         if counter == 0:
-                            master_sky = np.zeros([nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
+                            master_sky = np.zeros(
+                                [nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
                         master_sky[counter:counter + tmp.shape[0]] = tmp
                         counter += tmp.shape[0]
                         sky_list_irdis_tmp.append(sky_list_irdis[ii])
                     # master_sky = np.median(master_sky,axis=0)
-                    write_fits("{}master_sky_cube.fits".format(outpath_irdis_fits), master_sky[
-                                                                                    :counter])  # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    write_fits("{}master_sky_cube.fits".format(
+                        outpath_irdis_fits), master_sky[:counter])
                     sky_list_irdis = sky_list_irdis_tmp
                 else:
                     raise TypeError("good_sky_irdis format not recognised")
@@ -347,18 +382,20 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 for ii in range(len(ins_bg_list_irdis)):
                     tmp = open_fits(inpath + ins_bg_list_irdis[ii])
                     if counter == 0:
-                        master_sky = np.zeros([nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
+                        master_sky = np.zeros(
+                            [nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
                     master_sky[counter:counter + tmp.shape[0]] = tmp
                     counter += tmp.shape[0]
                 # master_sky = np.median(master_sky,axis=0)
-                write_fits("{}master_sky_cube.fits".format(outpath_irdis_fits), master_sky[
-                                                                                :counter])  # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                write_fits("{}master_sky_cube.fits".format(
+                    outpath_irdis_fits), master_sky[:counter])
             else:
                 print("WARNING: no SKY cube available.")
                 print("Sky subtraction proxy based on median background value", flush=True)
 
             # PSF
-            ## sky or ins bg list?
+            # sky or ins bg list?
             psf_sky_list_irdis = dico_lists['psf_sky_list_irdis']
             psf_ins_bg_list_irdis = dico_lists['psf_ins_bg_list_irdis']
             if len(psf_sky_list_irdis) > 0:
@@ -366,30 +403,35 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     tmp = open_fits(inpath + psf_sky_list_irdis[0])
                     master_psf_sky = np.zeros([1, tmp.shape[1], tmp.shape[2]])
                     master_psf_sky[0] = tmp[0]
-                    write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits),
-                               master_psf_sky)  # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    write_fits("{}master_sky_psf_cube.fits".format(
+                        outpath_irdis_fits), master_psf_sky)
                 elif 'all' in good_psf_sky_irdis:
                     counter = 0
                     nsky = len(psf_sky_list_irdis)
                     for gg in range(nsky):
                         tmp = open_fits(inpath + psf_sky_list_irdis[gg])
                         if counter == 0:
-                            master_psf_sky = np.zeros([nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
+                            master_psf_sky = np.zeros(
+                                [nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
                         master_psf_sky[counter:counter + tmp.shape[0]] = tmp
                         counter += tmp.shape[0]
                     # master_sky = np.median(master_sky,axis=0)
-                    write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky[:counter])
+                    write_fits("{}master_sky_psf_cube.fits".format(
+                        outpath_irdis_fits), master_psf_sky[:counter])
                 elif len(good_psf_sky_irdis) > 0:
                     counter = 0
                     nsky = len(good_psf_sky_irdis)
                     for gg in good_psf_sky_irdis:
                         tmp = open_fits(inpath + psf_sky_list_irdis[gg])
                         if counter == 0:
-                            master_psf_sky = np.zeros([nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
+                            master_psf_sky = np.zeros(
+                                [nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
                         master_psf_sky[counter:counter + tmp.shape[0]] = tmp
                         counter += tmp.shape[0]
                     # master_sky = np.median(master_sky,axis=0)
-                    write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky[:counter])
+                    write_fits("{}master_sky_psf_cube.fits".format(
+                        outpath_irdis_fits), master_psf_sky[:counter])
                 elif good_psf_sky_irdis is None:
                     pass
                 else:
@@ -400,11 +442,13 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 for ii in range(len(psf_ins_bg_list_irdis)):
                     tmp = open_fits(inpath + psf_ins_bg_list_irdis[ii])
                     if counter == 0:
-                        master_psf_sky = np.zeros([nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
+                        master_psf_sky = np.zeros(
+                            [nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
                     master_psf_sky[counter:counter + tmp.shape[0]] = tmp
                     counter += tmp.shape[0]
                 # master_sky = np.median(master_sky,axis=0)
-                write_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits), master_psf_sky[:counter])
+                write_fits("{}master_sky_psf_cube.fits".format(
+                    outpath_irdis_fits), master_psf_sky[:counter])
 
         if not isfile("{}master_sky_cube.fits".format(outpath_irdis_fits)):
             pca_subtr = False
@@ -415,7 +459,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             psf_list_irdis = dico_lists['psf_list_irdis']
 
             for ii in range(len(psf_list_irdis)):
-                os.system("cp " + inpath + psf_list_irdis[ii] + " " + inpath + "skysub/" + psf_list_irdis[ii])
+                os.system(
+                    "cp " + inpath + psf_list_irdis[ii] + " " + inpath + "skysub/" + psf_list_irdis[ii])
 
         # FLAT + final bp map
         if 4 in to_do:
@@ -426,33 +471,43 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 flat_list_irdis = dico_lists['flat_list_irdis']
                 with open(outpath_irdis_sof + "master_flat.sof", 'w+') as f:
                     for ii in range(len(flat_list_irdis)):
-                        f.write(inpath + flat_list_irdis[ii] + '\t' + 'IRD_FLAT_FIELD_RAW\n')
+                        f.write(
+                            inpath + flat_list_irdis[ii] + '\t' + 'IRD_FLAT_FIELD_RAW\n')
                     if len(flat_dark_list_irdis) > 0:
                         if len(flat_list_irdis) % len(flat_dark_list_irdis) == 0 and len(flat_list_irdis) / len(
                                 flat_dark_list_irdis) <= 3:
                             for ii in range(len(flat_dark_list_irdis)):
-                                f.write(inpath + flat_dark_list_irdis[ii] + '\t' + 'IRD_DARK_RAW\n')
+                                f.write(
+                                    inpath + flat_dark_list_irdis[ii] + '\t' + 'IRD_DARK_RAW\n')
                         else:
-                            f.write("{}master_dark.fits".format(outpath_irdis_fits) + '\t' + 'IRD_MASTER_DARK\n')
+                            f.write("{}master_dark.fits".format(
+                                outpath_irdis_fits) + '\t' + 'IRD_MASTER_DARK\n')
                     else:
-                        f.write("{}master_dark.fits".format(outpath_irdis_fits) + '\t' + 'IRD_MASTER_DARK\n')
-                    f.write("{}master_badpixelmap.fits".format(outpath_irdis_fits) + '\t' + 'IRD_STATIC_BADPIXELMAP')
+                        f.write("{}master_dark.fits".format(
+                            outpath_irdis_fits) + '\t' + 'IRD_MASTER_DARK\n')
+                    f.write("{}master_badpixelmap.fits".format(
+                        outpath_irdis_fits) + '\t' + 'IRD_STATIC_BADPIXELMAP')
 
             if not isfile(outpath_irdis_fits + "master_flat.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ird_instrument_flat"
+                command = "{} sph_ird_instrument_flat".format(com_esorex)
                 command += " --ird.instrument_flat.badpix_lowtolerance=0.5"
                 command += " --ird.instrument_flat.badpix_uptolerance=1.5"
                 command += " --ird.instrument_flat.save_addprod=TRUE"
-                command += " --ird.instrument_flat.outfilename={}master_flat.fits".format(outpath_irdis_fits)
-                command += " --ird.instrument_flat.badpixfilename={}master_flat_bpmap.fits".format(outpath_irdis_fits)
+                command += " --ird.instrument_flat.outfilename={}master_flat.fits".format(
+                    outpath_irdis_fits)
+                command += " --ird.instrument_flat.badpixfilename={}master_flat_bpmap.fits".format(
+                    outpath_irdis_fits)
                 command += " {}master_flat.sof".format(outpath_irdis_sof)
                 os.system(command)
 
-            ## manually merge DARK bp map and FLAT bp map. => DON'T! THE REDUCE RECIPE CONSIDERS BOTH
-            dark_bpmap, header = open_fits("{}master_badpixelmap.fits".format(outpath_irdis_fits), header=True)
-            flat_bpmap = open_fits("{}master_flat_bpmap.fits".format(outpath_irdis_fits))
+            # manually merge DARK bp map and FLAT bp map. => DON'T! THE REDUCE RECIPE CONSIDERS BOTH
+            dark_bpmap, header = open_fits(
+                "{}master_badpixelmap.fits".format(outpath_irdis_fits), header=True)
+            flat_bpmap = open_fits(
+                "{}master_flat_bpmap.fits".format(outpath_irdis_fits))
             dark_bpmap[np.where(flat_bpmap)] = 1
-            write_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits), dark_bpmap, header=header)
+            write_fits("{}FINAL_badpixelmap.fits".format(
+                outpath_irdis_fits), dark_bpmap, header=header)
 
         # SKY CUBE (optionally PCA SUBTRACTION)
         if 5 in to_do:
@@ -461,7 +516,6 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             # OBJECT
             sci_list_irdis = dico_lists['sci_list_irdis']
             n_sci = len(sci_list_irdis)
-
             n_s = 2
             # below is old version - likely wrong as even for CI, we want both detectors (?)
             # if science_mode == 'CI':
@@ -471,11 +525,13 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
             if n_sci > 0:
                 # bad pixel maps
-                bp_map = open_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
+                bp_map = open_fits(
+                    "{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
                 # SKY PCA-SUBTR, need more than one sky frame for PCA-based subtraction
                 if isfile("{}master_sky_cube.fits".format(outpath_irdis_fits)) and pca_subtr:
 
-                    master_sky = open_fits("{}master_sky_cube.fits".format(outpath_irdis_fits))
+                    master_sky = open_fits(
+                        "{}master_sky_cube.fits".format(outpath_irdis_fits))
                     if npc > master_sky.shape[0]:
                         msg = "WARNING: input npc ({:.0f}) larger than number of sky frames, automatically changed to {:.0f}."
                         print(msg.format(npc, master_sky.shape[0]), flush=True)
@@ -491,7 +547,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         for s in range(n_s):
                             sci_cube_tmp = sci_cube[:, :, xcuts[s]:xcuts[s + 1]]
                             bp_map_tmp = bp_map[:, xcuts[s]:xcuts[s + 1]]
-                            master_sci_sky_tmp = master_sky[:, :, xcuts[s]:xcuts[s + 1]]
+                            master_sci_sky_tmp = master_sky[:,
+                                                 :, xcuts[s]:xcuts[s + 1]]
 
                             # tmp = sci_cube_tmp.copy()
                             # look for smooth max location in med-sky subtraction
@@ -500,9 +557,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             if ii == 0 and s == 0:
                                 n_y_tmp, n_x_tmp = tmp.shape
                                 cy_tmp, cx_tmp = frame_center(tmp)
-                                mask_arr = np.zeros([n_sci, 2, n_y_tmp, n_x_tmp])
-                            tmp = tmp - np.median(master_sci_sky_tmp, axis=0) - np.median(
-                                tmp - np.median(master_sci_sky_tmp, axis=0))
+                                mask_arr = np.zeros(
+                                    [n_sci, 2, n_y_tmp, n_x_tmp])
+                            tmp = tmp - np.median(master_sci_sky_tmp, axis=0) - \
+                                  np.median(
+                                      tmp - np.median(master_sci_sky_tmp, axis=0))
 
                             if mask_pca_sky_sub[2] > 0:
                                 mask_tmp = create_ringed_spider_mask(tmp.shape,
@@ -516,30 +575,39 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                 star_coords_xy[ii, 1, s] = coords_tmp[0]
                                 star_coords_xy[ii, 0, s] = coords_tmp[1]
                                 mask_arr[ii][s] = frame_shift(mask_tmp,
-                                                              int(star_coords_xy[ii, 1, s] - cy_tmp),
-                                                              int(star_coords_xy[ii, 0, s] - cx_tmp),
+                                                              int(
+                                                                  star_coords_xy[ii, 1, s] - cy_tmp),
+                                                              int(
+                                                                  star_coords_xy[ii, 0, s] - cx_tmp),
                                                               border_mode='constant')
                             else:
-                                ## create template annular mask
+                                # create template annular mask
                                 mask_tmp = np.ones_like(tmp)
-                                mask_circ1 = mask_circle(mask_tmp, mask_pca_sky_sub[0], fillwith=0, mode='in')
-                                mask_circ2 = mask_circle(mask_tmp, mask_pca_sky_sub[1], fillwith=0, mode='out')
+                                mask_circ1 = mask_circle(
+                                    mask_tmp, mask_pca_sky_sub[0], fillwith=0, mode='in')
+                                mask_circ2 = mask_circle(
+                                    mask_tmp, mask_pca_sky_sub[1], fillwith=0, mode='out')
 
                                 coords_tmp = peak_coordinates(tmp, fwhm=4)
                                 # print("peak coords: ", coords_tmp)
                                 star_coords_xy[ii, 1, s] = coords_tmp[0]
                                 star_coords_xy[ii, 0, s] = coords_tmp[1]
                                 mask_tmp_shift1 = frame_shift(mask_circ1,
-                                                              int(star_coords_xy[ii, 1, s] - cy_tmp),
-                                                              int(star_coords_xy[ii, 0, s] - cx_tmp),
+                                                              int(
+                                                                  star_coords_xy[ii, 1, s] - cy_tmp),
+                                                              int(
+                                                                  star_coords_xy[ii, 0, s] - cx_tmp),
                                                               border_mode='constant'
                                                               )
                                 mask_tmp_shift2 = frame_shift(mask_circ2,
-                                                              int(star_coords_xy[ii, 1, s] - cy_tmp),
-                                                              int(star_coords_xy[ii, 0, s] - cx_tmp),
+                                                              int(
+                                                                  star_coords_xy[ii, 1, s] - cy_tmp),
+                                                              int(
+                                                                  star_coords_xy[ii, 0, s] - cx_tmp),
                                                               border_mode='constant'
                                                               )
-                                mask_arr[ii][s] = mask_tmp_shift1 * mask_tmp_shift2
+                                mask_arr[ii][s] = mask_tmp_shift1 * \
+                                                  mask_tmp_shift2
                             # remove static bad pixels from mask
                             mask_arr[ii][s][np.where(bp_map_tmp)] = 0
                             # make masks
@@ -571,9 +639,9 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                                                  ncomp=npc)
                             sci_cube[:, :, xcuts[s]:xcuts[s + 1]] = sci_cube_tmp
                         hdulist_sci[0].data = sci_cube
-                        hdulist_sci.writeto(inpath + label_ss + sci_list_irdis[ii], output_verify='ignore',
-                                            overwrite=True)
-                        #                    hdulist_sc = fits.open(inpath+sci_list_irdis[ii],
+                        hdulist_sci.writeto(
+                            inpath + label_ss + sci_list_irdis[ii], output_verify='ignore', overwrite=True)
+                    #                    hdulist_sc = fits.open(inpath+sci_list_irdis[ii],
                     #                                           ignore_missing_end=False,
                     #                                           memmap=True)
                     #                    sci_cube = hdulist_sc[0].data
@@ -610,9 +678,9 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     #
                     #
                     #                    # make masks
-                    ##                    mask_tmp = vip_hci.metrics.mask_source_centers(tmp, fwhm=4,
-                    ##                                                                   y=star_coords_xy[ii,1,:],
-                    ##                                                                   x=star_coords_xy[ii,0,:])
+                    # mask_tmp = vip_hci.metrics.mask_source_centers(tmp, fwhm=4,
+                    # y=star_coords_xy[ii,1,:],
+                    # x=star_coords_xy[ii,0,:])
                     #                    #vip_hci.metrics.mask_sources(mask_tmp, ap_rad=40)
                     #                    # PCA-sky subtraction
                     #                    sci_cube = vip_hci.preproc.cube_subtract_sky_pca(sci_cube,
@@ -622,7 +690,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     #                                                                     ncomp=npc)
                     #                    hdulist_sc[0].data = sci_cube
                     #                    hdulist_sc.writeto(inpath+label_ss+sci_list_irdis[ii], output_verify='ignore', overwrite=True)#, output_verify)
-                    write_fits("{}master_masks_for_PCA_sky.fits".format(outpath_irdis_fits), mask_arr)
+                    write_fits("{}master_masks_for_PCA_sky.fits".format(
+                        outpath_irdis_fits), mask_arr)
                     # write fake dark
                     hdulist = fits.open("{}master_dark.fits".format(outpath_irdis_fits),
                                         ignore_missing_end=False,
@@ -640,25 +709,30 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         with open(outpath_irdis_sof + "master_bg.sof", 'w+') as f:
                             if len(sky_list_irdis) > 0:
                                 for ii in range(len(sky_list_irdis)):
-                                    f.write(inpath + sky_list_irdis[ii] + '\t' + 'IRD_SKY_BG_RAW\n')
-                            ## IF THERE is no SKY AT ALL => take INS BG (automatic calibration, but can have up to 20% flux difference level - e.g. J1900-3645 K band dataset)
+                                    f.write(
+                                        inpath + sky_list_irdis[ii] + '\t' + 'IRD_SKY_BG_RAW\n')
+                            # IF THERE is no SKY AT ALL => take INS BG (automatic calibration, but can have up to 20% flux difference level - e.g. J1900-3645 K band dataset)
                             elif len(ins_bg_list_irdis) > 0:
                                 for ii in range(len(ins_bg_list_irdis)):
-                                    f.write(inpath + ins_bg_list_irdis[ii] + '\t' + 'IRD_INS_BG_RAW\n')
+                                    f.write(
+                                        inpath + ins_bg_list_irdis[ii] + '\t' + 'IRD_INS_BG_RAW\n')
                             else:
-                                print("WARNING: NO SKY NOR INS BG - PROXY SKY SUBTR AFTER REDUCTION WILL BE PERFORMED",
-                                      flush=True)
+                                print(
+                                    "WARNING: NO SKY NOR INS BG - PROXY SKY SUBTR AFTER REDUCTION WILL BE PERFORMED",
+                                    flush=True)
                                 # raise ValueError("There is no appropriate sky nor ins bg")
                             f.write("{}master_badpixelmap.fits".format(
                                 outpath_irdis_fits) + '\t' + 'IRD_STATIC_BADPIXELMAP')
                     if len(sky_list_irdis) > 0:
                         if not isfile(outpath_irdis_fits + "sky_bg.fits") or overwrite_sof or overwrite_fits:
-                            command = "esorex sph_ird_sky_bg"
-                            command += " --ird.sky_bg.outfilename={}sky_bg.fits".format(outpath_irdis_fits)
+                            command = "{} sph_ird_sky_bg".format(com_esorex)
+                            command += " --ird.sky_bg.outfilename={}sky_bg.fits".format(
+                                outpath_irdis_fits)
                     else:
                         if not isfile(outpath_irdis_fits + "ins_bg.fits") or overwrite_sof or overwrite_fits:
-                            command = "esorex sph_ird_ins_bg"
-                            command += " --ird.ins_bg.outfilename={}ins_bg.fits".format(outpath_irdis_fits)
+                            command = "{} sph_ird_ins_bg".format(com_esorex)
+                            command += " --ird.ins_bg.outfilename={}ins_bg.fits".format(
+                                outpath_irdis_fits)
                     command += " {}master_bg.sof".format(outpath_irdis_sof)
                     os.system(command)
 
@@ -668,8 +742,10 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             if n_cen > 0:
                 # SKY PCA-SUBTR
                 if isfile("{}master_sky_cube.fits".format(outpath_irdis_fits)) and pca_subtr_cen:
-                    bp_map = open_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
-                    master_sky = open_fits("{}master_sky_cube.fits".format(outpath_irdis_fits))
+                    bp_map = open_fits(
+                        "{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
+                    master_sky = open_fits(
+                        "{}master_sky_cube.fits".format(outpath_irdis_fits))
 
                     star_coords_xy = np.zeros([n_cen, 2, n_s])
                     for ii in range(n_cen):
@@ -681,7 +757,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         for s in range(n_s):
                             cen_cube_tmp = cen_cube[:, :, xcuts[s]:xcuts[s + 1]]
                             bp_map_tmp = bp_map[:, xcuts[s]:xcuts[s + 1]]
-                            master_cen_sky_tmp = master_sky[:, :, xcuts[s]:xcuts[s + 1]]
+                            master_cen_sky_tmp = master_sky[:,
+                                                 :, xcuts[s]:xcuts[s + 1]]
 
                             # tmp = cen_cube_tmp.copy()
                             # look for smooth max location in med-sky subtraction
@@ -690,9 +767,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             if ii == 0 and s == 0:
                                 n_y_tmp, n_x_tmp = tmp.shape
                                 cy_tmp, cx_tmp = frame_center(tmp)
-                                mask_arr = np.zeros([n_cen, 2, n_y_tmp, n_x_tmp])
-                            tmp = tmp - np.median(master_cen_sky_tmp, axis=0) - np.median(
-                                tmp - np.median(master_cen_sky_tmp, axis=0))
+                                mask_arr = np.zeros(
+                                    [n_cen, 2, n_y_tmp, n_x_tmp])
+                            tmp = tmp - np.median(master_cen_sky_tmp, axis=0) - \
+                                  np.median(
+                                      tmp - np.median(master_cen_sky_tmp, axis=0))
 
                             if mask_pca_sky_sub[2] > 0:
                                 mask_tmp = create_ringed_spider_mask(tmp.shape,
@@ -706,30 +785,39 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                 star_coords_xy[ii, 1, s] = coords_tmp[0]
                                 star_coords_xy[ii, 0, s] = coords_tmp[1]
                                 mask_arr[ii][s] = frame_shift(mask_tmp,
-                                                              int(star_coords_xy[ii, 1, s] - cy_tmp),
-                                                              int(star_coords_xy[ii, 0, s] - cx_tmp),
+                                                              int(
+                                                                  star_coords_xy[ii, 1, s] - cy_tmp),
+                                                              int(
+                                                                  star_coords_xy[ii, 0, s] - cx_tmp),
                                                               border_mode='constant')
                             else:
-                                ## create template annular mask
+                                # create template annular mask
                                 mask_tmp = np.ones_like(tmp)
-                                mask_circ1 = mask_circle(mask_tmp, mask_pca_sky_sub[0], fillwith=0, mode='in')
-                                mask_circ2 = mask_circle(mask_tmp, mask_pca_sky_sub[1], fillwith=0, mode='out')
+                                mask_circ1 = mask_circle(
+                                    mask_tmp, mask_pca_sky_sub[0], fillwith=0, mode='in')
+                                mask_circ2 = mask_circle(
+                                    mask_tmp, mask_pca_sky_sub[1], fillwith=0, mode='out')
 
                                 coords_tmp = peak_coordinates(tmp, fwhm=4)
                                 # print("peak coords: ", coords_tmp)
                                 star_coords_xy[ii, 1, s] = coords_tmp[0]
                                 star_coords_xy[ii, 0, s] = coords_tmp[1]
                                 mask_tmp_shift1 = frame_shift(mask_circ1,
-                                                              int(star_coords_xy[ii, 1, s] - cy_tmp),
-                                                              int(star_coords_xy[ii, 0, s] - cx_tmp),
+                                                              int(
+                                                                  star_coords_xy[ii, 1, s] - cy_tmp),
+                                                              int(
+                                                                  star_coords_xy[ii, 0, s] - cx_tmp),
                                                               border_mode='constant'
                                                               )
                                 mask_tmp_shift2 = frame_shift(mask_circ2,
-                                                              int(star_coords_xy[ii, 1, s] - cy_tmp),
-                                                              int(star_coords_xy[ii, 0, s] - cx_tmp),
+                                                              int(
+                                                                  star_coords_xy[ii, 1, s] - cy_tmp),
+                                                              int(
+                                                                  star_coords_xy[ii, 0, s] - cx_tmp),
                                                               border_mode='constant'
                                                               )
-                                mask_arr[ii][s] = mask_tmp_shift1 * mask_tmp_shift2
+                                mask_arr[ii][s] = mask_tmp_shift1 * \
+                                                  mask_tmp_shift2
                             # remove bad pixels from mask
                             mask_arr[ii][s][np.where(bp_map_tmp)] = 0
                             # make masks
@@ -754,9 +842,10 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                                                  ncomp=npc)
                             cen_cube[:, :, xcuts[s]:xcuts[s + 1]] = cen_cube_tmp
                         hdulist_cen[0].data = cen_cube
-                        hdulist_cen.writeto(inpath + label_ss + cen_list_irdis[ii], output_verify='ignore',
-                                            overwrite=True)
-                    write_fits("{}master_masks_for_PCA_sky.fits".format(outpath_irdis_fits), mask_arr)
+                        hdulist_cen.writeto(
+                            inpath + label_ss + cen_list_irdis[ii], output_verify='ignore', overwrite=True)
+                    write_fits("{}master_masks_for_PCA_sky.fits".format(
+                        outpath_irdis_fits), mask_arr)
                     # write fake dark
                     hdulist = fits.open("{}master_dark.fits".format(outpath_irdis_fits),
                                         ignore_missing_end=False,
@@ -766,15 +855,17 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     hdulist.writeto("{}{}master_dark.fits".format(outpath_irdis_fits, label_fd),
                                     output_verify='ignore', overwrite=True)
 
-                    # PSF
+            # PSF
             psf_list_irdis = dico_lists['psf_list_irdis']
             n_psf = len(psf_list_irdis)
             if n_psf > 0:
-                bp_map = open_fits("{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
+                bp_map = open_fits(
+                    "{}FINAL_badpixelmap.fits".format(outpath_irdis_fits))
                 # SKY PCA-SUBTR
                 if isfile("{}master_sky_psf_cube.fits".format(outpath_irdis_fits)) and pca_subtr_psf:
 
-                    master_psf_sky = open_fits("{}master_sky_psf_cube.fits".format(outpath_irdis_fits))
+                    master_psf_sky = open_fits(
+                        "{}master_sky_psf_cube.fits".format(outpath_irdis_fits))
 
                     star_coords_xy = np.zeros([n_psf, 2, n_s])
                     #                for ii in range(n_psf):
@@ -821,7 +912,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         for s in range(n_s):
                             psf_cube_tmp = psf_cube[:, :, xcuts[s]:xcuts[s + 1]]
                             bp_map_tmp = bp_map[:, xcuts[s]:xcuts[s + 1]]
-                            master_psf_sky_tmp = master_psf_sky[:, :, xcuts[s]:xcuts[s + 1]]
+                            master_psf_sky_tmp = master_psf_sky[:,
+                                                 :, xcuts[s]:xcuts[s + 1]]
 
                             # tmp = psf_cube_tmp.copy()
                             # look for smooth max location in med-sky subtraction
@@ -830,27 +922,35 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             if ii == 0 and s == 0:
                                 n_y_tmp, n_x_tmp = tmp.shape
                                 cy_tmp, cx_tmp = frame_center(tmp)
-                                mask_arr = np.zeros([n_psf, 2, n_y_tmp, n_x_tmp])
-                            tmp = tmp - np.median(master_psf_sky_tmp, axis=0) - np.median(
-                                tmp - np.median(master_psf_sky_tmp, axis=0))
+                                mask_arr = np.zeros(
+                                    [n_psf, 2, n_y_tmp, n_x_tmp])
+                            tmp = tmp - np.median(master_psf_sky_tmp, axis=0) - \
+                                  np.median(
+                                      tmp - np.median(master_psf_sky_tmp, axis=0))
 
-                            ## create template annular mask
+                            # create template annular mask
                             mask_tmp = np.ones_like(tmp)
-                            mask_circ1 = mask_circle(mask_tmp, mask_pca_sky_sub[0], fillwith=0, mode='in')
-                            mask_circ2 = mask_circle(mask_tmp, mask_pca_sky_sub[1], fillwith=0, mode='out')
+                            mask_circ1 = mask_circle(
+                                mask_tmp, mask_pca_sky_sub[0], fillwith=0, mode='in')
+                            mask_circ2 = mask_circle(
+                                mask_tmp, mask_pca_sky_sub[1], fillwith=0, mode='out')
 
                             coords_tmp = peak_coordinates(tmp, fwhm=4)
                             # print("peak coords: ", coords_tmp)
                             star_coords_xy[ii, 1, s] = coords_tmp[0]
                             star_coords_xy[ii, 0, s] = coords_tmp[1]
                             mask_tmp_shift1 = frame_shift(mask_circ1,
-                                                          int(star_coords_xy[ii, 1, s] - cy_tmp),
-                                                          int(star_coords_xy[ii, 0, s] - cx_tmp),
+                                                          int(star_coords_xy[ii,
+                                                          1, s] - cy_tmp),
+                                                          int(star_coords_xy[ii,
+                                                          0, s] - cx_tmp),
                                                           border_mode='constant')
 
                             mask_tmp_shift2 = frame_shift(mask_circ2,
-                                                          int(star_coords_xy[ii, 1, s] - cy_tmp),
-                                                          int(star_coords_xy[ii, 0, s] - cx_tmp),
+                                                          int(star_coords_xy[ii,
+                                                          1, s] - cy_tmp),
+                                                          int(star_coords_xy[ii,
+                                                          0, s] - cx_tmp),
                                                           border_mode='constant')
 
                             mask_arr[ii][s] = mask_tmp_shift1 * mask_tmp_shift2
@@ -863,11 +963,13 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             # vip_hci.metrics.mask_sources(mask_tmp, ap_rad=40)
                             med_sky_lvl = []
                             for i in range(master_psf_sky_tmp.shape[0]):
-                                med_sky_lvl.append(master_psf_sky_tmp[i][np.where(mask_arr[ii][s])])
+                                med_sky_lvl.append(
+                                    master_psf_sky_tmp[i][np.where(mask_arr[ii][s])])
                             med_sky_lvl = np.median(med_sky_lvl)
                             med_psf_lvl = []
                             for i in range(psf_cube_tmp.shape[0]):
-                                med_psf_lvl.append(psf_cube_tmp[i][np.where(mask_arr[ii][s])])
+                                med_psf_lvl.append(
+                                    psf_cube_tmp[i][np.where(mask_arr[ii][s])])
                             med_psf_lvl = np.median(med_psf_lvl)
                             # PCA-sky subtraction
                             master_psf_sky_tmp = master_psf_sky_tmp - med_sky_lvl + med_psf_lvl
@@ -878,11 +980,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                                                  ncomp=npc_psf)
                             psf_cube[:, :, xcuts[s]:xcuts[s + 1]] = psf_cube_tmp
                         hdulist_psf[0].data = psf_cube
-                        hdulist_psf.writeto(inpath + label_ss + psf_list_irdis[ii], output_verify='ignore',
-                                            overwrite=True)  # , output_verify)
-                    write_fits("{}master_masks_for_PCA_sky_psf.fits".format(outpath_irdis_fits), mask_arr)
+                        hdulist_psf.writeto(
+                            inpath + label_ss + psf_list_irdis[ii], output_verify='ignore', overwrite=True)
+                    write_fits("{}master_masks_for_PCA_sky_psf.fits".format(
+                        outpath_irdis_fits), mask_arr)
                     # pdb.set_trace()
-
 
                 # ELSE: we compute the master sky with sph sky recipe, which will then be passed to the reduction recipe
                 else:
@@ -892,26 +994,31 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         with open(outpath_irdis_sof + "master_bg_psf.sof", 'w+') as f:
                             if len(psf_sky_list_irdis) > 0:
                                 for ii in range(len(sky_list_irdis)):
-                                    f.write(inpath + sky_list_irdis[ii] + '\t' + 'IRD_SKY_BG_RAW\n')
+                                    f.write(
+                                        inpath + sky_list_irdis[ii] + '\t' + 'IRD_SKY_BG_RAW\n')
                             ## IF THERE is no SKY AT ALL => take INS BG (automatic calibration, but can have up to 20% flux difference level - e.g. J1900-3645 K band dataset)
                             elif len(psf_ins_bg_list_irdis) > 0:
                                 for ii in range(len(psf_ins_bg_list_irdis)):
-                                    f.write(inpath + psf_ins_bg_list_irdis[ii] + '\t' + 'IRD_INS_BG_RAW\n')
+                                    f.write(
+                                        inpath + psf_ins_bg_list_irdis[ii] + '\t' + 'IRD_INS_BG_RAW\n')
                             else:
-                                print("WARNING: NO SKY NOR INS BG - PROXY SKY SUBTR AFTER REDUCTION WILL BE PERFORMED",
-                                      flush=True)
+                                print(
+                                    "WARNING: NO SKY NOR INS BG - PROXY SKY SUBTR AFTER REDUCTION WILL BE PERFORMED",
+                                    flush=True)
                                 # raise ValueError("There is no appropriate sky nor ins bg")
                             f.write("{}master_badpixelmap.fits".format(
                                 outpath_irdis_fits) + '\t' + 'IRD_STATIC_BADPIXELMAP')
                     if len(psf_sky_list_irdis) > 0:
                         if not isfile(outpath_irdis_fits + "psf_sky_bg.fits") or overwrite_sof or overwrite_fits:
-                            command = "esorex sph_ird_sky_bg"
-                            command += " --ird.sky_bg.outfilename={}psf_sky_bg.fits".format(outpath_irdis_fits)
+                            command = "{} sph_ird_sky_bg".format(com_esorex)
+                            command += " --ird.sky_bg.outfilename={}psf_sky_bg.fits".format(
+                                outpath_irdis_fits)
                     else:
                         if not isfile(outpath_irdis_fits + "psf_sky_bg.fits") or overwrite_sof or overwrite_fits:
-                            command = "esorex sph_ird_ins_bg"
+                            command = "{} sph_ird_ins_bg".format(com_esorex)
                             command += " --ird.ins_bg.outfilename={}psf_ins_bg.fits".format(outpath_irdis_fits)
-                    command += " {}master_bg_psf.sof".format(outpath_irdis_sof)
+                    command += " {}master_bg_psf.sof".format(
+                        outpath_irdis_sof)
                     os.system(command)
 
         # REDUCE
@@ -938,7 +1045,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 command += f" --ird.science_{recipe}.outfilename={outpath_irdis_fits}{file}_total.fits"
                 command += f" --ird.science_{recipe}.outfilename_left={outpath_irdis_fits}{file}_left.fits"
                 command += f" --ird.science_{recipe}.outfilename_right={outpath_irdis_fits}{file}_right.fits"
-                command += f" --ird.science_{recipe}.save_addprod=TRUE"
+                # command += f" --ird.science_{recipe}.save_addprod=TRUE"
                 command += f" {outpath_irdis_sof}{file_type}{ii}.sof"
                 os.system(command)
 
@@ -950,13 +1057,15 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         with open(outpath_irdis_sof + "OBJECT{:.0f}.sof".format(ii), 'w') as f:
                             f.write(inpath + label_ss + sci_list_irdis[ii] + '\t' + f'IRD_SCIENCE_{label_method}_RAW\n')
                             if pca_subtr:
-                                f.write("{}{}master_dark.fits".format(outpath_irdis_fits,
-                                                                      label_fd) + ' \t' + 'IRD_MASTER_DARK\n')
+                                f.write("{}{}master_dark.fits".format(
+                                    outpath_irdis_fits, label_fd) + ' \t' + 'IRD_MASTER_DARK\n')
                             else:
                                 if isfile("{}sky_bg.fits".format(outpath_irdis_fits)):
-                                    f.write("{}sky_bg.fits".format(outpath_irdis_fits) + '\t' + 'IRD_SKY_BG\n')
+                                    f.write("{}sky_bg.fits".format(
+                                        outpath_irdis_fits) + '\t' + 'IRD_SKY_BG\n')
                                 elif isfile("{}ins_bg.fits".format(outpath_irdis_fits)):
-                                    f.write("{}ins_bg.fits".format(outpath_irdis_fits) + '\t' + 'IRD_INS_BG\n')
+                                    f.write("{}ins_bg.fits".format(
+                                        outpath_irdis_fits) + '\t' + 'IRD_INS_BG\n')
                                 else:
                                     f.write(
                                         "{}master_dark.fits".format(outpath_irdis_fits) + ' \t' + 'IRD_MASTER_DARK\n')
@@ -969,7 +1078,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     if (not isfile(outpath_irdis_fits + f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits + f"{file}_right.fits") or overwrite_sof or overwrite_fits):
                         _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe,
-                                             file_type="OBJECT", )
+                                             file_type="OBJECT")
 
             # CEN
             cen_list_irdis = dico_lists['cen_list_irdis']
@@ -979,17 +1088,20 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         with open(outpath_irdis_sof + "CEN{:.0f}.sof".format(ii), 'w') as f:
                             f.write(inpath + label_ss + cen_list_irdis[ii] + '\t' + f'IRD_SCIENCE_{label_method}_RAW\n')
                             if pca_subtr:
-                                f.write("{}{}master_dark.fits".format(outpath_irdis_fits,
-                                                                      label_fd) + ' \t' + 'IRD_MASTER_DARK\n')
+                                f.write("{}{}master_dark.fits".format(
+                                    outpath_irdis_fits, label_fd) + ' \t' + 'IRD_MASTER_DARK\n')
                             else:
                                 if isfile("{}sky_bg.fits".format(outpath_irdis_fits)):
-                                    f.write("{}sky_bg.fits".format(outpath_irdis_fits) + '\t' + 'IRD_SKY_BG\n')
+                                    f.write("{}sky_bg.fits".format(
+                                        outpath_irdis_fits) + '\t' + 'IRD_SKY_BG\n')
                                 elif isfile("{}ins_bg.fits".format(outpath_irdis_fits)):
-                                    f.write("{}ins_bg.fits".format(outpath_irdis_fits) + '\t' + 'IRD_INS_BG\n')
+                                    f.write("{}ins_bg.fits".format(
+                                        outpath_irdis_fits) + '\t' + 'IRD_INS_BG\n')
                                 else:
-                                    f.write(
-                                        "{}master_dark.fits".format(outpath_irdis_fits) + ' \t' + 'IRD_MASTER_DARK\n')
-                            f.write("{}master_flat.fits".format(outpath_irdis_fits) + '\t' + 'IRD_FLAT_FIELD\n')
+                                    f.write("{}master_dark.fits".format(
+                                        outpath_irdis_fits) + ' \t' + 'IRD_MASTER_DARK\n')
+                            f.write("{}master_flat.fits".format(
+                                outpath_irdis_fits) + '\t' + 'IRD_FLAT_FIELD\n')
                             if isfile(inpath_filt_table + "sph_ird_filt_table.fits"):
                                 f.write(inpath_filt_table + "sph_ird_filt_table.fits" + '\t' + 'IRD_FILTER_TABLE\n')
                             f.write(
@@ -1007,13 +1119,15 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         with open(outpath_irdis_sof + "PSF{:.0f}.sof".format(ii), 'w') as f:
                             f.write(inpath + label_ss + psf_list_irdis[ii] + '\t' + f'IRD_SCIENCE_{label_method}_RAW\n')
                             if pca_subtr_psf:
-                                f.write("{}{}master_dark.fits".format(outpath_irdis_fits,
-                                                                      label_fd) + ' \t' + 'IRD_MASTER_DARK\n')
+                                f.write("{}{}master_dark.fits".format(
+                                    outpath_irdis_fits, label_fd) + ' \t' + 'IRD_MASTER_DARK\n')
                             else:
                                 if isfile("{}psf_sky_bg.fits".format(outpath_irdis_fits)):
-                                    f.write("{}psf_sky_bg.fits".format(outpath_irdis_fits) + '\t' + 'IRD_SKY_BG\n')
+                                    f.write("{}psf_sky_bg.fits".format(
+                                        outpath_irdis_fits) + '\t' + 'IRD_SKY_BG\n')
                                 elif isfile("{}psf_ins_bg.fits".format(outpath_irdis_fits)):
-                                    f.write("{}psf_ins_bg.fits".format(outpath_irdis_fits) + '\t' + 'IRD_INS_BG\n')
+                                    f.write("{}psf_ins_bg.fits".format(
+                                        outpath_irdis_fits) + '\t' + 'IRD_INS_BG\n')
                                 else:
                                     f.write(
                                         "{}master_dark.fits".format(outpath_irdis_fits) + '\t' + 'IRD_MASTER_DARK\n')
@@ -1083,9 +1197,13 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
                             # else (ie. if star near center, estimate bkg flux in an annulus)
                             else:
-                                r_in = int(min(0.5 * rad, edge - 25))  # 25px ~ 5-6*lambda/D in most cases
-                                r_out = int(min(0.75 * rad, edge - 5))  # 5px ~ 1-1.2*lambda/D in most cases
-                                ann_aper = CircularAnnulus((peak_x, peak_y), r_in=r_in, r_out=r_out)
+                                # 25px ~ 5-6*lambda/D in most cases
+                                r_in = int(min(0.5 * rad, edge - 25))
+                                # 5px ~ 1-1.2*lambda/D in most cases
+                                r_out = int(min(0.75 * rad, edge - 5))
+                                ann_aper = CircularAnnulus((peak_x, peak_y),
+                                                           r_in=r_in,
+                                                           r_out=r_out)
                                 ann_mask = ann_aper.to_mask(method='center')
                                 ann_data = ann_mask.multiply(tmp[zz])
                                 masked_data = ann_data[ann_mask.data > 0]
@@ -1095,22 +1213,22 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         write_fits(outpath_irdis_fits + prod, tmp, header=head_tmp, verbose=False)
 
             # calibrate the effect of the coronagraph on the number of counts
-            if len(dico_lists['sci_list_irdis']) > 0 and len(dico_lists['psf_list_irdis']) > 0:
-                # get the name of each OBJ and each PSF file and add them to the sof with appropriate tag. also add
-                # the master dark and master flat. all of these files are required
-                if not isfile(outpath_irdis_sof + "flux_calib.sof") or overwrite_sof:
-                    with open(outpath_irdis_sof + "flux_calib.sof", 'w') as f:
-                        for ii, file in enumerate(dico_lists['sci_list_irdis']):
-                            f.write(inpath + label_ss + file + '\t' + 'IRD_FLUX_CALIB_CORO_RAW\n')
-                        for ii, file in enumerate(dico_lists['psf_list_irdis']):
-                            f.write(inpath + label_ss + file + '\t' + 'IRD_FLUX_CALIB_NO_CORO_RAW\n')
-                        f.write(f"{outpath_irdis_fits}master_dark.fits" + '\t' + 'IRD_MASTER_DARK\n')
-                        f.write(f"{outpath_irdis_fits}master_flat.fits" + '\t' + 'IRD_FLAT_FIELD\n')
-                command = "esorex sph_ird_flux_calib"
-                command += f" --ird.flux_calib.outfilename={outpath_irdis_fits}flux_calib.fits"
-                command += " --ird.flux_calib.coll_alg=1"
-                command += f" {outpath_irdis_sof}flux_calib.sof"
-                os.system(command)
+            # if len(dico_lists['sci_list_irdis']) > 0 and len(dico_lists['psf_list_irdis']) > 0:
+            #     # get the name of each OBJ and each PSF file and add them to the sof with appropriate tag. also add
+            #     # the master dark and master flat. all of these files are required
+            #     if not isfile(outpath_irdis_sof+"flux_calib.sof") or overwrite_sof:
+            #         with open(outpath_irdis_sof+"flux_calib.sof", 'w') as f:
+            #             for ii, file in enumerate(dico_lists['sci_list_irdis']):
+            #                 f.write(inpath+label_ss+file+'\t'+'IRD_FLUX_CALIB_CORO_RAW\n')
+            #             for ii, file in enumerate(dico_lists['psf_list_irdis']):
+            #                 f.write(inpath+label_ss+file+'\t'+'IRD_FLUX_CALIB_NO_CORO_RAW\n')
+            #             f.write(f"{outpath_irdis_fits}master_dark.fits"+'\t'+'IRD_MASTER_DARK\n')
+            #             f.write(f"{outpath_irdis_fits}master_flat.fits"+'\t'+'IRD_FLAT_FIELD\n')
+            #     command = "esorex sph_ird_flux_calib"
+            #     command += f" --ird.flux_calib.outfilename={outpath_irdis_fits}flux_calib.fits"
+            #     command += " --ird.flux_calib.coll_alg=1"
+            #     command += f" {outpath_irdis_sof}flux_calib.sof"
+            #     os.system(command)
 
     # 10-19 IFS
     if do_ifs:
@@ -1129,7 +1247,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 print("*** 10. IFS: Compiling DARKs ***", flush=True)
             dark_list_ifs = dico_lists['dark_list_ifs']
             if len(dark_list_ifs) < 1:
-                raise ValueError("There should be at least one dark! Double-check archive?")
+                raise ValueError(
+                    "There should be at least one dark! Double-check archive?")
 
             # ALL DARKS
             master_dark_cube = []
@@ -1137,23 +1256,25 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 for ii in range(len(dark_list_ifs)):
                     dark_cube, dark_head = open_fits(inpath + dark_list_ifs[ii], header=True, verbose=False)
                     if np.round(dark_head['HIERARCH ESO DET SEQ1 DIT'], decimals=2) == 1.65 and dark_head[
-                        "MJD-OBS"] < 58852:
+                        "MJD-OBS"] < 0:
                         # if it's 1.65s and before the shutdown, replace with the super dark
                         dark_list_ifs[ii] = "ifs_super_dark_1.65s.fits"
                         os.system("cp {} {}".format(vcal_path[0][:-4] + "Static/ifs_super_dark_1.65s.fits", inpath))
                     f.write(inpath + dark_list_ifs[ii] + '\t' + 'IFS_DARK_RAW\n')
                     if dark_cube.ndim == 3:
                         if ii == 0:
-                            master_dark_cube = [dark_cube[i] for i in range(dark_cube.shape[0])]
+                            master_dark_cube = [dark_cube[i]
+                                                for i in range(dark_cube.shape[0])]
                         else:
-                            tmp = [dark_cube[i] for i in range(dark_cube.shape[0])]
+                            tmp = [dark_cube[i]
+                                   for i in range(dark_cube.shape[0])]
                             master_dark_cube.extend(tmp)
 
             master_dark_cube = np.array(master_dark_cube)
             write_fits(outpath_ifs_fits + "master_dark_cube.fits", master_dark_cube,
                        verbose=False)  # saves cube of all darks
             if not isfile(outpath_ifs_fits + "master_dark.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ifs_master_dark"
+                command = "{} sph_ifs_master_dark".format(com_esorex)
                 command += " --ifs.master_dark.sigma_clip=10.0"
                 command += " --ifs.master_dark.outfilename={}master_dark.fits".format(outpath_ifs_fits)
                 command += " --ifs.master_dark.badpixfilename={}master_badpixelmap.fits".format(outpath_ifs_fits)
@@ -1167,7 +1288,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 dit_ifs_flat_list = dico_lists['dit_ifs_flat']
                 fdark_list_ifs = dico_lists['flat_dark_list_ifs']
                 if len(fdark_list_ifs) < 1:
-                    raise ValueError("There should be at least one flat dark! Double-check archive?")
+                    raise ValueError(
+                        "There should be at least one flat dark! Double-check archive?")
                 flat_list_ifs = dico_lists['flat_list_ifs']
                 # if len(flat_list_ifs) > 1:
                 #     msg = ("More than one detector FLAT is present in the raw directory! \n"
@@ -1177,7 +1299,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 #     set_trace()
                 flat_list_ifs_det = dico_lists['flat_list_ifs_det']
                 flat_list_ifs_det_BB = dico_lists['flat_list_ifs_det_BB']
-                all_flat_lists_ifs = [flat_list_ifs, flat_list_ifs_det, flat_list_ifs_det_BB]
+                all_flat_lists_ifs = [flat_list_ifs,
+                                      flat_list_ifs_det, flat_list_ifs_det_BB]
                 nfd = len(fdark_list_ifs)
                 fdit_list_nn = []
                 all_median_darks = []
@@ -1201,7 +1324,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             dark_cube, fdark_head = open_fits(inpath + fdark_list_ifs[dd], header=True, verbose=False)
                             dit_fdark = fdark_head['HIERARCH ESO DET SEQ1 DIT']
                             if dit_fdark == fdit:
-                                if np.round(dit_fdark, decimals=2) == 1.65 and fdark_head["MJD-OBS"] < 58852:
+                                if np.round(dit_fdark, decimals=2) == 1.65 and fdark_head["MJD-OBS"] < 0:
                                     fdark_list_ifs[dd] = "ifs_super_dark_1.65s.fits"
                                     os.system("cp {} {}".format(vcal_path[0][:-4] + "Static/ifs_super_dark_1.65s.fits",
                                                                 inpath))
@@ -1212,7 +1335,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                verbose=False)
                     if not isfile(
                             outpath_ifs_fits + "master_dark{:.0f}.fits".format(nn)) or overwrite_sof or overwrite_fits:
-                        command = "esorex sph_ifs_master_dark"
+                        command = "{} sph_ifs_master_dark".format(com_esorex)
                         command += " --ifs.master_dark.sigma_clip=10.0"
                         command += " --ifs.master_dark.outfilename={}master_dark{:.0f}.fits".format(outpath_ifs_fits,
                                                                                                     nn)
@@ -1224,11 +1347,14 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         open_fits(outpath_ifs_fits + "master_dark{:.0f}.fits".format(nn), verbose=False))
 
                     # SUBTRACT DARK
-                    ## find raw flats with same dit and subtract master dark
-                    master_dark_tmp = open_fits("{}master_dark{:.0f}.fits".format(outpath_ifs_fits, nn), verbose=False)
+                    # find raw flats with same dit and subtract master dark
+                    master_dark_tmp = open_fits(
+                        "{}master_dark{:.0f}.fits".format(outpath_ifs_fits, nn), verbose=False)
                     for nf in range(len(all_flat_lists_ifs)):
                         for ff, ff_name in enumerate(all_flat_lists_ifs[nf]):
-                            hdulist = fits.open(inpath + ff_name, ignore_missing_end=False, memmap=True)
+                            hdulist = fits.open(inpath + ff_name,
+                                                ignore_missing_end=False,
+                                                memmap=True)
                             flat = hdulist[0].data
                             ff_head = hdulist[0].header
                             dit_flat = ff_head['HIERARCH ESO DET SEQ1 DIT']
@@ -1254,11 +1380,12 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                                                                                        outpath_ifs_fits))
                 hdulist = fits.open(
                     "{}master_dark{}.fits".format(outpath_ifs_fits, '{:.0f}'.format(len(dit_ifs_flat_list) - 1)),
-                    ignore_missing_end=False, memmap=True)  # open longest DIT dark
+                    ignore_missing_end=False,
+                    memmap=True)  # open longest DIT dark
                 dark = hdulist[0].data
                 hdulist[0].data = np.zeros_like(dark)
-                hdulist.writeto("{}{}master_dark.fits".format(outpath_ifs_fits, label_fd), output_verify='ignore',
-                                overwrite=True)
+                hdulist.writeto("{}{}master_dark.fits".format(outpath_ifs_fits, label_fd),
+                                output_verify='ignore', overwrite=True)
 
         # GAINS
         if 11 in to_do:
@@ -1272,7 +1399,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         for ii in range(len(gain_list_ifs)):
                             f.write(inpath + gain_list_ifs[ii] + '\t' + 'IFS_GAIN_RAW\n')
                 if not isfile(outpath_ifs_fits + "master_gain_map.fits") or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_gain"
+                    command = "{} sph_ifs_gain".format(com_esorex)
                     command += " --ifs.gain.outfilename={}master_gain_map.fits".format(outpath_ifs_fits)
                     command += " --ifs.gain.nonlin_filename={}nonlin_map.fits".format(outpath_ifs_fits)
                     command += " --ifs.gain.nonlin_bpixname={}nonlin_badpixelmap.fits".format(outpath_ifs_fits)
@@ -1302,24 +1429,25 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 for ii in range(len(flat_list_ifs_det_BB)):
                     hdul = fits.open(inpath + label_ds + flat_list_ifs_det_BB[ii])
                     cube = hdul[0].data
-                    ## CROSS-TALK CORR
+                    # CROSS-TALK CORR
                     for j in range(cube.shape[0]):
-                        cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill', fill_value=0)
+                        cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill',
+                                                                 fill_value=0)
                     hdul[0].data = cube
                     lab_flat = xtalkcorr_lab_IFS
-                    hdul.writeto(inpath + xtalkcorr_lab_IFS + label_ds + flat_list_ifs_det_BB[ii],
-                                 output_verify='ignore', overwrite=True)
-
+                    hdul.writeto(inpath + xtalkcorr_lab_IFS + label_ds +
+                                 flat_list_ifs_det_BB[ii], output_verify='ignore', overwrite=True)
                 for ii in range(len(flat_list_ifs_det)):
                     hdul = fits.open(inpath + label_ds + flat_list_ifs_det[ii])
                     cube = hdul[0].data
-                    ## CROSS-TALK CORR
+                    # CROSS-TALK CORR
                     for j in range(cube.shape[0]):
-                        cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill', fill_value=0)
+                        cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill',
+                                                                 fill_value=0)
                     hdul[0].data = cube
                     lab_flat = xtalkcorr_lab_IFS
-                    hdul.writeto(inpath + xtalkcorr_lab_IFS + label_ds + flat_list_ifs_det[ii], output_verify='ignore',
-                                 overwrite=True)
+                    hdul.writeto(inpath + xtalkcorr_lab_IFS + label_ds +
+                                 flat_list_ifs_det[ii], output_verify='ignore', overwrite=True)
 
             # 1. White preamp flat field (for stripe correction)
             with open(outpath_ifs_sof + "preamp.sof", 'w+') as f:
@@ -1327,20 +1455,26 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     f.write(inpath + lab_flat + label_ds + flat_list_ifs_det_BB[
                         ii] + '\t' + 'IFS_DETECTOR_FLAT_FIELD_RAW\n')
                 if ('FLAT' in dark_ifs and not indiv_fdark) or indiv_fdark:
-                    f.write("{}master_dark.fits".format(outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
-                f.write("{}master_badpixelmap.fits".format(outpath_ifs_fits) + '\t' + 'IFS_STATIC_BADPIXELMAP')
+                    f.write("{}master_dark.fits".format(
+                        outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
+                f.write("{}master_badpixelmap.fits".format(
+                    outpath_ifs_fits) + '\t' + 'IFS_STATIC_BADPIXELMAP')
 
             if not isfile(outpath_ifs_fits + "preamp_l5.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ifs_master_detector_flat"
+                command = "{} sph_ifs_master_detector_flat".format(com_esorex)
                 command += " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                 command += " --ifs.master_detector_flat.badpix_uptolerance=5."
                 command += " --ifs.master_detector_flat.save_addprod=TRUE"
                 if flat_fit and len(flat_list_ifs_det_BB) > 4:
                     command += " --ifs.master_detector_flat.robust_fit=TRUE"
-                command += " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(outpath_ifs_fits)
-                command += " --ifs.master_detector_flat.lss_outfilename={}tmp2.fits".format(outpath_ifs_fits)
-                command += " --ifs.master_detector_flat.preamp_outfilename={}preamp.fits".format(outpath_ifs_fits)
-                command += " --ifs.master_detector_flat.badpixfilename={}tmp3.fits".format(outpath_ifs_fits)
+                command += " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(
+                    outpath_ifs_fits)
+                command += " --ifs.master_detector_flat.lss_outfilename={}tmp2.fits".format(
+                    outpath_ifs_fits)
+                command += " --ifs.master_detector_flat.preamp_outfilename={}preamp.fits".format(
+                    outpath_ifs_fits)
+                command += " --ifs.master_detector_flat.badpixfilename={}tmp3.fits".format(
+                    outpath_ifs_fits)
                 command += " {}preamp.sof".format(outpath_ifs_sof)
                 os.system(command)
 
@@ -1354,33 +1488,42 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         for ii in range(len(flat_list_ifs_det)):
                             header = open_header(inpath + flat_list_ifs_det[ii])
                             if 'HL{:.0f}'.format(kk) in header['HIERARCH ESO INS2 CAL']:
-                                f.write(inpath + lab_flat + label_ds + flat_list_ifs_det[
-                                    ii] + '\t' + 'IFS_DETECTOR_FLAT_FIELD_RAW\n')
+                                f.write(
+                                    inpath + lab_flat + label_ds + flat_list_ifs_det[
+                                        ii] + '\t' + 'IFS_DETECTOR_FLAT_FIELD_RAW\n')
                                 counter += 1
                                 run_rec = True  # needs to enter at least once to run recipe
                         if ('FLAT' in dark_ifs and not indiv_fdark) or indiv_fdark:
-                            f.write(
-                                "{}master_dark.fits".format(outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
-                        f.write("{}master_badpixelmap.fits".format(outpath_ifs_fits) + '\t' + 'IFS_STATIC_BADPIXELMAP')
-                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
+                            f.write("{}master_dark.fits".format(
+                                outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
+                        f.write("{}master_badpixelmap.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_STATIC_BADPIXELMAP')
+                        f.write("{}preamp_l5.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
 
                     if run_rec and (not isfile(outpath_ifs_fits + "large_scale_flat_l{:.0f}.fits".format(
                             kk)) or overwrite_sof or overwrite_fits):
-                        command = "esorex sph_ifs_master_detector_flat"
+                        command = "{} sph_ifs_master_detector_flat".format(com_esorex)
                         command += " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                         command += " --ifs.master_detector_flat.badpix_uptolerance=5."
                         command += " --ifs.master_detector_flat.save_addprod=TRUE"
                         if flat_fit and counter > 4:
                             command += " --ifs.master_detector_flat.robust_fit=TRUE"
-                        command += " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(outpath_ifs_fits)
+                        command += " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(
+                            outpath_ifs_fits)
                         command += " --ifs.master_detector_flat.lss_outfilename={}large_scale_flat.fits".format(
                             outpath_ifs_fits)
-                        command += " --ifs.master_detector_flat.preamp_outfilename={}tmp2.fits".format(outpath_ifs_fits)
-                        command += " --ifs.master_detector_flat.badpixfilename={}tmp3.fits".format(outpath_ifs_fits)
+                        command += " --ifs.master_detector_flat.preamp_outfilename={}tmp2.fits".format(
+                            outpath_ifs_fits)
+                        command += " --ifs.master_detector_flat.badpixfilename={}tmp3.fits".format(
+                            outpath_ifs_fits)
                         # command+= " --ifs.master_detector_flat.lambda={:.0f}".format(kk)
-                        command += " --ifs.master_detector_flat.smoothing_length={:.0f}".format(flat_smooth_length)
-                        command += " --ifs.master_detector_flat.smoothing_method={}".format(flat_smooth_method_idx)
-                        command += " {}large_scale_flat_l{:.0f}.sof".format(outpath_ifs_sof, kk)
+                        command += " --ifs.master_detector_flat.smoothing_length={:.0f}".format(
+                            flat_smooth_length)
+                        command += " --ifs.master_detector_flat.smoothing_method={}".format(
+                            flat_smooth_method_idx)
+                        command += " {}large_scale_flat_l{:.0f}.sof".format(
+                            outpath_ifs_sof, kk)
                         os.system(command)
 
                 # 3. Large scale white flat field (BB) - NOTE SHOULDN'T BE USED LATER ON. EDIT: ACTUALLY YES THEY SHOULD in dr!
@@ -1388,28 +1531,35 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     flat_list_ifs_det_BB = dico_lists['flat_list_ifs_det_BB']
                     with open(outpath_ifs_sof + "large_scale_flat_BB.sof", 'w+') as f:
                         for ii in range(len(flat_list_ifs_det_BB)):
-                            f.write(inpath + lab_flat + label_ds + flat_list_ifs_det_BB[
-                                ii] + '\t' + 'IFS_DETECTOR_FLAT_FIELD_RAW\n')
-                        if ('FLAT' in dark_ifs and not indiv_fdark) or indiv_fdark:
                             f.write(
-                                "{}master_dark.fits".format(outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
-                        f.write("{}master_badpixelmap.fits".format(outpath_ifs_fits) + '\t' + 'IFS_STATIC_BADPIXELMAP')
-                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
+                                inpath + lab_flat + label_ds + flat_list_ifs_det_BB[
+                                    ii] + '\t' + 'IFS_DETECTOR_FLAT_FIELD_RAW\n')
+                        if ('FLAT' in dark_ifs and not indiv_fdark) or indiv_fdark:
+                            f.write("{}master_dark.fits".format(
+                                outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
+                        f.write("{}master_badpixelmap.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_STATIC_BADPIXELMAP')
+                        f.write("{}preamp_l5.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
 
                 if not isfile(outpath_ifs_fits + "large_scale_flat_l5.fits") or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_master_detector_flat"
+                    command = "{} sph_ifs_master_detector_flat".format(com_esorex)
                     command += " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                     command += " --ifs.master_detector_flat.badpix_uptolerance=5."
                     command += " --ifs.master_detector_flat.save_addprod=TRUE"
                     if flat_fit and len(flat_list_ifs_det_BB) > 4:
                         command += " --ifs.master_detector_flat.robust_fit=TRUE"
-                    command += " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(outpath_ifs_fits)
+                    command += " --ifs.master_detector_flat.outfilename={}tmp1.fits".format(
+                        outpath_ifs_fits)
                     command += " --ifs.master_detector_flat.lss_outfilename={}large_scale_flat.fits".format(
                         outpath_ifs_fits)
-                    command += " --ifs.master_detector_flat.preamp_outfilename={}tmp2.fits".format(outpath_ifs_fits)
-                    command += " --ifs.master_detector_flat.badpixfilename={}tmp3.fits".format(outpath_ifs_fits)
+                    command += " --ifs.master_detector_flat.preamp_outfilename={}tmp2.fits".format(
+                        outpath_ifs_fits)
+                    command += " --ifs.master_detector_flat.badpixfilename={}tmp3.fits".format(
+                        outpath_ifs_fits)
                     command += " --ifs.master_detector_flat.smoothing_length=5."
-                    command += " {}large_scale_flat_BB.sof".format(outpath_ifs_sof)
+                    command += " {}large_scale_flat_BB.sof".format(
+                        outpath_ifs_sof)
                     os.system(command)
 
             if large_scale_flat != 'all':
@@ -1421,22 +1571,25 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         for ii in range(len(flat_list_ifs_det)):
                             header = open_header(inpath + flat_list_ifs_det[ii])
                             if 'HL{:.0f}'.format(kk) in header['HIERARCH ESO INS2 CAL']:
-                                f.write(inpath + lab_flat + label_ds + flat_list_ifs_det[
-                                    ii] + '\t' + 'IFS_DETECTOR_FLAT_FIELD_RAW\n')
+                                f.write(
+                                    inpath + lab_flat + label_ds + flat_list_ifs_det[
+                                        ii] + '\t' + 'IFS_DETECTOR_FLAT_FIELD_RAW\n')
                                 counter += 1
                                 run_rec = True
                         if ('FLAT' in dark_ifs and not indiv_fdark) or indiv_fdark:
-                            f.write(
-                                "{}master_dark.fits".format(outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
-                        f.write("{}master_badpixelmap.fits".format(outpath_ifs_fits) + '\t' + 'IFS_STATIC_BADPIXELMAP')
-                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
+                            f.write("{}master_dark.fits".format(
+                                outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
+                        f.write("{}master_badpixelmap.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_STATIC_BADPIXELMAP')
+                        f.write("{}preamp_l5.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
                         if large_scale_flat:
-                            f.write("{}large_scale_flat_l{:.0f}.fits".format(outpath_ifs_fits,
-                                                                             kk) + '\t' + 'IFS_LARGE_SCALE_FLAT\n')
+                            f.write("{}large_scale_flat_l{:.0f}.fits".format(
+                                outpath_ifs_fits, kk) + '\t' + 'IFS_LARGE_SCALE_FLAT\n')
 
                     if run_rec and (not isfile(outpath_ifs_fits + "master_flat_det_l{:.0f}.fits".format(
                             kk)) or overwrite_sof or overwrite_fits):
-                        command = "esorex sph_ifs_master_detector_flat"
+                        command = "{} sph_ifs_master_detector_flat".format(com_esorex)
                         command += " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                         command += " --ifs.master_detector_flat.badpix_uptolerance=5."
                         # command+= " --ifs.master_detector_flat.save_addprod=TRUE"
@@ -1445,10 +1598,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             outpath_ifs_fits)
                         if flat_fit and counter > 4:
                             command += " --ifs.master_detector_flat.robust_fit=TRUE"
-                            # command+= " --ifs.master_detector_flat.preamp_outfilename={}tmp2.fits".format(outpath_ifs_fits)
+                        # command+= " --ifs.master_detector_flat.preamp_outfilename={}tmp2.fits".format(outpath_ifs_fits)
                         # command+= " --ifs.master_detector_flat.badpixfilename={}tmp3.fits".format(outpath_ifs_fits)
                         # command+= " --ifs.master_detector_flat.lambda={:.0f}".format(kk)
-                        command += " {}master_flat_det_l{:.0f}.sof".format(outpath_ifs_sof, kk)
+                        command += " {}master_flat_det_l{:.0f}.sof".format(
+                            outpath_ifs_sof, kk)
                         os.system(command)
 
                 # 5. Final detector flat field (BB)
@@ -1456,30 +1610,36 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     flat_list_ifs_det_BB = dico_lists['flat_list_ifs_det_BB']
                     with open(outpath_ifs_sof + "master_flat_det_BB.sof", 'w+') as f:
                         for ii in range(len(flat_list_ifs_det_BB)):
-                            f.write(inpath + lab_flat + label_ds + flat_list_ifs_det_BB[
-                                ii] + '\t' + 'IFS_DETECTOR_FLAT_FIELD_RAW\n')
+                            f.write(
+                                inpath + lab_flat + label_ds + flat_list_ifs_det_BB[
+                                    ii] + '\t' + 'IFS_DETECTOR_FLAT_FIELD_RAW\n')
                         if ('FLAT' in dark_ifs and not indiv_fdark) or indiv_fdark:
-                            f.write(
-                                "{}master_dark.fits".format(outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
-                        f.write("{}master_badpixelmap.fits".format(outpath_ifs_fits) + '\t' + 'IFS_STATIC_BADPIXELMAP')
-                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
+                            f.write("{}master_dark.fits".format(
+                                outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
+                        f.write("{}master_badpixelmap.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_STATIC_BADPIXELMAP')
+                        f.write("{}preamp_l5.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
                         if large_scale_flat:
-                            f.write(
-                                "{}large_scale_flat_l5.fits".format(outpath_ifs_fits) + '\t' + 'IFS_LARGE_SCALE_FLAT\n')
+                            f.write("{}large_scale_flat_l5.fits".format(
+                                outpath_ifs_fits) + '\t' + 'IFS_LARGE_SCALE_FLAT\n')
 
                 if not isfile(outpath_ifs_fits + "master_flat_det_l5.fits") or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_master_detector_flat"
+                    command = "{} sph_ifs_master_detector_flat".format(com_esorex)
                     # command+= " --ifs.master_detector_flat.badpix_lowtolerance=0.2"
                     # command+= " --ifs.master_detector_flat.badpix_uptolerance=5."
                     # command+= " --ifs.master_detector_flat.save_addprod=TRUE"
                     # command+= " --ifs.master_detector_flat.make_badpix=TRUE"
-                    command += " --ifs.master_detector_flat.outfilename={}master_flat_det.fits".format(outpath_ifs_fits)
+                    command += " --ifs.master_detector_flat.outfilename={}master_flat_det.fits".format(
+                        outpath_ifs_fits)
                     if flat_fit and len(flat_list_ifs_det_BB) > 4:
                         command += " --ifs.master_detector_flat.robust_fit=TRUE"
                     # command+= " --ifs.master_detector_flat.lss_outfilename={}tmp1.fits".format(outpath_ifs_fits)
                     # command+= " --ifs.master_detector_flat.preamp_outfilename={}tmp2.fits".format(outpath_ifs_fits)
-                    command += " --ifs.master_detector_flat.badpixfilename={}tmp3.fits".format(outpath_ifs_fits)
-                    command += " {}master_flat_det_BB.sof".format(outpath_ifs_sof)
+                    command += " --ifs.master_detector_flat.badpixfilename={}tmp3.fits".format(
+                        outpath_ifs_fits)
+                    command += " {}master_flat_det_BB.sof".format(
+                        outpath_ifs_sof)
                     os.system(command)
 
             os.system("rm {}tmp*.fits".format(outpath_ifs_fits))
@@ -1513,8 +1673,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         f.write("{}large_scale_flat_l5.fits".format(
                             outpath_ifs_fits) + '\t' + 'IFS_INSTRUMENT_FLAT_FIELD\n')
                     else:
-                        f.write(
-                            "{}master_flat_det_l5.fits".format(outpath_ifs_fits) + '\t' + 'IFS_INSTRUMENT_FLAT_FIELD\n')
+                        f.write("{}master_flat_det_l5.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_INSTRUMENT_FLAT_FIELD\n')
                     if indiv_fdark:
                         header = open_header(inpath + specpos_IFS[ii])
                         fdit_list_nn = np.load(outpath_ifs_fits + 'flat_dark_dits.npy')
@@ -1525,14 +1685,16 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             elif ff == nfdits - 1:
                                 print("no master dark with appropriate DIT was found for spec_pos", flush=True)
                                 set_trace()
-                        f.write("{}master_dark{:.0f}.fits".format(outpath_ifs_fits, nn) + '\t' + 'IFS_MASTER_DARK\n')
+                        f.write("{}master_dark{:.0f}.fits".format(
+                            outpath_ifs_fits, nn) + '\t' + 'IFS_MASTER_DARK\n')
                     elif 'SPEC_POS' in dark_ifs:
-                        f.write("{}master_dark.fits".format(outpath_ifs_fits) + '\t' + 'IFS_MASTER_DARK\n')
+                        f.write("{}master_dark.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_MASTER_DARK\n')
                     if mode == "YJ":
                         f.write(f"{inpath_filt_table}ifs_lenslet_model_Y_J.txt" + '\t' + 'IFS_LENSLET_MODEL\n')
 
             if not isfile(outpath_ifs_fits + "spectra_pos.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ifs_spectra_positions"
+                command = "{} sph_ifs_spectra_positions".format(com_esorex)
                 if mode == "YJH":
                     command += " --ifs.spectra_positions.hmode=TRUE"
                 elif mode == "YJ":
@@ -1541,7 +1703,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     command += " --ifs.spectra_positions.distortion=FALSE"
                 if not specpos_nonlin_corr:
                     command += " --ifs.spectra_positions.correct_nonlin=FALSE"
-                command += " --ifs.spectra_positions.outfilename={}spectra_pos.fits".format(outpath_ifs_fits)
+                command += " --ifs.spectra_positions.outfilename={}spectra_pos.fits".format(
+                    outpath_ifs_fits)
                 command += " {}spectra_pos.sof".format(outpath_ifs_sof)
                 os.system(command)
 
@@ -1554,15 +1717,19 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     flat_list_ifs = dico_lists['flat_list_ifs']
                     with open(outpath_ifs_sof + "master_flat_tot.sof", 'w+') as f:
                         for ii in range(len(flat_list_ifs)):
-                            f.write(inpath + label_ds + flat_list_ifs[ii] + '\t' + 'IFS_FLAT_FIELD_RAW\n')
-                        f.write("{}spectra_pos.fits".format(outpath_ifs_fits) + '\t' + 'IFS_SPECPOS\n')
+                            f.write(inpath + label_ds +
+                                    flat_list_ifs[ii] + '\t' + 'IFS_FLAT_FIELD_RAW\n')
+                        f.write("{}spectra_pos.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_SPECPOS\n')
                         for jj in range(1, 6):
                             if not large_scale_flat or (jj == 5 and large_scale_flat == 'some'):
-                                lab_sof = "{}master_flat_det_l{:.0f}.fits".format(outpath_ifs_fits, jj)  # v5c
+                                lab_sof = "{}master_flat_det_l{:.0f}.fits".format(
+                                    outpath_ifs_fits, jj)  # v5c
                             else:
-                                lab_sof = "{}large_scale_flat_l{:.0f}.fits".format(outpath_ifs_fits, jj)  # v5c
-                            if not isfile(
-                                    lab_sof) and jj == 4:  # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode)
+                                lab_sof = "{}large_scale_flat_l{:.0f}.fits".format(
+                                    outpath_ifs_fits, jj)  # v5c
+                            # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode)
+                            if not isfile(lab_sof) and jj == 4:
                                 continue
                             elif not isfile(lab_sof):
                                 set_trace()  # check what's happening
@@ -1570,21 +1737,24 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                 lab = "BB"
                             else:
                                 lab = "{:.0f}".format(jj)
-                            f.write(lab_sof + '\t' + 'IFS_MASTER_DFF_LONG{}\n'.format(lab))
+                            f.write(lab_sof + '\t' +
+                                    'IFS_MASTER_DFF_LONG{}\n'.format(lab))
                         if ('FLAT' in dark_ifs and not indiv_fdark) or indiv_fdark:
-                            f.write(
-                                "{}master_dark.fits".format(outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
-                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
+                            f.write("{}master_dark.fits".format(
+                                outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
+                        f.write("{}preamp_l5.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
 
                 if not isfile(outpath_ifs_fits + "master_flat_tot.fits") or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_instrument_flat"
+                    command = "{} sph_ifs_instrument_flat".format(com_esorex)
                     if len(flat_list_ifs) > 1 and flat_fit:
                         command += " --ifs.instrument_flat.make_badpix=TRUE"
                         command += " --ifs.instrument_flat.badpixfilename={}master_badpixelmap_tot.fits".format(
                             outpath_ifs_fits)
                         command += " --ifs.instrument_flat.badpix_lowtolerance=0.2"
                         command += " --ifs.instrument_flat.badpix_uptolerance=5.0"
-                    command += " --ifs.instrument_flat.iff_filename={}master_flat_tot.fits".format(outpath_ifs_fits)
+                    command += " --ifs.instrument_flat.iff_filename={}master_flat_tot.fits".format(
+                        outpath_ifs_fits)
                     if flat_fit:  # and len(flat_list_ifs) > 4:
                         command += " --ifs.instrument_flat.robust_fit=TRUE"
                     else:
@@ -1610,8 +1780,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                        ignore_missing_end=False,
                                        memmap=True)
 
-                bpmap = hdulist_bp[
-                    0].data  # vip_hci.fits.open_fits("{}master_badpixelmap.fits".format(outpath_ifs_fits))
+                # vip_hci.fits.open_fits("{}master_badpixelmap.fits".format(outpath_ifs_fits))
+                bpmap = hdulist_bp[0].data
 
                 for ii in range(len(wave_calib_list_ifs)):
                     hdul = fits.open(inpath + wave_calib_list_ifs[ii])
@@ -1654,8 +1824,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     hdul.writeto(inpath + bpcorr_lab_IFS + wave_calib_list_ifs[ii], output_verify='ignore',
                                  overwrite=True)
 
-                    if xtalk_corr:  # too agressive
-                        ## CROSS-TALK CORR
+                    if xtalk_corr:  # too aggressive
+                        # CROSS-TALK CORR
                         lab_wc = xtalkcorr_lab_IFS
                         if not isdir(inpath + lab_wc):
                             os.makedirs(inpath + lab_wc)
@@ -1663,19 +1833,22 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill',
                                                                      fill_value=0)
                         hdul[0].data = cube
-                        hdul.writeto(inpath + xtalkcorr_lab_IFS + wave_calib_list_ifs[ii], output_verify='ignore',
-                                     overwrite=True)
-                        # pdb.set_trace()
+                        hdul.writeto(
+                            inpath + xtalkcorr_lab_IFS + wave_calib_list_ifs[ii], output_verify='ignore',
+                            overwrite=True)
+                    # pdb.set_trace()
 
                 with open(outpath_ifs_sof + "wave_calib.sof", 'w+') as f:
                     for ii in range(len(wave_calib_list_ifs)):
-                        f.write(inpath + lab_wc + wave_calib_list_ifs[ii] + '\t' + 'IFS_WAVECALIB_RAW\n')
-                    f.write("{}spectra_pos.fits".format(outpath_ifs_fits) + '\t' + 'IFS_SPECPOS\n')
-                    f.write(
-                        "{}{}.fits".format(outpath_ifs_fits, master_flatname) + '\t' + 'IFS_INSTRUMENT_FLAT_FIELD\n')
+                        f.write(
+                            inpath + lab_wc + wave_calib_list_ifs[ii] + '\t' + 'IFS_WAVECALIB_RAW\n')
+                    f.write("{}spectra_pos.fits".format(
+                        outpath_ifs_fits) + '\t' + 'IFS_SPECPOS\n')
+                    f.write("{}{}.fits".format(outpath_ifs_fits,
+                                               master_flatname) + '\t' + 'IFS_INSTRUMENT_FLAT_FIELD\n')
 
             if not isfile(outpath_ifs_fits + "wave_calib.fits") or overwrite_sof or overwrite_fits:
-                command = "esorex sph_ifs_wave_calib"
+                command = "{} sph_ifs_wave_calib".format(com_esorex)
                 command += " --ifs.wave_calib.wavelength_line1=0.9877"
                 command += " --ifs.wave_calib.wavelength_line2=1.1237"
                 command += " --ifs.wave_calib.wavelength_line3=1.3094"
@@ -1703,23 +1876,28 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                     # flat_list_ifs_BB = dico_lists['flat_list_ifs_det_BB']
                     with open(outpath_ifs_sof + "master_flat_ifu.sof", 'w+') as f:
                         for ii in range(len(flat_list_ifs)):
-                            f.write(inpath + label_ds + flat_list_ifs[ii] + '\t' + 'IFS_FLAT_FIELD_RAW\n')
+                            f.write(inpath + label_ds +
+                                    flat_list_ifs[ii] + '\t' + 'IFS_FLAT_FIELD_RAW\n')
                         # TEST: UNCOMMENTED 2 LINES BELOW
                         #                        for ii in range(len(flat_list_ifs_BB)):
                         #                            f.write(inpath+flat_list_ifs_BB[ii]+'\t'+'IFS_FLAT_FIELD_RAW\n')
-                        f.write("{}wave_calib.fits".format(outpath_ifs_fits) + '\t' + 'IFS_WAVECALIB\n')
+                        f.write("{}wave_calib.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_WAVECALIB\n')
                         # f.write("{}spectra_pos.fits".format(outpath_ifs_fits)+'\t'+'IFS_SPECPOS\n')
-                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
+                        f.write("{}preamp_l5.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
                         if ('FLAT' in dark_ifs and not indiv_fdark) or indiv_fdark:
-                            f.write(
-                                "{}master_dark.fits".format(outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
+                            f.write("{}master_dark.fits".format(
+                                outpath_ifs_fits + label_fd) + '\t' + 'IFS_MASTER_DARK\n')
                         for jj in range(1, 6):
                             if not large_scale_flat or (jj == 5 and large_scale_flat == 'some'):
-                                lab_sof = "{}master_flat_det_l{:.0f}.fits".format(outpath_ifs_fits, jj)  # v5c
+                                lab_sof = "{}master_flat_det_l{:.0f}.fits".format(
+                                    outpath_ifs_fits, jj)  # v5c
                             else:
-                                lab_sof = "{}large_scale_flat_l{:.0f}.fits".format(outpath_ifs_fits, jj)  # v5c
-                            if not isfile(
-                                    lab_sof) and jj == 4:  # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode)
+                                lab_sof = "{}large_scale_flat_l{:.0f}.fits".format(
+                                    outpath_ifs_fits, jj)  # v5c
+                            # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode)
+                            if not isfile(lab_sof) and jj == 4:
                                 continue
                             elif not isfile(lab_sof):
                                 set_trace()  # check what's happening
@@ -1735,10 +1913,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             #                                lab = "BB"
                             #                            else:
                             #                                lab = "{:.0f}".format(jj)
-                            f.write(lab_sof + '\t' + 'IFS_MASTER_DFF_LONG{}\n'.format(lab))
+                            f.write(lab_sof + '\t' +
+                                    'IFS_MASTER_DFF_LONG{}\n'.format(lab))
 
                 if not isfile(outpath_ifs_fits + "master_flat_ifu.fits") or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_instrument_flat"
+                    command = "{} sph_ifs_instrument_flat".format(com_esorex)
                     if len(flat_list_ifs) > 1 and flat_fit:
                         command += " --ifs.instrument_flat.make_badpix=TRUE"
                         command += " --ifs.instrument_flat.badpixfilename={}master_badpixelmap_tot.fits".format(
@@ -1761,72 +1940,84 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
         if 17 in to_do and sky:
             if verbose:
                 print("*** 17. IFS: Compiling SKY cubes ***", flush=True)
-            ## OBJ
+            # OBJ
             sky_list_ifs = dico_lists['sky_list_ifs']
             if -1 in good_sky_list:
                 tmp = open_fits(inpath + sky_list_ifs[0])
-                write_fits("{}master_sky.fits".format(outpath_ifs_fits), tmp[
-                    0])  # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                write_fits("{}master_sky.fits".format(outpath_ifs_fits), tmp[0])
             elif 'all' in good_sky_list:
                 counter = 0
                 nsky = len(sky_list_ifs)
                 for gg in range(nsky):
                     tmp = open_fits(inpath + sky_list_ifs[gg])
                     if counter == 0:
-                        master_sky = np.zeros([nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
+                        master_sky = np.zeros(
+                            [nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
                     master_sky[counter:counter + tmp.shape[0]] = tmp
                     counter += tmp.shape[0]
                 master_sky = np.median(master_sky, axis=0)
-                write_fits("{}master_sky.fits".format(outpath_ifs_fits), master_sky)
+                write_fits("{}master_sky.fits".format(
+                    outpath_ifs_fits), master_sky)
             else:
                 counter = 0
                 nsky = len(good_sky_list)
                 for gg in good_sky_list:
                     tmp = open_fits(inpath + sky_list_ifs[gg])
                     if counter == 0:
-                        master_sky = np.zeros([nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
+                        master_sky = np.zeros(
+                            [nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
                     master_sky[counter:counter + tmp.shape[0]] = tmp
                     counter += tmp.shape[0]
                 master_sky = np.median(master_sky, axis=0)
-                write_fits("{}master_sky.fits".format(outpath_ifs_fits), master_sky)
+                write_fits("{}master_sky.fits".format(
+                    outpath_ifs_fits), master_sky)
 
-            ## PSF
+            # PSF
             psf_sky_list_ifs = dico_lists['psf_sky_list_ifs']
             if len(psf_sky_list_ifs) < 1:
                 psf_sky_list_ifs = dico_lists['psf_ins_bg_list_ifs']
             if len(psf_sky_list_ifs) < 1:
-                master_psf_sky = np.copy(master_sky)  # assume that bkg and DARK current are negligible compared to bias
-                write_fits("{}dit_psf_sky.fits".format(outpath_ifs_fits), np.array([dit_ifs]))
+                # assume that bkg and DARK current are negligible compared to bias
+                master_psf_sky = np.copy(master_sky)
+                write_fits("{}dit_psf_sky.fits".format(
+                    outpath_ifs_fits), np.array([dit_ifs]))
             else:
-                write_fits("{}dit_psf_sky.fits".format(outpath_ifs_fits), np.array([dit_psf_ifs]))
+                write_fits("{}dit_psf_sky.fits".format(
+                    outpath_ifs_fits), np.array([dit_psf_ifs]))
                 if -1 in good_psf_sky_list:
                     tmp = open_fits(inpath + sky_list_ifs[0])
-                    write_fits("{}master_psf_sky.fits".format(outpath_ifs_fits), tmp[
-                        0])  # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    write_fits("{}master_psf_sky.fits".format(
+                        outpath_ifs_fits), tmp[0])
                 elif 'all' in good_psf_sky_list:
                     counter = 0
                     nsky = len(psf_sky_list_ifs)
                     for gg in range(nsky):
                         tmp = open_fits(inpath + psf_sky_list_ifs[gg])
                         if counter == 0:
-                            master_psf_sky = np.zeros([nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
+                            master_psf_sky = np.zeros(
+                                [nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
                         master_psf_sky[counter:counter + tmp.shape[0]] = tmp
                         counter += tmp.shape[0]
                     master_psf_sky = np.median(master_psf_sky, axis=0)
-                    write_fits("{}master_psf_sky.fits".format(outpath_ifs_fits),
-                               master_psf_sky)  # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+                    write_fits("{}master_psf_sky.fits".format(
+                        outpath_ifs_fits), master_psf_sky)
                 else:
                     counter = 0
                     nsky = len(good_psf_sky_list)
                     for gg in good_psf_sky_list:
                         tmp = open_fits(inpath + psf_sky_list_ifs[gg])
                         if counter == 0:
-                            master_psf_sky = np.zeros([nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
+                            master_psf_sky = np.zeros(
+                                [nsky * tmp.shape[0], tmp.shape[1], tmp.shape[2]])
                         master_psf_sky[counter:counter + tmp.shape[0]] = tmp
                         counter += tmp.shape[0]
                     master_psf_sky = np.median(master_psf_sky, axis=0)
-            write_fits("{}master_psf_sky.fits".format(outpath_ifs_fits),
-                       master_psf_sky)  # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
+            write_fits("{}master_psf_sky.fits".format(
+                outpath_ifs_fits),
+                master_psf_sky)  # just take the first (closest difference in time to that of consecutive SCIENCE cubes - reproduce best the remanence effect)
 
         def manual_sky_subtract(lab_bp: str, instr: str, corner_coords: list, msky_ap: int, outpath_ifs_fits: str,
                                 filetype: str) -> None:
@@ -1865,7 +2056,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             # MANUAL SKY SUBTRACTION BEF REDUCTION
             sci_list_ifs = dico_lists['sci_list_ifs']
             true_ndit = np.zeros(len(sci_list_ifs), dtype=int)
-            hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits), ignore_missing_end=False,
+            hdulist_bp = fits.open("{}master_badpixelmap.fits".format(outpath_ifs_fits),
+                                   ignore_missing_end=False,
                                    memmap=True)
 
             bpmap = hdulist_bp[0].data
@@ -1881,8 +2073,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         cube[zz] -= tmp_tmp
                     lab_bp = 'skycorr_'
                     hdul[0].data = cube
-                    hdul.writeto(inpath + skysub_lab_IFS + lab_bp + sci_list_ifs[ii], output_verify='ignore',
-                                 overwrite=True)
+                    hdul.writeto(inpath + skysub_lab_IFS + lab_bp +
+                                 sci_list_ifs[ii], output_verify='ignore', overwrite=True)
                 else:
                     lab_bp = ''
 
@@ -1895,30 +2087,33 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 lab_sci = bpcorr_lab_IFS
                 if not isdir(inpath + lab_sci):
                     os.makedirs(inpath + lab_sci)
-                hdul.writeto(inpath + bpcorr_lab_IFS + lab_bp + sci_list_ifs[ii], output_verify='ignore',
-                             overwrite=True)
+                hdul.writeto(inpath + bpcorr_lab_IFS + lab_bp +
+                             sci_list_ifs[ii], output_verify='ignore', overwrite=True)
 
-                if xtalk_corr:  # too agressive
-                    ## CROSS-TALK CORR
+                if xtalk_corr:  # too aggressive
+                    # CROSS-TALK CORR
                     for j in range(cube.shape[0]):
                         cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill',
                                                                  fill_value=0)
                     hdul[0].data = cube
                     lab_sci = xtalkcorr_lab_IFS
-                    hdul.writeto(inpath + xtalkcorr_lab_IFS + lab_bp + sci_list_ifs[ii], output_verify='ignore',
-                                 overwrite=True)
+                    hdul.writeto(inpath + xtalkcorr_lab_IFS + lab_bp +
+                                 sci_list_ifs[ii], output_verify='ignore', overwrite=True)
                     # pdb.set_trace()
 
                 if not isfile(outpath_ifs_sof + "OBJECT{}{:.0f}.sof".format(lab_distort, ii)) or overwrite_sof:
                     with open(outpath_ifs_sof + "OBJECT{}{:.0f}.sof".format(lab_distort, ii), 'w') as f:
-                        f.write(inpath + lab_sci + lab_bp + sci_list_ifs[ii] + '\t' + 'IFS_SCIENCE_DR_RAW\n')
+                        f.write(inpath + lab_sci + lab_bp +
+                                sci_list_ifs[ii] + '\t' + 'IFS_SCIENCE_DR_RAW\n')
                         for jj in range(1, 6):
                             if not large_scale_flat or (jj == 5 and large_scale_flat == 'some'):
-                                lab_sof = "{}master_flat_det_l{:.0f}.fits".format(outpath_ifs_fits, jj)  # v5c
+                                lab_sof = "{}master_flat_det_l{:.0f}.fits".format(
+                                    outpath_ifs_fits, jj)  # v5c
                             else:
-                                lab_sof = "{}large_scale_flat_l{:.0f}.fits".format(outpath_ifs_fits, jj)  # v5c
-                            if not isfile(
-                                    lab_sof) and jj == 4:  # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode)
+                                lab_sof = "{}large_scale_flat_l{:.0f}.fits".format(
+                                    outpath_ifs_fits, jj)  # v5c
+                            # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode)
+                            if not isfile(lab_sof) and jj == 4:
                                 continue
                             elif not isfile(lab_sof):
                                 set_trace()  # check what's happening
@@ -1926,9 +2121,12 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                 lab = "BB"
                             else:
                                 lab = "{:.0f}".format(jj)
-                            f.write(lab_sof + '\t' + 'IFS_MASTER_DFF_LONG{}\n'.format(lab))
-                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
-                        f.write("{}master_flat_ifu.fits".format(outpath_ifs_fits) + '\t' + 'IFS_IFU_FLAT_FIELD\n')
+                            f.write(lab_sof + '\t' +
+                                    'IFS_MASTER_DFF_LONG{}\n'.format(lab))
+                        f.write("{}preamp_l5.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
+                        f.write("{}master_flat_ifu.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_IFU_FLAT_FIELD\n')
                         #                        if cal_bkg:
                         #                            if usefit:
                         #                                if isfile("{}master_sky_bg.fits".format(outpath_ifs_fits)):
@@ -1945,22 +2143,27 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         #                                elif ('OBJ' in dark_ifs and not sky):
                         #                                    f.write("{}master_dark.fits".format(outpath_ifs_fits)+' \t'+'IFS_MASTER_DARK\n')
                         #                        f.write("{}master_badpixelmap.fits".format(outpath_ifs_fits)+'\t'+'IFS_STATIC_BADPIXELMAP\n')
-                        f.write("{}master_dark.fits".format(outpath_ifs_fits + label_fd) + ' \t' + 'IFS_MASTER_DARK\n')
-                        f.write("{}wave_calib.fits".format(outpath_ifs_fits) + '\t' + 'IFS_WAVECALIB\n')
+                        f.write("{}master_dark.fits".format(
+                            outpath_ifs_fits + label_fd) + ' \t' + 'IFS_MASTER_DARK\n')
+                        f.write("{}wave_calib.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_WAVECALIB\n')
 
                 if not isfile(outpath_ifs_fits + "ifs{}_{:.0f}.fits".format(lab_distort,
                                                                             ii)) or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_science_dr"
-                    command += " --ifs.science_dr.outfilename={}tmp{}_{:.0f}.fits".format(outpath_ifs_fits, lab_distort,
-                                                                                          ii)
+                    command = "{} sph_ifs_science_dr".format(com_esorex)
+                    command += " --ifs.science_dr.outfilename={}tmp{}_{:.0f}.fits".format(
+                        outpath_ifs_fits, lab_distort, ii)
                     command += " --ifs.science_dr.use_adi=0"
-                    command += " --ifs.science_dr.spec_deconv=FALSE"  # should not do SDI because not centered !!!
-                    command += " --ifs.science_dr.reflambda=1.65"  # should not matter since SDI is not done - but just in case
+                    # should not do SDI because not centered !!!
+                    command += " --ifs.science_dr.spec_deconv=FALSE"
+                    # should not matter since SDI is not done - but just in case
+                    command += " --ifs.science_dr.reflambda=1.65"
                     if xtalk_corr:
                         command += " --ifs.science_dr.xtalkco.apply=TRUE"
                     if illum_pattern_corr:
                         command += " --ifs.science_dr.use_illumination=TRUE"
-                    command += " {}OBJECT{}{:.0f}.sof".format(outpath_ifs_sof, lab_distort, ii)
+                    command += " {}OBJECT{}{:.0f}.sof".format(
+                        outpath_ifs_sof, lab_distort, ii)
                     os.system(command)
 
                 if manual_sky:  # perform manual sky subtraction
@@ -2007,11 +2210,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 lab_sci = bpcorr_lab_IFS
                 if not isdir(inpath + lab_sci):
                     os.makedirs(inpath + lab_sci)
-                hdul.writeto(inpath + bpcorr_lab_IFS + lab_bp + cen_list_ifs[ii], output_verify='ignore',
-                             overwrite=True)
+                hdul.writeto(inpath + bpcorr_lab_IFS + lab_bp +
+                             cen_list_ifs[ii], output_verify='ignore', overwrite=True)
 
-                if xtalk_corr:  # too agressive
-                    ## CROSS-TALK CORR
+                if xtalk_corr:  # too aggressive
+                    # CROSS-TALK CORR
                     for j in range(cube.shape[0]):
                         cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill',
                                                                  fill_value=0)
@@ -2026,11 +2229,13 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         f.write(inpath + lab_sci + lab_bp + cen_list_ifs[ii] + '\t' + 'IFS_SCIENCE_DR_RAW\n')
                         for jj in range(1, 6):
                             if not large_scale_flat or (jj == 5 and large_scale_flat == 'some'):
-                                lab_sof = "{}master_flat_det_l{:.0f}.fits".format(outpath_ifs_fits, jj)  # v5c
+                                lab_sof = "{}master_flat_det_l{:.0f}.fits".format(
+                                    outpath_ifs_fits, jj)  # v5c
                             else:
-                                lab_sof = "{}large_scale_flat_l{:.0f}.fits".format(outpath_ifs_fits, jj)  # v5c
-                            if not isfile(
-                                    lab_sof) and jj == 4:  # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode)
+                                lab_sof = "{}large_scale_flat_l{:.0f}.fits".format(
+                                    outpath_ifs_fits, jj)  # v5c
+                            # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode)
+                            if not isfile(lab_sof) and jj == 4:
                                 continue
                             elif not isfile(lab_sof):
                                 set_trace()  # check what's happening
@@ -2038,9 +2243,12 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                 lab = "BB"
                             else:
                                 lab = "{:.0f}".format(jj)
-                            f.write(lab_sof + '\t' + 'IFS_MASTER_DFF_LONG{}\n'.format(lab))
-                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
-                        f.write("{}master_flat_ifu.fits".format(outpath_ifs_fits) + '\t' + 'IFS_IFU_FLAT_FIELD\n')
+                            f.write(lab_sof + '\t' +
+                                    'IFS_MASTER_DFF_LONG{}\n'.format(lab))
+                        f.write("{}preamp_l5.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
+                        f.write("{}master_flat_ifu.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_IFU_FLAT_FIELD\n')
                         #                        if cal_bkg:
                         #                            if usefit:
                         #                                if isfile("{}master_sky_bg_fit{:.0f}.fits".format(outpath_ifs_fits,fitorder_ifs)):
@@ -2056,22 +2264,27 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                         #                                    f.write("{}master_cal_bg.fits".format(outpath_ifs_fits)+'\t'+'IFS_CAL_BACKGROUND\n')
                         #                                elif ('CEN' in dark_ifs and not sky):
                         #                                    f.write("{}master_dark.fits".format(outpath_ifs_fits)+' \t'+'IFS_MASTER_DARK\n')
-                        f.write("{}master_dark.fits".format(outpath_ifs_fits + label_fd) + ' \t' + 'IFS_MASTER_DARK\n')
-                        f.write("{}wave_calib.fits".format(outpath_ifs_fits) + '\t' + 'IFS_WAVECALIB\n')
+                        f.write("{}master_dark.fits".format(
+                            outpath_ifs_fits + label_fd) + ' \t' + 'IFS_MASTER_DARK\n')
+                        f.write("{}wave_calib.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_WAVECALIB\n')
 
                 if not isfile(outpath_ifs_fits + "ifs_cen{}_{:.0f}.fits".format(lab_distort,
                                                                                 ii)) or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_science_dr"
-                    command += " --ifs.science_dr.outfilename={}tmp_cen{}_{:.0f}.fits".format(outpath_ifs_fits,
-                                                                                              lab_distort, ii)
+                    command = "{} sph_ifs_science_dr".format(com_esorex)
+                    command += " --ifs.science_dr.outfilename={}tmp_cen{}_{:.0f}.fits".format(
+                        outpath_ifs_fits, lab_distort, ii)
                     command += " --ifs.science_dr.use_adi=0"
-                    command += " --ifs.science_dr.spec_deconv=FALSE"  # should not do SDI because not centered !!!
-                    command += " --ifs.science_dr.reflambda=1.65"  # should not matter since SDI is not done - but just in case
+                    # should not do SDI because not centered !!!
+                    command += " --ifs.science_dr.spec_deconv=FALSE"
+                    # should not matter since SDI is not done - but just in case
+                    command += " --ifs.science_dr.reflambda=1.65"
                     if xtalk_corr:
                         command += " --ifs.science_dr.xtalkco.apply=TRUE"
                     if illum_pattern_corr:
                         command += " --ifs.science_dr.use_illumination=TRUE"
-                    command += " {}CEN{}{:.0f}.sof".format(outpath_ifs_sof, lab_distort, ii)
+                    command += " {}CEN{}{:.0f}.sof".format(
+                        outpath_ifs_sof, lab_distort, ii)
                     os.system(command)
 
                 if manual_sky:  # perform manual sky subtraction
@@ -2121,23 +2334,25 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 if xtalk_corr:  # too agressive
                     ## CROSS-TALK CORR
                     for j in range(cube.shape[0]):
-                        cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill', fill_value=0)
+                        cube[j] = sph_ifs_correct_spectral_xtalk(cube[j], boundary='fill',
+                                                                 fill_value=0)
                     hdul[0].data = cube
                     lab_sci = xtalkcorr_lab_IFS
                     hdul.writeto(inpath + xtalkcorr_lab_IFS + lab_bp + psf_list_ifs[ii], output_verify='ignore',
                                  overwrite=True)
-                    # pdb.set_trace()
 
                 if not isfile(outpath_ifs_sof + "PSF{}{:.0f}.sof".format(lab_distort, ii)) or overwrite_sof:
                     with open(outpath_ifs_sof + "PSF{}{:.0f}.sof".format(lab_distort, ii), 'w') as f:
                         f.write(inpath + skysub_lab_IFS + lab_bp + psf_list_ifs[ii] + '\t' + 'IFS_SCIENCE_DR_RAW\n')
                         for jj in range(1, 6):
                             if not large_scale_flat or (jj == 5 and large_scale_flat == 'some'):
-                                lab_sof = "{}master_flat_det_l{:.0f}.fits".format(outpath_ifs_fits, jj)  # v5c
+                                lab_sof = "{}master_flat_det_l{:.0f}.fits".format(
+                                    outpath_ifs_fits, jj)  # v5c
                             else:
-                                lab_sof = "{}large_scale_flat_l{:.0f}.fits".format(outpath_ifs_fits, jj)  # v5c
-                            if not isfile(
-                                    lab_sof) and jj == 4:  # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode)
+                                lab_sof = "{}large_scale_flat_l{:.0f}.fits".format(
+                                    outpath_ifs_fits, jj)  # v5c
+                            # sometimes l4 is not taken (e.g. for IRDIFS YJH+H23 mode)
+                            if not isfile(lab_sof) and jj == 4:
                                 continue
                             elif not isfile(lab_sof):
                                 set_trace()  # check what's happening
@@ -2145,29 +2360,37 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                                 lab = "BB"
                             else:
                                 lab = "{:.0f}".format(jj)
-                            f.write(lab_sof + '\t' + 'IFS_MASTER_DFF_LONG{}\n'.format(lab))
-                        f.write("{}preamp_l5.fits".format(outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
-                        f.write("{}master_flat_ifu.fits".format(outpath_ifs_fits) + '\t' + 'IFS_IFU_FLAT_FIELD\n')
+                            f.write(lab_sof + '\t' +
+                                    'IFS_MASTER_DFF_LONG{}\n'.format(lab))
+                        f.write("{}preamp_l5.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_PREAMP_FLAT\n')
+                        f.write("{}master_flat_ifu.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_IFU_FLAT_FIELD\n')
                         if 'PSF' in dark_ifs:
-                            f.write("{}master_dark.fits".format(outpath_ifs_fits) + ' \t' + 'IFS_MASTER_DARK\n')
+                            f.write("{}master_dark.fits".format(
+                                outpath_ifs_fits) + ' \t' + 'IFS_MASTER_DARK\n')
                         else:
-                            f.write(
-                                "{}master_dark.fits".format(outpath_ifs_fits + label_fd) + ' \t' + 'IFS_MASTER_DARK\n')
-                        f.write("{}wave_calib.fits".format(outpath_ifs_fits) + '\t' + 'IFS_WAVECALIB\n')
+                            f.write("{}master_dark.fits".format(
+                                outpath_ifs_fits + label_fd) + ' \t' + 'IFS_MASTER_DARK\n')
+                        f.write("{}wave_calib.fits".format(
+                            outpath_ifs_fits) + '\t' + 'IFS_WAVECALIB\n')
 
                 if not isfile(outpath_ifs_fits + "ifs_psf{}_{:.0f}.fits".format(lab_distort,
                                                                                 ii)) or overwrite_sof or overwrite_fits:
-                    command = "esorex sph_ifs_science_dr"
-                    command += " --ifs.science_dr.outfilename={}tmp_psf{}_{:.0f}.fits".format(outpath_ifs_fits,
-                                                                                              lab_distort, ii)
+                    command = "{} sph_ifs_science_dr".format(com_esorex)
+                    command += " --ifs.science_dr.outfilename={}tmp_psf{}_{:.0f}.fits".format(
+                        outpath_ifs_fits, lab_distort, ii)
                     command += " --ifs.science_dr.use_adi=0"
-                    command += " --ifs.science_dr.spec_deconv=FALSE"  # should not do SDI because not centered !!!
-                    command += " --ifs.science_dr.reflambda=1.65"  # should not matter since SDI is not done - but just in case
+                    # should not do SDI because not centered !!!
+                    command += " --ifs.science_dr.spec_deconv=FALSE"
+                    # should not matter since SDI is not done - but just in case
+                    command += " --ifs.science_dr.reflambda=1.65"
                     if xtalk_corr:
                         command += " --ifs.science_dr.xtalkco.apply=TRUE"
                     if illum_pattern_corr:
                         command += " --ifs.science_dr.use_illumination=TRUE"
-                    command += " {}PSF{}{:.0f}.sof".format(outpath_ifs_sof, lab_distort, ii)
+                    command += " {}PSF{}{:.0f}.sof".format(
+                        outpath_ifs_sof, lab_distort, ii)
                     os.system(command)
 
                 if manual_sky:  # perform manual sky subtraction
