@@ -2436,6 +2436,6 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             write_fits(outpath+final_scalefac_name, final_scal_vector)
             write_fits(outpath+"final_flux_fac.fits", final_flux_fac)
             write_fits(outpath+"final_scale_fac_std.fits", std_scal_vector)
-            write_fits(outpath+"final_flux_fac.fits", std_flux_fac_vector)
+            write_fits(outpath+"final_flux_fac_std.fits", std_flux_fac_vector)
 
     return None
