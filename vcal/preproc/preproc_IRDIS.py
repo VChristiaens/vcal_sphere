@@ -737,6 +737,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         pa_sci_fin = []
                         for fn_tmp, filename_tmp in enumerate(file_list):
                             head_tmp = open_header(inpath + OBJ_IRDIS_list[fn_tmp] + filters_lab[ff])
+                            print(OBJ_IRDIS_list[fn_tmp] + filters_lab[ff])
                             mjd_tmp = float(head_tmp['MJD-OBS'])
                             mjd_tmp_list = [mjd_tmp + i * dit_irdis/86400 for i in range(head_tmp["NAXIS3"])]  # DIT in seconds to MJD
                             mjd_all.extend(mjd_tmp_list)
