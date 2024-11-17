@@ -2344,7 +2344,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             lbdas_tmp = np.zeros_like(fluxes)
             for ff, filt in enumerate(filters):
                 fluxes[ff] = open_fits(
-                    outpath+final_fluxname+"{}.fits".format(filt))
+                    outpath+final_fluxname+"{}.fits".format(filt))[0]
                 lbdas_tmp[ff] = open_fits(
                     outpath+final_fwhmname+"{}.fits".format(filt))
                 derot_angles = open_fits(
