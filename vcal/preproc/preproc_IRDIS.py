@@ -858,14 +858,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                             if fn >= 1:
                                                 y_shifts = np.asanyarray(y_shi, dtype=object)
                                                 x_shifts = np.asanyarray(x_shi, dtype=object)
-                                                set_trace()
-                                                final_y_shifts = np.mean(
-                                                    y_shifts[((2 * ncen) * ((fn - 1) + 1)):((2 * ncen) * (fn + 1))],
-                                                    axis=0)
-                                                final_x_shifts = np.mean(
-                                                    x_shifts[((2 * ncen) * ((fn - 1) + 1)):((2 * ncen) * (fn + 1))],
-                                                    axis=0)
 
+                                                final_y_shifts = np.mean(y_shifts[((2 * ncen) * ((fn-1)+1)):((2 * ncen) * (fn+1))], axis=0)
+                                                final_x_shifts = np.mean(x_shifts[((2 * ncen) * ((fn-1)+1)):((2 * ncen) * (fn+1))], axis=0)
                                                 cube = cube_shift(cube, final_y_shifts[1:] + + np.mean(y_const),
                                                                   final_x_shifts[1:] + np.mean(x_const))
 
