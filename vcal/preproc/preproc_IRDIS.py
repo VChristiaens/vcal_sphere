@@ -859,7 +859,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
 
                                                 y_shifts = np.asanyarray(y_shi,dtype=object)
                                                 x_shifts = np.asanyarray(x_shi,dtype=object)
-
+                                                set_trace()
                                                 final_y_shifts = np.mean(y_shifts[((2 * ncen) * ((fn-1)+1)):((2 * ncen) * (fn+1))], axis=0)
                                                 final_x_shifts = np.mean(x_shifts[((2 * ncen) * ((fn-1)+1)):((2 * ncen) * (fn+1))], axis=0)
 
