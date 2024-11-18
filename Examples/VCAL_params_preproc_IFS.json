@@ -1,5 +1,5 @@
 {
-    "to_do": [1,2,3,4,5,6,7,8],
+    "to_do": [1,2,3,4,5,6,7],
     "coro": 1,
     "coro_sz": 12,
     "plsc":0.00746,
@@ -13,7 +13,7 @@
     "max_bpix_nit": 10,
     "cen_box_sz": [21,21,31],
     "true_ncen": 2,
-    "scaling_from_satspots": 1,
+    "scaling_from_satspots": 0,
     "template_strehl": ["science_dbi_{}{:.0f}","psf_dbi_{}{:.0f}"],
     "bp_crop_sz":261,
     "final_crop_sz":257,
