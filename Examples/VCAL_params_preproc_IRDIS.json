@@ -3,7 +3,7 @@
     "label_test":"",
     "coro": 1,
     "coro_sz": 8,
-    "rec_met": "cross_corr_100",
+    "rec_met": "satspots",
     "rec_met_psf": "dft_100",
     "sigfactor":3,
     "badfr_crit_names": ["corr"],
