@@ -14,7 +14,6 @@ This file describes the structure of the postprocessing pipeline for IRDIS, and 
 "do_adi_ann":1,
 "do_sadi_full":1,
 "do_sadi_ann":1,
-"do_conv":0,  			# whether to smooth final image 
 "do_snr_map":0, 		# whether to compute SNR map associated to final images. Can either be a bool, or a list of bool. In the latter case, it tells whether the snr_map is to be computed for median-adi, pca-full and pca-ann, resp.)
 "high_pass_filter_list": [0] 	# whether to high-pass filter before ADI processing, can be [0,1]: would then post-process everything twice with and without hpf.
 
@@ -68,3 +67,7 @@ mask_PCA      # if provided, radius in arcsec for an inner mask where the coeffi
 "end_nz":-1   # int or list of last channel(s) of IFS to reduce for SADI processing. To do up to the last channel, set to -1 (uses last channel), or -2 for second last etc.
 To run multiple reductions by dividing up channels, provide a list of start and end channels to start_nz and end_nz.
 e.g. "start_nz":[0,13,26], "end_nz":[12,25,-1] would divide IFS into three reductions of 13 spectral channels
+
+# other
+"imlib":"vip-fft"  # image library to use. Default: vip-fft
+"overwrite_pp":1  # whether to overwrite previous post-processing results

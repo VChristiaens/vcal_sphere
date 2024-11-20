@@ -15,7 +15,6 @@
     "start_nz":0,
     "end_nz":-1,
     "mask_IWA":10,
-    "do_conv":1,
     "do_snr_map":0,
     "do_stim_map":1,
     "exclude_negative_lobes":1,
@@ -34,7 +33,8 @@
     "pcs_sadi_ann_sdi":[1,4,1],
     "pcs_sadi_ann_adi":[1,4,1],
     "max_fr_list":[50],
+    "imlib":"vip-fft",
     "verbose":1,
-    "nproc":1,
+    "nproc":4,
     "overwrite_pp":0
 }

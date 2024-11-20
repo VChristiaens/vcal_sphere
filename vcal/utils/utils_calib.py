@@ -4,21 +4,22 @@
 Utility routines for calibration and data sorting.
 """
 
-from vip_hci.fits import open_fits
-from os.path import isfile, join
-from astropy.convolution import convolve
-import os
-import numpy as np
-__author__ = 'V. Christiaens'
+__author__ = 'V. Christiaens, Iain Hammond'
 __all__ = ['make_lists',
            'sph_ifs_correct_spectral_xtalk']
 
-# PURPOSE: create sof files for esorex, for both IFS and IRDIS data
-#import pdb
+from os import listdir
+from os.path import isfile, join
+
+import numpy as np
+from astropy.convolution.convolve import convolve
+
+from vip_hci.fits import open_header
 
 instr = 'SPHER'  # instrument name in file name
 
 
+# create sof files for esorex, for both IFS and IRDIS data
 def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                dit_psf_ifs=None, dit_psf_irdis=None, dit_cen_ifs=None,
                dit_cen_irdis=None, filt1=None, filt2=None, readonly=False):
@@ -51,8 +52,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
             ifs_mode_list.append(header["HIERARCH ESO INS2 COMB IFS"][-3:])
         elif header["HIERARCH ESO INS2 COMB IFS"][-3:] != ifs_mode_list[0]:
             msg = "There should only be one IFS observation mode for all non-FLAT and non-DARK fits files in the folder: both {} and {} detected"
-            raise ValueError(msg.format(
-                header["HIERARCH ESO INS2 COMB IFS"][-3:], ifs_mode_list[0]))
+            raise ValueError(msg.format(header["HIERARCH ESO INS2 COMB IFS"][-3:],ifs_mode_list[0]))
         return ifs_mode_list
 
     if dit_cen_irdis is not None:
@@ -87,7 +87,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
 
     if not readonly:
 
-        file_list = [f for f in os.listdir(inpath) if isfile(
+        file_list = [f for f in listdir(inpath) if isfile(
             join(inpath, f))]  # all files in inpaths
         fits_list = []
         calib_list = []
@@ -159,8 +159,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
         for fname in file_list:  # all fits files
             if fname.startswith(instr) and fname.endswith('.fits'):
                 # Note: conditions can be refined if deemed appropriate.
-                cube, header = open_fits(
-                    inpath+fname, header=True, verbose=False)
+                header = open_header(inpath+fname)
                 if not "ESO DPR TYPE" in header.keys() and not "HIERARCH ESO DPR TYPE" in header.keys():
                     continue
                 fits_list.append(fname)
@@ -168,11 +167,11 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                     ao_files.append(fname)
                     continue
                 if dit_ifs is not None:
-                    if header['HIERARCH ESO DET SEQ1 DIT'] == dit_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'OBJECT' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
+                    if header['HIERARCH ESO DET SEQ1 DIT'] == dit_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'OBJECT':
                         sci_list_ifs.append(fname)
                         sci_list_mjd_ifs.append(header['MJD-OBS'])
                         ifs_mode = _check_mode(ifs_mode)
-                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'SKY' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
+                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'SKY':
                         sky_list_ifs.append(fname)
                         sky_list_mjd_ifs.append(header['MJD-OBS'])
                         ifs_mode = _check_mode(ifs_mode)
@@ -185,21 +184,20 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                     elif header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'DARK':
                         dark_list_ifs.append(fname)
                     elif header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'FLAT,LAMP':
-                        if 'IFSFLAT' in header['HIERARCH ESO OCS DET1 IMGNAME']:
+                        # six cases to deal with: BB (CAL_BB_2_[mode]), 1.02µm (CAL_NB1_1_[mode]),
+                        # 1.23µm (CAL_NB2_1_[mode]), 1.3µm (CAL_NB3_1_[mode]), OBS_[mode]
+                        # and 1.55µm (CAL_NB4_1_[mode]) if YJH
+                        if "CAL_BB_2_" in header["HIERARCH ESO INS2 COMB IFS"]:  # white, two files
+                            flat_list_ifs_det_BB.append(fname)
+                        elif "CAL_NB" in header["HIERARCH ESO INS2 COMB IFS"]:  # narrow bands, two files for each laser
+                            flat_list_ifs_det.append(fname)
+                            # add list for each laser? then check after ...
+                        elif 'IFSFLAT' in header['HIERARCH ESO OCS DET1 IMGNAME']:  # ifu flat, one file
                             flat_list_ifs.append(fname)
-                            if float(header['HIERARCH ESO DET SEQ1 DIT']) not in dit_ifs_flat:
-                                dit_ifs_flat.append(
-                                    float(header['HIERARCH ESO DET SEQ1 DIT']))
-                        elif header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
-                            if 'BB' in header['HIERARCH ESO INS2 CAL'] or 'BB' in header['HIERARCH ESO INS2 COMB IFS']:
-                                flat_list_ifs_det_BB.append(fname)
-                            else:
-                                flat_list_ifs_det.append(fname)
-                            if float(header['HIERARCH ESO DET SEQ1 DIT']) not in dit_ifs_flat:
-                                dit_ifs_flat.append(
-                                    float(header['HIERARCH ESO DET SEQ1 DIT']))
+                        if float(header['HIERARCH ESO DET SEQ1 DIT']) not in dit_ifs_flat:
+                            dit_ifs_flat.append(float(header['HIERARCH ESO DET SEQ1 DIT']))
 
-                    elif header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'LAMP,DISTORT' and len(distort_IFS) == 0:
+                    elif header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'LAMP,DISTORT' and len(distort_IFS)==0:
                         distort_IFS.append(fname)
                         dit_ifs_distort.append(
                             float(header['HIERARCH ESO DET SEQ1 DIT']))
@@ -250,12 +248,12 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                         gain_list_IRDIS.append(fname)
 
                 if dit_psf_ifs is not None:
-                    if header['HIERARCH ESO DET SEQ1 DIT'] == dit_psf_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'OBJECT,FLUX' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
+                    if header['HIERARCH ESO DET SEQ1 DIT'] == dit_psf_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'OBJECT,FLUX':
                         psf_list_ifs.append(fname)
                         psf_list_mjd_ifs.append(header['MJD-OBS'])
-                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_psf_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'SKY' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
+                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_psf_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'SKY':
                         psf_sky_list_ifs.append(fname)
-                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_psf_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'DARK,BACKGROUND' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
+                    elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_psf_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'DARK,BACKGROUND':
                         psf_ins_bg_list_ifs.append(fname)
 
                 if dit_psf_irdis is not None:
@@ -287,15 +285,14 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
 
             elif fname.startswith('M.'+instr) and fname.endswith('.fits'):
                 calib_list.append(fname)
-                cube, header = open_fits(
-                    inpath+fname, header=True, verbose=False)
+                header = open_header(inpath+fname)
                 if header['HIERARCH ESO PRO CATG'] == 'IFS_POINT_PATTERN':
                     calib_IFS.append(fname)
                 elif header['HIERARCH ESO PRO CATG'] == 'IRD_POINT_PATTERN':
                     calib_IRDIS.append(fname)
 
         for fname in fits_list:  # all fits files
-            cube, header = open_fits(inpath+fname, header=True, verbose=False)
+            header = open_header(inpath+fname)
             if header['HIERARCH ESO DPR TYPE'] == 'OBJECT,AO':
                 continue
             # and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2: # by elimination must be a flat lamp dark
@@ -310,11 +307,9 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
 #                    if abs(float(header['MJD-OBS'])-mjd_obs_flat_ifs) < abs(mjdobs_fdark_list_ifs[idx_ff]-mjd_obs_flat_ifs):
 #                        mjdobs_fdark_list_ifs[idx_ff] = float(header['MJD-OBS'])
 #                        flat_dark_list_ifs[idx_ff] = fname
-            # and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2: # by elimination must be a flat lamp dark
-            elif header['HIERARCH ESO DET NAME'] == 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'DARK' and float(header['HIERARCH ESO DET SEQ1 DIT']) in dit_irdis_flat:
-                #                if float(header['HIERARCH ESO DET SEQ1 DIT']) not in dit_irdis_flat_dark:
-                dit_irdis_flat_dark.append(
-                    float(header['HIERARCH ESO DET SEQ1 DIT']))
+            elif header['HIERARCH ESO DET NAME']== 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'DARK' and float(header['HIERARCH ESO DET SEQ1 DIT']) in dit_irdis_flat: #and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2: # by elimination must be a flat lamp dark
+#                if float(header['HIERARCH ESO DET SEQ1 DIT']) not in dit_irdis_flat_dark:
+                dit_irdis_flat_dark.append(float(header['HIERARCH ESO DET SEQ1 DIT']))
                 flat_dark_list_irdis.append(fname)
                 mjdobs_fdark_list_irdis.append(float(header['MJD-OBS']))
 #                else:
@@ -716,6 +711,32 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
         cen_ins_bg_list_irdis = [x.strip() for x in cen_ins_bg_list_irdis]
         cen_list_mjd_irdis = [x.strip() for x in cen_list_mjd_irdis]
 
+    # perform a check of how many calibration files were picked up for IFS
+    if dit_ifs is not None:
+        first_sci_mjd = sci_list_mjd_ifs[0]
+        if len(flat_list_ifs_det_BB) > 2:
+            print("WARNING: More than two broadband flats detected for IFS. Keeping the two closest to the science observations.", flush=True)
+            flat_list_ifs_det_BB_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in flat_list_ifs_det_BB]
+            idx = closest_to_obj(first_sci_mjd, flat_list_ifs_det_BB_mjd, n=2)
+            flat_list_ifs_det_BB = [flat_list_ifs_det_BB[i] for i in idx]  # only use the closest
+
+        if len(flat_list_ifs) > 1:
+            print("WARNING: More than one IFU flat detected for IFS. Keeping the closest to the science observations.", flush=True)
+            flat_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in flat_list_ifs]
+            idx = closest_to_obj(first_sci_mjd, flat_list_ifs_mjd, n=1)
+            flat_list_ifs = [flat_list_ifs[i] for i in idx]
+
+        if len(wave_list_ifs) > 1:
+            print("WARNING: More than one wavelength calibration detected for IFS. Keeping the closest to the science observations.", flush=True)
+            wave_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in wave_list_ifs]
+            idx = closest_to_obj(first_sci_mjd, wave_list_ifs_mjd, n=1)
+            wave_list_ifs = [wave_list_ifs[i] for i in idx]
+
+        if len(spec_pos_list_ifs) > 1:
+            print("WARNING: More than one spectra position file detected for IFS. Keeping the closest to the science observations.", flush=True)
+            spec_pos_list_ifs_mjd = [float(open_header(inpath+fname)['MJD-OBS']) for fname in spec_pos_list_ifs]
+            idx = closest_to_obj(first_sci_mjd, spec_pos_list_ifs_mjd, n=1)
+            spec_pos_list_ifs = [spec_pos_list_ifs[i] for i in idx]
     dico_files['ifs_mode'] = ifs_mode
     dico_files['sci_list_ifs'] = sci_list_ifs
     dico_files['sky_list_ifs'] = sky_list_ifs
@@ -773,8 +794,8 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
 
 def sph_ifs_correct_spectral_xtalk(img, bpmap=None, boundary='fill',
                                    fill_value=np.nan):
-    '''
-    CREDIT: A. Vigan (https://github.com/avigan/SPHERE/blob/master/sphere/IFS.py), 
+    """
+    CREDIT: A. Vigan (https://github.com/avigan/SPHERE/blob/master/sphere/IFS.py),
     based on obscure IDL routines from D. Mesa.
 
     Corrects a IFS frame from the spectral crosstalk
@@ -803,8 +824,7 @@ def sph_ifs_correct_spectral_xtalk(img, bpmap=None, boundary='fill',
     -------
     img_corr : array_like
         Science frame corrected from the spectral crosstalk
-    '''
-
+    """
     # definition of the dimension of the matrix
     sepmax = 20
     dim = sepmax*2+1
@@ -830,3 +850,26 @@ def sph_ifs_correct_spectral_xtalk(img, bpmap=None, boundary='fill',
     img_corr = img - conv
 
     return img_corr
+
+
+def closest_to_obj(obj_mjd: float, compare_mjd: list, n=1) -> list:
+    """
+    Find the closest file(s) in time to the OBJ.
+
+    obj_mjd: float
+        MJD of OBJ file.
+    compare_mjd : list
+        MJD to compare to OBJ.
+    n : int
+        Quantity of closest files to keep.
+    """
+    # convert strings to float
+    if obj_mjd is str:
+        obj_mjd = float(obj_mjd)
+    compare_mjd = [float(x) for x in compare_mjd]
+
+    compare_mjd = np.asarray(compare_mjd)
+    delta_t = np.absolute(compare_mjd - obj_mjd)
+    idx = delta_t.argsort()[:n]
+    idx_list = idx.tolist()  # indices of the smallest time difference
+    return idx_list

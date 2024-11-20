@@ -4,8 +4,9 @@
 Utility routines for recentering based on background star for SPHERE/IRDIS data.
 """
 
-__author__ = 'V. Christiaens, J. Baird'
+__author__ = 'V. Christiaens, J. Baird, Iain Hammond'
 __all__ = ['cube_recenter_bkg',
+           'scaling_by_satspots',
            'rough_centering',
            'fit2d_bkg_pos',
            'interpolate_bkg_pos',
@@ -15,25 +16,21 @@ __all__ = ['cube_recenter_bkg',
            'circ_interp'
            ]
 
-import pdb
-#from hciplot import plot_frames
-#import pandas as pd
+from pdb import set_trace
+
 import numpy as np
-#from circle_fit import *
+from matplotlib import pyplot as plt
 from scipy import optimize
 from scipy.interpolate import interp1d
-from matplotlib import pyplot as plt#, cm, colors
-#import vip_hci
+
 from vip_hci.fits import write_fits
-try:
-    from vip_hci.psfsub import median_sub
-except:
-    from vip_hci.medsub import median_sub
 from vip_hci.metrics import snr
 from vip_hci.preproc import (cube_derotate, frame_shift,
                              approx_stellar_position, cube_subsample)
-from vip_hci.var import (get_square, fit_2dgaussian, fit_2dmoffat, dist, 
+from vip_hci.psfsub import median_sub
+from vip_hci.var import (get_square, fit_2dgaussian, fit_2dmoffat, dist,
                          fit_2dairydisk, frame_center, cube_filter_lowpass)
+
 pi = np.pi
 
 
@@ -41,7 +38,7 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
                       sub_med=True, fit_type='moff', snr_thr=5, bin_fit=1, 
                       convolve=True, nmin=10, crop_sz=None, sigfactor=3, 
                       full_output=False, verbose=False, debug=False, 
-                      path_debug='./', rel_dist_unc=2e-4):
+                      path_debug='./', rel_dist_unc=2e-4, nproc=None):
     """ Recenters a cube with a background star seen in the individual 
     images. The algorithm is based on the fact that the trajectory of the bkg 
     star should lie on a perfectly circular arc if the centering is done 
@@ -104,6 +101,9 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         Relative uncertainty on distortion. Recommended: 2e-4
         (Maire et al. 2016). Used for uncertainty estimate, in case 
         full_output is set to True.
+    nproc : None or int, optional
+        Number of processes for parallel computing. If None the number of
+        processes will be set to cpu_count()/2.
         
     Returns
     -------
@@ -202,12 +202,11 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
 
     #step 6 - median ADI position
     if good_frame is None:
-        if sub_med: 
-            good_frame = median_sub(cube[above_thr_idx],
-                                derot_angles[above_thr_idx])
-        else : 
-            good_frame = np.median(cube_derotate(cube[above_thr_idx], 
-                                        derot_angles[above_thr_idx]))
+        if sub_med:
+            good_frame = median_sub(cube=cube[above_thr_idx], angle_list=derot_angles[above_thr_idx], nproc=nproc,
+                                    verbose=verbose)
+        else:
+            good_frame = np.median(cube_derotate(cube[above_thr_idx], derot_angles[above_thr_idx]), nproc=nproc)
 
     med_x, med_y = fit2d_bkg_pos(np.array([good_frame]), 
                                  np.array([approx_xy_bkg[0]]), 
@@ -226,7 +225,7 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         print("Radial uncertainty on position from distortion unc: {:.2f} px".format(unc_r))
         if debug:
             print("Check position match with the blob in TMP_good_frame_for_fine_centering.fits")
-            pdb.set_trace()
+            set_trace()
     #if debug:
     #    write_fits(path_debug+"TMP_med_ADI_fine_recentering.fits", good_frame)
     
@@ -245,7 +244,8 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
                                                           convolve=convolve,
                                                           debug=debug,
                                                           path_debug=path_debug,
-                                                          full_output=True)
+                                                          full_output=True,
+                                                          nproc=nproc)
     
     unc_shift_r = np.zeros(ngood)
     for i in range(ngood):
@@ -306,9 +306,8 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         plt.show()
         # plotting derotated positions
         n_fr = cube.shape[0]
-        derot_cube=cube_derotate(cube, derot_angles, imlib='vip-fft', 
-                                 interpolation='lanczos4',
-                                 cxy=None, border_mode='constant')
+        derot_cube=cube_derotate(cube, derot_angles, imlib='vip-fft', interpolation='lanczos4', cxy=None,
+                                 border_mode='constant', nproc=nproc)
         write_fits(path_debug+"TMP_double_check_derot_cube.fits", derot_cube)
         med_x_all = [med_x]*n_fr
         med_y_all = [med_y]*n_fr
@@ -327,6 +326,46 @@ def cube_recenter_bkg(array, derot_angles, fwhm, approx_xy_bkg, good_frame=None,
         return cube, final_shifts, final_unc
     else:
         return cube
+
+
+def scaling_by_satspots(lbdas: np.array, coordinates_array: np.array, snr_channel: np.array, snr_thres: int = 5) -> np.array:
+    """
+    Calculates the scaling factors for each channel based on the measured distances between satellite spots.
+    Does not depend on the location of the true center.
+    Designed for IFS but works for IRDIS dual imaging.
+
+    Parameters
+    ----------
+    lbdas: np.array
+        Wavelengths for each channel in µm.
+    coordinates_array: np.array
+        x-y coordinates of the satellite spots in each channel.
+        Order: top-left, top-right, bottom-left, bottom-right.
+    snr_channel: np.array
+        Mean SNR values for each channel.
+    snr_thres: int, float
+        SNR threshold for considering a channel as low SNR, and uses theoretical scaling.
+
+    Returns
+    ----------
+    scale_list_measured: np.array
+        Scaling factors for each channel based.
+    """
+    # vectorised calculation of all distances
+    spot_dist = np.linalg.norm(coordinates_array[:, [0, 1, 0, 0, 1, 2], :] - coordinates_array[:, [2, 3, 1, 3, 2, 3], :], axis=2)
+    scale_list_measured = max(np.nanmean(spot_dist, axis=1)) / np.nanmean(spot_dist, axis=1)
+
+    low_snr_mask = snr_channel <= snr_thres
+    if np.any(low_snr_mask):
+        scale_list_measured[low_snr_mask] = max(lbdas) / lbdas[low_snr_mask]
+        low_snr_channels = lbdas[low_snr_mask]
+        print(f"Low SNR (<= {snr_thres}) for channels {low_snr_channels} µm, using theoretical scaling here")
+        if np.sum(low_snr_mask) >= len(lbdas) * 2 / 3:
+            print("WARNING: Too many channels with poor SNR. Falling back to theoretical scaling. "
+                  "SDI will be less effective.")
+            scale_list_measured = max(lbdas) / lbdas
+
+    return scale_list_measured
 
 
 def rough_centering(array, fwhm_odd=5):
@@ -657,7 +696,7 @@ def snr_thresholding(snr_thr, array, fwhm, fin_cen_x, fin_cen_y, verbose=False,
             msg="No match for SNR threshold. It will now be reduced to {:.1f}"
             print(msg.format(snr_thr/2))
             snr_thr/=2
-            pdb.set_trace()
+            set_trace()
     if debug:
         plt.grid()
         plt.show()
@@ -822,13 +861,12 @@ def plot_data_circle(x,y, xc, yc, R, zoom=False):
     
     
 def plot_data_derot(med_x, med_y, derot_x, derot_y, err, zoom=False):
-    #fig = 
     plt.figure(facecolor='white')  #figsize=(7, 5.4), dpi=72,
     plt.axis('equal')
 
     label = None
     for i in range(len(derot_x)):
-        if i== len(derot_x)-1:
+        if i == len(derot_x)-1:
             label = "BKG in OBJ after corr."
         alpha = 0.1+0.8*i/(len(derot_x)-1)
         plt.errorbar(derot_x[i], derot_y[i], err[i], err[i], fmt='ro', label=label, 
@@ -845,7 +883,7 @@ def plot_data_derot(med_x, med_y, derot_x, derot_y, err, zoom=False):
 def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5, 
                          crop_sz=None, fit_type='moff', sigfactor=3, bin_fit=1, 
                          convolve=True, debug=False, path_debug='./', 
-                         full_output=False):
+                         full_output=False, nproc=None):
     
     """
     Note: translation and rotation are not commutative! 
@@ -858,21 +896,17 @@ def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
         crop_sz+=1
     
     cen_y, cen_x = frame_center(array[0])
-    derot_arr=np.zeros_like(array)
     
-    derot_arr=cube_derotate(array, derot_angles, imlib='vip-fft', 
-                            interpolation='lanczos4',
-                            cxy=None, border_mode='constant')
+    derot_arr = cube_derotate(array, derot_angles, imlib='vip-fft', interpolation='lanczos4', cxy=None,
+                              border_mode='constant', nproc=nproc)
     if debug:
         write_fits(path_debug+"TMP_derot_cube.fits",derot_arr)
 
     derot_small_cubes=[]
     corner_coords_small_cube=[]
     for i in range(array.shape[0]):
-
         #crop - centered around same co-ords as median crop
-        derot_small_arr, y0, x0 = get_square(derot_arr[i], crop_sz, med_y,
-                                             med_x, position=True)
+        derot_small_arr, y0, x0 = get_square(derot_arr[i], crop_sz, med_y, med_x, position=True)
         #print(derot_small_cube,y0_derot,x0_derot)
         derot_small_cubes.append(derot_small_arr)
         corner_coords_small_cube.append([x0,y0])
@@ -933,7 +967,7 @@ def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
             except:
                 print("WARNING: could not find the centroid position. ")
                 print("Check the results of the fit in the df_fit data frame.")
-                pdb.set_trace()
+                set_trace()
         list_cens.append([df_fit[1],df_fit[0]])
         
     list_cens = np.array(list_cens)

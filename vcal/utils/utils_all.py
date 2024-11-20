@@ -1,90 +1,58 @@
 #! /usr/bin/env python
-
+# coding: utf-8
 """
 General utility routines used in vcal.
 """
 
-__author__='V. Christiaens'
-__all__=['set_backend',
-         'find_nearest',
+__author__ = 'V. Christiaens'
+__all__ = ['set_backend',
          'nonzero_median',
          'cube_crop_quadrant',
          'most_common']
 
-# coding: utf-8
-import matplotlib
-import numpy as np
-import os
+from os import system
 from statistics import mode
-from vip_hci.var import frame_center
+
+import numpy as np
+from matplotlib import get_backend
+from matplotlib import use as mpl_backend
+from matplotlib.rcsetup import interactive_bk, non_interactive_bk
+
+from vip_hci.var.coords import frame_center
+
 
 def set_backend():
-    gui_env = [i for i in matplotlib.rcsetup.interactive_bk]
-    non_gui_backends = matplotlib.rcsetup.non_interactive_bk
+    gui_env = [i for i in interactive_bk]
+    non_gui_backends = non_interactive_bk
     print("Non Gui backends are:", non_gui_backends)
     print("Gui backends I will test for", gui_env)
     for gui in gui_env:
         print("testing", gui)
         try:
-            matplotlib.use(gui)
+            mpl_backend(gui)
             from matplotlib import pyplot as plt
             print("    ",gui, "Is Available")
             #plt.plot([1.5,2.0,2.5])
             #fig = plt.gcf()
             #fig.suptitle(gui)
             #plt.show()
-            print("Using ..... ",matplotlib.get_backend())
+            print("Using ..... ", get_backend())
             return None
         except:
             print("    ",gui, "Not found")
     # if code reaches here, it couldn't find any GUI backend, so install one
-    os.system("conda install -c anaconda pyqt")
-    matplotlib.use('Qt5Agg')
+    system("conda install -c anaconda pyqt")
+    mpl_backend('Qt5Agg')
     from matplotlib import pyplot as plt
     plt.plot([1.5,2.0,2.5])
     fig = plt.gcf()
     fig.suptitle(gui)
     plt.show()
-    print("Using ..... ",matplotlib.get_backend())
-    
+    print("Using ..... ", get_backend())
+
     return None
 
-def find_nearest(array, value, output='index', constraint=None, n=1):
-    """
-    Function to find the indices, and optionally the values, of an array's n closest elements to a certain value.
-    Possible outputs: 'index','value','both' 
-    Possible constraints: 'ceil', 'floor', None ("ceil" will return the closest element with a value greater than 'value', "floor" the opposite)
-    """
-    if type(array) is np.ndarray:
-        pass
-    elif type(array) is list:
-        array = np.array(array)
-    else:
-        raise ValueError("Input type for array should be np.ndarray or list.")
-    
-    if constraint is None:
-        fm = np.absolute(array-value)
 
-    elif constraint == 'ceil':
-        fm = array-value
-        fm = fm[np.where(fm>0)]    
-    elif constraint == 'floor':    
-         fm = -(array-value)
-         fm = fm[np.where(fm>0)]    
-    else:
-        raise ValueError("Constraint not recognised")
-        
-    idx = fm.argsort()[:n]
-    if n == 1:
-        idx = idx[0]
-
-    if output=='index': return idx
-    elif output=='value': return array[idx]
-    else: return array[idx], idx
-    
-
-    
-    
 def nonzero_median(cube,axis=None,median=True,thr=1e-10):
     """ Returns the mean (or median) of the non-zero values of an array along given axis.
     """
@@ -108,14 +76,14 @@ def nonzero_median(cube,axis=None,median=True,thr=1e-10):
         n_1 = cube.shape[0]
         if cube.ndim > 2:
             n_2 = cube.shape[2]
-            if cube.ndim == 4: 
+            if cube.ndim == 4:
                 n_3 = cube.shape[3]
     elif axis == 2 and cube.ndim > 2:
         array = np.swapaxes(cube, 0, 2)
         _ = cube.shape[2]
         n_1 = cube.shape[1]
         n_2 = cube.shape[0]
-        if cube.ndim == 4: 
+        if cube.ndim == 4:
             n_3 = cube.shape[3]
     elif axis == 3 and cube.ndim == 4:
         array = np.swapaxes(cube, 0, 3)
@@ -125,10 +93,10 @@ def nonzero_median(cube,axis=None,median=True,thr=1e-10):
         n_3 = cube.shape[0]
     else:
         raise ValueError('The provided axis should be either 0, 1 or 2 (or 3 if ndim == 4)')
-        
-    if median: 
+
+    if median:
         collapse=np.median
-    else: 
+    else:
         collapse=np.mean
 
 
@@ -188,7 +156,7 @@ def cube_crop_quadrant(array,quadrant):
         elif quadrant == 3:
             subarray = array[:,:int(np.ceil(cy)),:int(np.ceil(cx))]
         else:
-            subarray = array[:,:int(np.ceil(cy)),int(np.floor(cx))+1:,]            
+            subarray = array[:,:int(np.ceil(cy)),int(np.floor(cx))+1:,]
     else:
         cy, cx = frame_center(array)
         if quadrant == 1:
@@ -198,7 +166,7 @@ def cube_crop_quadrant(array,quadrant):
         elif quadrant == 3:
             subarray = array[:int(np.ceil(cy)),:int(np.ceil(cx))]
         else:
-            subarray = array[:int(np.ceil(cy)),int(np.floor(cx))+1:,]             
+            subarray = array[:int(np.ceil(cy)),int(np.floor(cx))+1:,]
     return subarray
 
 
