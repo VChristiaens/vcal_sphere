@@ -4,8 +4,8 @@ The SPHERE pipeline kit from ESO is a requirement for vcal-sphere.
 The source kit (with esorex and all prerequisites bundled) can be downloaded from ESO or installed through MacPorts.
 Installation from source is recommended and instructions are provided on the ESO website (https://www.eso.org/sci/software/pipelines/), under "Installations without EsoReflex". All prerequisites are installed with the kit.
 EXAMPLE: tar xzf spher-kit-0.56.0.tar.gz -> cd spher-kit-0.56.0 -> ./install_pipeline and follow any prompts, such as updating your PATH variable.
-A more detailed procedure is given here: https://www.eso.org/sci/software/pipelines/sphere/sphere-pipe-recipes.html
-The pipeline can be run on a cluster using the above installation, however the VIP sections benefit the most from multi-core processing.
+A more detailed procedure for the SPHERE kit is given here: https://www.eso.org/sci/software/pipelines/sphere/sphere-pipe-recipes.html
+The pipeline can be run on a cluster using the above installation, however the VIP sections benefit the most from having multiple CPUs.
 We recommend using the latest version of the ESO pipeline. vcal-sphere has been tested with version 0.53.2 in November 2024.
 
 0) Install dfits or dfitspy (or any other fits header parser utility).
