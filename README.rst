@@ -67,17 +67,16 @@ Checklist
 Before running the pipeline, make sure:
 
 1) you only keep in your 'raw' folder raw flats and darks from the same morning! I.e. remove all the other ones in different folders.
-2) If planning to reduce IFS data: make sure you downloaded manually raw IFS darks with matching DITs to the FLATS - they don't come automatically just by ticking the box of downloading data with raw calibs.
+2) If planning to reduce IFS data: make sure raw IFS darks with matching DITs to the FLATS are included among your raw data. If not you will have to download them manually - as of 2023 they don't come automatically just by ticking the box of downloading the data with raw associated calibrations.
 3) First try basic calibration and preprocessing using default parameters - change them only if the master cubes obtained by the end of preprocessing look poor. 
 
 
 Contact
 -------
 Feel free to raise any issue on the GitHub. 
-If you have questions on proper usage of the code, assess whether the data look well calibrated/pre-processed/post-processed, or would like to contribute to the code, feel free to contact me at valentin.christiaens@uliege.be.
+If you have questions on proper usage of the code, assess whether the data look well calibrated/pre-processed/post-processed. If you would like to contribute to the code, feel free to contact me at valentin.christiaens@uliege.be.
 
 
 Acknowledgements
 ----------------
-The code will soon be placed on ASCL for a proper citation handle.
-In the meantime, if you use `vcal_sphere`, please cite `Christiaens et al. (2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.502.6117C/abstract>`_. 
+If `vcal_sphere` is useful to your work, please cite `Christiaens et al. (2023) <https://ui.adsabs.harvard.edu/abs/2023ascl.soft11002C/abstract>`_. 
