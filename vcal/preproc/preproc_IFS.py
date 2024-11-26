@@ -214,9 +214,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
     # List of OBJ and PSF files
     dico_lists = {}
-    dico_files = reader(open(path+'dico_files.csv', 'r'))
-    for row in dico_files:
-         dico_lists[row[0]] = literal_eval(row[1])
+    with open(path + "dico_files.csv", 'r') as csvfile:
+        csv_file = reader(csvfile)
+        for row in csv_file:
+            dico_lists[row[0]] = literal_eval(row[1])
+    csvfile.close()
 
     prefix = [sky_pre+"SPHER",sky_pre+"psf_SPHER",sky_pre+"cen_SPHER"]
     #if len(dico_lists['sci_list_ifs'])>0:
