@@ -220,7 +220,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             poly_order_wc = 2
         elif mode == "YJH":
             poly_order_wc = 3
-    wc_win_sz = params_calib.get('wc_win_sz', 2)  # default: 4
+    wc_win_sz = params_calib.get('wc_win_sz', 4)  # default: 4
     # for IFS only, will subtract the sky before the science_dr recipe (corrects also for dark, incl. bias, and vast majority of bad pixels!!)
     sky = params_calib.get('sky', 1)
     verbose = params_calib.get('verbose', 1)
