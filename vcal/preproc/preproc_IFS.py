@@ -1267,7 +1267,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     header = fits.Header()
                     header['Flux 0'] = 'Flux scaled to coronagraphic DIT'
                     header['Flux 1'] = 'Flux measured in PSF image'
-                    write_fits(outpath+final_fluxname+".fits", np.array([med_flux*dit_ifs/dit_psf_ifs, med_flux]),
+                    header['Flux 2'] = 'Flux measured in PSF image scale to 1s'
+                    write_fits(outpath+final_fluxname+".fits", np.array([med_flux*dit_ifs/dit_psf_ifs, med_flux, med_flux/dit_psf_ifs]),
                                header=header, verbose=debug)
                     write_fits(outpath+final_fwhmname+".fits", fwhm, verbose=debug)
 
