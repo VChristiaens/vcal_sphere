@@ -755,7 +755,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             pacy = header["ESO INS1 PAC Y"]/18
                             n_fr = cube.shape[0]
                             if "2dfit" in rec_met_tmp:
-                                if n_fr == 1:  # can have one frame, e.g. broad band imaging and only one PSF file
+                                if cube.ndim == 2:  # can have one frame
                                     tmp = frame_filter_lowpass(cube)
                                 else:
                                     tmp = frame_filter_lowpass(np.median(cube,axis=0))
