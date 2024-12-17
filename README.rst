@@ -79,5 +79,4 @@ If you have questions on proper usage of the code, assess whether the data look 
 
 Acknowledgements
 ----------------
-The code will soon be placed on ASCL for a proper citation handle.
-In the meantime, if you use `vcal_sphere`, please cite `Christiaens et al. (2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.502.6117C/abstract>`_. 
+If you use `vcal_sphere`, please cite `Christiaens et al. (2023) <https://ui.adsabs.harvard.edu/abs/2023ascl.soft11002C/abstract>`_.
