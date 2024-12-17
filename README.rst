@@ -28,7 +28,7 @@ for your environment):
 
 .. code-block:: bash
 
-  $ conda create -n vcal_env python=3.9 ipython
+  $ conda create -n vcal_env python=3.10 ipython
 
 Note: installing ipython while creating the environment with the above line will
 avoid a commonly reported issue which stems from trying to import VIP from 
