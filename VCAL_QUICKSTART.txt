@@ -1,6 +1,6 @@
-Before starting:
+0) Before starting:
 
-The SPHERE pipeline kit from ESO is a requirement for vcal-sphere.
+A. The SPHERE pipeline kit from ESO is a requirement for vcal-sphere.
 The source kit (with esorex and all prerequisites bundled) can be downloaded from ESO or installed through MacPorts.
 Installation from source is recommended and instructions are provided on the ESO website (https://www.eso.org/sci/software/pipelines/), under "Installations without EsoReflex". All prerequisites are installed with the kit.
 EXAMPLE: tar xzf spher-kit-0.56.0.tar.gz -> cd spher-kit-0.56.0 -> ./install_pipeline and follow any prompts, such as updating your PATH variable.
@@ -8,8 +8,8 @@ A more detailed procedure for the SPHERE kit is given here: https://www.eso.org/
 The pipeline can be run on a cluster using the above installation, however the VIP sections benefit the most from having multiple CPUs.
 We recommend using the latest version of the ESO pipeline. vcal-sphere has been tested with version 0.53.2 in November 2024.
 
-0) Install dfits or dfitspy (or any other fits header parser utility).
-The latter can be installed with: pip install dfitspy
+B. Install dfits or dfitspy. The latter can be installed with: pip install dfitspy
+
 
 1) Download:
 	- dataset of interest + raw calibs from ESO
@@ -38,7 +38,7 @@ The latter can be installed with: pip install dfitspy
 If not present, you will need to download them separately from the ESO archive. Consider the calibration files that were obtained closest in time from the observations, in the same mode (INS2 COMB IFS header keyword) as the observations.
 
 5) Make a copy of example JSON parameter files (in vcal_sphere/Examples) and place them into another directory (any directory but 'raw' you created above!).
-	a) calibration (flat-fielding, sky subtraction, in addition for IFS: detector-level bad pixel correction, wavelength calibration, spectral cube creation) - common for IFS and IRDIS;
+	a) calibration (dark, flat-fielding, sky subtraction, in addition for IFS: detector-level bad pixel correction, wavelength calibration, spectral cube creation) - common for IFS and IRDIS;
 	b) preprocessing (bad pixel correction, centering, bad frame removal, ADI cube creation, derotation angle calculation):
 		- VCAL_params_preproc_IRDIS.json if reducing IRDIS data;
 		- VCAL_params_preproc_IFS.json if reducing IFS data;
@@ -49,7 +49,7 @@ If not present, you will need to download them separately from the ESO archive. 
 6) Then *adapt the* parameter files based on your data:
 	a) for the calibration parameter file, the following keywords are critical to check and adapt:
 		- "path": your path to the parent folder containing the "raw" subfolder created in step 1;
-		- "inpath_filt_table": you full path to the "vcal_sphere/Static/" folder;
+		- "inpath_filt_table": your full path to the "vcal_sphere/Static/" folder;
     		- "dit_ifs"/"dit_irdis": the DIT of your science images;
 		- "dit_psf_ifs"/"dit_psf_irdis": the DIT of your non-coronagraphic non-saturated images of the star (if any);
 		- "dit_cen_ifs"/"dit_cen_irdis": the DIT of your "CENTER" images taken with satellite spots on (if any);
@@ -57,13 +57,11 @@ If not present, you will need to download them separately from the ESO archive. 
 		- "mode": the IFS mode used ("YJ" or "YJH", if relevant)
 	b) for the preproc parameter file, the following keywords are critical to check and adapt:
 		- "coro": 1 or 0, depending on whether the observation was made with a coronagraph or not;
-		- "rec_met": if either coro=0 or no satellite spots observations is available, change the value to "dft_100", otherwise leave to default;
-		- "approx_xy_bkg": This should first be left to 0 for your first run of the preprocessing, and should then be updated to a tuple of xy coordinates if reduced images produced in stage 3 reveal a BKG star somewhere in the field (take the brightest if several). Check output file 2_preproc_vip/median_ADI1_*.fits. If any BKG star is present it is highly recommended to use it to refine centering. Otherwise, a better recentering method working without BKG star should be available by the end of September 2023.
-		- "to_do": first [1,2,3], then [4,5,6,7,8,9,10] after checking whether a BKG star is present in the field, and adapting "approx_xy_bkg" accordingly.
+		- "rec_met": if either coro=0 or no satellite spots observations is available, change the value to "dft_100", otherwise leave to default.
 	c) for the postproc parameter files, the following keywords are critical to check and adapt:
 		- "sourcename": change to your source name (just used for some output files and plots),
 		- "details":" (IFS 2018/12/17)" (additional info shown on some plots)
-		- "ref_cube_name": should the name (including full path) of a preprocessed reference cube (i.e. obtained after step b), including a {} blank for the filter. If no reference cube, *delete* the line - only ADI will be performed.
+		- "ref_cube_name": should be the filename (including full path) of a preprocessed reference cube (i.e. obtained at the end of preprocessing for the reference dataset), including a {} blank for the filter. If no reference cube, *delete* the line - only ADI will be performed.
 
 Apart from the parameters listed above, the others can be left as default for a first run. Description for each parameter is provided in the relevant MANUAL txt files (in vcal_sphere/Manual).
 
@@ -81,7 +79,10 @@ Apart from the parameters listed above, the others can be left as default for a 
 		from vcal.postproc import postproc_IRDIS
 			postproc_IRDIS('VCAL_params_postproc_IRDIS.json', 'VCAL_params_preproc_IRDIS.json', 'VCAL_params_calib.json')
 
-Pro tip 1: run parts a) and b) of the pipeline with mostly default parameters (apart exceptions above), then look at the master cubes produced by the end of preprocessing. If they look relatively stable and with the star well-centered in the images, proceed to part c). Otherwise, try to figure out what part you are not satisfied with (e.g. centering, bad pixels, bad frames?), then try with other parameters associated to these steps accordingly. If lost, raise an issue (preferred option, as others may also be able to help) or contact me.
-Pro tip 2: instead of ipython/jupyter sessions, consider making a bash script for automated reductions.
+**Pro tips**
 
-Warning: Different observations may have different specific issues that may have not been predicted for handling by the pipeline. Inspect intermediate files for diagnostic, and iterate on the requested reduction parameters in the JSON files.
+Pro tip 1: run parts a) and b) of the pipeline with mostly default parameters (apart exceptions above), then look at the master cubes produced by the end of preprocessing. If they look relatively stable and with the star well-centered in the images, proceed to part c). Otherwise, try to figure out what part you are not satisfied with (e.g. centering, bad pixels, bad frames?), then try with other parameters associated to these steps accordingly. If lost, raise an issue (preferred option, as others may also be able to either help or benefit from the answer) or contact Valentin Christiaens/Iain Hammond.
+Pro tip 2: instead of ipython/jupyter sessions, consider making a bash script for automated reductions.
+Pro tip 3: Need PCA-based sky subtraction for IFS? Consider making dummy SCI files from identified SKY files (from output of dfits): make a copy of the SKY files in another folder and adapt their header. Run the calibration part of the pipeline. Calibrate them as regular SCI files - turning off any SKY subtraction. You'll have calibrated SKY fits files. Make a master cube from them Before pre-processing the SCI files you are interested in, ru separately VIP's cube_subtract_sky_pca.
+
+Warning: Different observations may have different specific issues that may have not been anticipated to be handled by the pipeline. Inspect intermediate files for diagnostic, and iterate on the requested reduction parameters in the JSON files.
