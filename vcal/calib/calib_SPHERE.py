@@ -548,7 +548,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             sci_cube_tmp = sci_cube[:, :, xcuts[s]:xcuts[s + 1]]
                             bp_map_tmp = bp_map[:, xcuts[s]:xcuts[s + 1]]
                             master_sci_sky_tmp = master_sky[:,
-                                                 :, xcuts[s]:xcuts[s + 1]]
+                                                 :, xcuts[s]:xcuts[s + 1]].copy()
 
                             # tmp = sci_cube_tmp.copy()
                             # look for smooth max location in med-sky subtraction
