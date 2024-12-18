@@ -28,7 +28,7 @@ for your environment):
 
 .. code-block:: bash
 
-  $ conda create -n vcal_env python=3.9 ipython
+  $ conda create -n vcal_env python=3.10 ipython
 
 Note: installing ipython while creating the environment with the above line will
 avoid a commonly reported issue which stems from trying to import VIP from 
@@ -79,4 +79,4 @@ If you have questions on proper usage of the code, assess whether the data look 
 
 Acknowledgements
 ----------------
-If `vcal_sphere` is useful to your work, please cite `Christiaens et al. (2023) <https://ui.adsabs.harvard.edu/abs/2023ascl.soft11002C/abstract>`_. 
+If `vcal_sphere` is useful to your work, please cite `Christiaens et al. (2023) <https://ui.adsabs.harvard.edu/abs/2023ascl.soft11002C/abstract>`_.

@@ -753,9 +753,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             cube = np.nan_to_num(cube, copy=False)  # check for nans
                             pacx = header["ESO INS1 PAC X"]/18  # 18 microns -> pixels, ref SPHERE manual
                             pacy = header["ESO INS1 PAC Y"]/18
-                            n_fr=cube.shape[0]
+                            n_fr = cube.shape[0]
                             if "2dfit" in rec_met_tmp:
-                                tmp = frame_filter_lowpass(np.median(cube,axis=0))
+                                if cube.ndim == 2:  # can have one frame
+                                    tmp = frame_filter_lowpass(cube)
+                                else:
+                                    tmp = frame_filter_lowpass(np.median(cube,axis=0))
                                 y_max, x_max = np.unravel_index(np.argmax(tmp),tmp.shape)
                                 cube, y_shifts, x_shifts = cube_recenter_2dfit(cube, xy=(int(x_max), int(y_max)),
                                                                                fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], model=rec_met_tmp[:-6],

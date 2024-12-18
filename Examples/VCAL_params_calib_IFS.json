@@ -28,7 +28,7 @@
     "flat_smooth_length": 10,
     "specpos_distort_corr": 1,
     "specpos_nonlin_corr": 1,
-    "poly_order_wc": 0,
+    "poly_order_wc": 2,
     "wc_win_sz": 4,
     "sky": 1,
     "manual_sky": 1,

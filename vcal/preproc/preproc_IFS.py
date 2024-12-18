@@ -214,9 +214,11 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
 
     # List of OBJ and PSF files
     dico_lists = {}
-    dico_files = reader(open(path+'dico_files.csv', 'r'))
-    for row in dico_files:
-         dico_lists[row[0]] = literal_eval(row[1])
+    with open(path + "dico_files.csv", 'r') as csvfile:
+        csv_file = reader(csvfile)
+        for row in csv_file:
+            dico_lists[row[0]] = literal_eval(row[1])
+    csvfile.close()
 
     prefix = [sky_pre+"SPHER",sky_pre+"psf_SPHER",sky_pre+"cen_SPHER"]
     #if len(dico_lists['sci_list_ifs'])>0:
@@ -541,8 +543,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                             cube, header = open_fits(outpath+filename+"_1bpcorr.fits", header=True, verbose=debug)
                             if fi == 1 or not coro:
                                 cube_med = np.median(cube, axis=0)  # median combine all channels
-                                # low pass filter, search in subframe that avoids empty data in the edges
-                                y_max, x_max = peak_coordinates(cube_med, fwhm=int(1.2*max_resel),
+                                # search in subframe that avoids empty data in the edges
+                                y_max, x_max = peak_coordinates(cube_med, fwhm=1,
                                                                 approx_peak=frame_center(cube_med), search_box=85)
                                 xy = (x_max, y_max)
                                 if debug:
@@ -1265,7 +1267,8 @@ def preproc_IFS(params_preproc_name='VCAL_params_preproc_IFS.json',
                     header = fits.Header()
                     header['Flux 0'] = 'Flux scaled to coronagraphic DIT'
                     header['Flux 1'] = 'Flux measured in PSF image'
-                    write_fits(outpath+final_fluxname+".fits", np.array([med_flux*dit_ifs/dit_psf_ifs, med_flux]),
+                    header['Flux 2'] = 'Flux measured in PSF image scale to 1s'
+                    write_fits(outpath+final_fluxname+".fits", np.array([med_flux*dit_ifs/dit_psf_ifs, med_flux, med_flux/dit_psf_ifs]),
                                header=header, verbose=debug)
                     write_fits(outpath+final_fwhmname+".fits", fwhm, verbose=debug)
 

@@ -220,7 +220,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             poly_order_wc = 2
         elif mode == "YJH":
             poly_order_wc = 3
-    wc_win_sz = params_calib.get('wc_win_sz', 2)  # default: 4
+    wc_win_sz = params_calib.get('wc_win_sz', 4)  # default: 4
     # for IFS only, will subtract the sky before the science_dr recipe (corrects also for dark, incl. bias, and vast majority of bad pixels!!)
     sky = params_calib.get('sky', 1)
     verbose = params_calib.get('verbose', 1)
@@ -1034,14 +1034,14 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                 recipe = "dbi"
                 label_method = "DBI"
 
-            def _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, file_type):
+            def _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, com_esorex, file_type):
                 """
                 Short block to run the esorex command for IRDIS reduction.
                 """
                 if file.endswith(".fits"):
                     file = file[:-5]
 
-                command = f"esorex sph_ird_science_{recipe}"
+                command = f"{com_esorex} sph_ird_science_{recipe}"
                 command += f" --ird.science_{recipe}.outfilename={outpath_irdis_fits}{file}_total.fits"
                 command += f" --ird.science_{recipe}.outfilename_left={outpath_irdis_fits}{file}_left.fits"
                 command += f" --ird.science_{recipe}.outfilename_right={outpath_irdis_fits}{file}_right.fits"
@@ -1077,7 +1077,7 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
                     if (not isfile(outpath_irdis_fits + f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits + f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe,
+                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, com_esorex,
                                              file_type="OBJECT")
 
             # CEN
@@ -1109,7 +1109,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
                     if (not isfile(outpath_irdis_fits + f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits + f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, file_type="CEN")
+                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, com_esorex,
+                                             file_type="CEN")
 
             # PSF
             psf_list_irdis = dico_lists['psf_list_irdis']
@@ -1139,7 +1140,8 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
 
                     if (not isfile(outpath_irdis_fits + f"{file}_left.fits") or
                             not isfile(outpath_irdis_fits + f"{file}_right.fits") or overwrite_sof or overwrite_fits):
-                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, file_type="PSF")
+                        _reduce_irdis_esorex(outpath_irdis_fits, outpath_irdis_sof, file, ii, recipe, com_esorex,
+                                             file_type="PSF")
 
             # remove the stacked left and right sides called "_total"
             os.system(f"rm {outpath_irdis_fits}*_total.fits")
@@ -1255,11 +1257,11 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
             with open(outpath_ifs_sof + "master_dark.sof", 'w+') as f:
                 for ii in range(len(dark_list_ifs)):
                     dark_cube, dark_head = open_fits(inpath + dark_list_ifs[ii], header=True, verbose=False)
-                    if np.round(dark_head['HIERARCH ESO DET SEQ1 DIT'], decimals=2) == 1.65 and dark_head[
-                        "MJD-OBS"] < 0:
-                        # if it's 1.65s and before the shutdown, replace with the super dark
-                        dark_list_ifs[ii] = "ifs_super_dark_1.65s.fits"
-                        os.system("cp {} {}".format(vcal_path[0][:-4] + "Static/ifs_super_dark_1.65s.fits", inpath))
+                    # if np.round(dark_head['HIERARCH ESO DET SEQ1 DIT'], decimals=2) == 1.65 and dark_head[
+                    #     "MJD-OBS"] < 0:
+                    #     # if it's 1.65s and before the shutdown, replace with the super dark
+                    #     dark_list_ifs[ii] = "ifs_super_dark_1.65s.fits"
+                    #     os.system("cp {} {}".format(vcal_path[0][:-4] + "Static/ifs_super_dark_1.65s.fits", inpath))
                     f.write(inpath + dark_list_ifs[ii] + '\t' + 'IFS_DARK_RAW\n')
                     if dark_cube.ndim == 3:
                         if ii == 0:
@@ -1324,10 +1326,10 @@ def calib(params_calib_name='VCAL_params_calib.json') -> None:
                             dark_cube, fdark_head = open_fits(inpath + fdark_list_ifs[dd], header=True, verbose=False)
                             dit_fdark = fdark_head['HIERARCH ESO DET SEQ1 DIT']
                             if dit_fdark == fdit:
-                                if np.round(dit_fdark, decimals=2) == 1.65 and fdark_head["MJD-OBS"] < 0:
-                                    fdark_list_ifs[dd] = "ifs_super_dark_1.65s.fits"
-                                    os.system("cp {} {}".format(vcal_path[0][:-4] + "Static/ifs_super_dark_1.65s.fits",
-                                                                inpath))
+                                # if np.round(dit_fdark, decimals=2) == 1.65 and fdark_head["MJD-OBS"] < 0:
+                                #     fdark_list_ifs[dd] = "ifs_super_dark_1.65s.fits"
+                                #     os.system("cp {} {}".format(vcal_path[0][:-4] + "Static/ifs_super_dark_1.65s.fits",
+                                #                                 inpath))
                                 f.write(inpath + fdark_list_ifs[dd] + '\t' + 'IFS_DARK_RAW\n')
                                 master_dark_cube[counter:counter + dark_cube.shape[0]] = np.copy(dark_cube)
                                 counter += dark_cube.shape[0]
