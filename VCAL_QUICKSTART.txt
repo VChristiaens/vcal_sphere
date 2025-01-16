@@ -10,6 +10,11 @@ We recommend using the latest version of the ESO pipeline. vcal-sphere has been 
 
 B. Install dfits or dfitspy. The latter can be installed with: pip install dfitspy
 
+C. Install vcal_sphere (see also README file):
+	- make a local copy of the Github repo
+	- python setup.py
+	- pip install -r requirements.txt  # to be sure you get all packages installed 
+
 
 1) Download:
 	- dataset of interest + raw calibs from ESO
@@ -48,8 +53,8 @@ If not present, you will need to download them separately from the ESO archive. 
 
 6) Then *adapt the* parameter files based on your data:
 	a) for the calibration parameter file, the following keywords are critical to check and adapt:
-		- "path": your path to the parent folder containing the "raw" subfolder created in step 1;
-		- "inpath_filt_table": your full path to the "vcal_sphere/Static/" folder;
+		- "path": your path to the parent folder of the "raw" subfolder created in step 1 (do not include "raw" in the path);
+		(- "inpath_filt_table": your full path to the "vcal_sphere/Static/" folder;)
     		- "dit_ifs"/"dit_irdis": the DIT of your science images;
 		- "dit_psf_ifs"/"dit_psf_irdis": the DIT of your non-coronagraphic non-saturated images of the star (if any);
 		- "dit_cen_ifs"/"dit_cen_irdis": the DIT of your "CENTER" images taken with satellite spots on (if any);
@@ -61,7 +66,7 @@ If not present, you will need to download them separately from the ESO archive. 
 	c) for the postproc parameter files, the following keywords are critical to check and adapt:
 		- "sourcename": change to your source name (just used for some output files and plots),
 		- "details":" (IFS 2018/12/17)" (additional info shown on some plots)
-		- "ref_cube_name": should be the filename (including full path) of a preprocessed reference cube (i.e. obtained at the end of preprocessing for the reference dataset), including a {} blank for the filter. If no reference cube, *delete* the line - only ADI will be performed.
+		- "ref_cube_name": should be the filename (including full path) of a preprocessed reference cube (i.e. obtained at the end of preprocessing for the reference dataset), including a {} blank for the filter. If no reference cube, *delete* the line, along with the lines "prep_ref_cube" and "mask_PCA" - only ADI will be performed.
 
 Apart from the parameters listed above, the others can be left as default for a first run. Description for each parameter is provided in the relevant MANUAL txt files (in vcal_sphere/Manual).
 

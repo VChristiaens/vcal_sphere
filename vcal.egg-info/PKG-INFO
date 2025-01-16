@@ -4,7 +4,7 @@ Version: 0.0.1
 Summary: Package for VIP-based SPHERE image Calibration and processing
 Home-page: https://github.com/VChristiaens/vcal_sphere
 Author: Valentin Christiaens
-Author-email: valentinchrists@hotmail.com
+Author-email: valentinchrist@hotmail.com
 License: MIT
 Classifier: Intended Audience :: Science/Research
 Classifier: License :: OSI Approved :: MIT License
@@ -14,7 +14,20 @@ Classifier: Natural Language :: English
 Classifier: Programming Language :: Python :: 3.6
 Classifier: Programming Language :: Python :: 3.7
 Classifier: Topic :: Scientific/Engineering :: Astronomy
+Requires-Dist: packaging
+Requires-Dist: hciplot
 Provides-Extra: dev
+Requires-Dist: packaging; extra == "dev"
+Requires-Dist: hciplot; extra == "dev"
+Requires-Dist: sphinx; extra == "dev"
+Requires-Dist: pandoc; extra == "dev"
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-cov~=2.6.0; extra == "dev"
+Requires-Dist: codecov~=2.0.15; extra == "dev"
+Requires-Dist: flake8~=3.5.0; extra == "dev"
+Requires-Dist: flake8-bandit~=1.0.2; extra == "dev"
+Requires-Dist: flake8-docstrings~=1.3.0; extra == "dev"
+Requires-Dist: autopep8; extra == "dev"
 
 vcal_sphere
 -----------
@@ -46,7 +59,7 @@ for your environment):
 
 .. code-block:: bash
 
-  $ conda create -n vcal_env python=3.9 ipython
+  $ conda create -n vcal_env python=3.10 ipython
 
 Note: installing ipython while creating the environment with the above line will
 avoid a commonly reported issue which stems from trying to import VIP from 
@@ -69,22 +82,32 @@ out or a bug is fixed:
   $ git add remote upstream https://github.com/VChristiaens/vcal_sphere.git
 
 
-
 Requirements
 ------------
 - VIP: https://github.com/vortex-exoplanet/VIP
-- esorex: https://www.eso.org/sci/software/cpl/esorex.html
+- ESO SPHERE pipeline: https://www.eso.org/sci/software/pipelines/sphere/sphere-pipe-recipes.html
+
+
+Quick start
+-----------
+Follow the instructions in the VCAL_QUICKSTART.txt file.
 
 
 Checklist
 ---------
 Before running the pipeline, make sure:
 
-1) you only keep in your 'raw' folder raw flats and darks from the same morning! I.e. remove all the other ones in different folders!
-2) you downloaded manually raw IFS darks with matching DITs to the FLATS - they don't come automatically just by ticking the box of downloading data with raw calibs!
-3) first try basic calibration using default parameters - change them only if you know what you're doing.
+1) you only keep in your 'raw' folder raw flats and darks from the same morning! I.e. remove all the other ones in different folders.
+2) If planning to reduce IFS data: make sure raw IFS darks with matching DITs to the FLATS are included among your raw data. If not you will have to download them manually - as of 2023 they don't come automatically just by ticking the box of downloading the data with raw associated calibrations.
+3) First try basic calibration and preprocessing using default parameters - change them only if the master cubes obtained by the end of preprocessing look poor. 
+
+
+Contact
+-------
+Feel free to raise any issue on the GitHub. 
+If you have questions on proper usage of the code, assess whether the data look well calibrated/pre-processed/post-processed. If you would like to contribute to the code, feel free to contact me at valentin.christiaens@uliege.be.
 
 
 Acknowledgements
 ----------------
-If you use `vcal_sphere`, please cite `Christiaens et al. (2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.502.6117C/abstract>`_. 
+If `vcal_sphere` is useful to your work, please cite `Christiaens et al. (2023) <https://ui.adsabs.harvard.edu/abs/2023ascl.soft11002C/abstract>`_.

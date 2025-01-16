@@ -1,2 +1,5 @@
 vip_hci
+packaging
 hciplot
+pillow
+opencv-python
