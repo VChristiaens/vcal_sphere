@@ -1,5 +1,9 @@
+packaging
+hciplot
 
 [dev]
+packaging
+hciplot
 sphinx
 pandoc
 pytest
