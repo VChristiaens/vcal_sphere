@@ -71,7 +71,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         params_preproc = load(read_file_params_preproc)
     with open(params_calib_name, 'r') as read_file_params_calib:
         params_calib = load(read_file_params_calib)
-        
+
     with open(vcal_path[0] + "/instr_param/sphere_filt_spec.json", 'r') as filt_spec_file:
         filt_spec = load(filt_spec_file)[params_calib['comb_iflt']]  # Get infos of current filters combination
     with open(vcal_path[0] + "/instr_param/sphere.json", 'r') as instr_param_file:
@@ -127,6 +127,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
     rec_met = params_preproc['rec_met']
     rec_met_psf = params_preproc['rec_met_psf']
+
+    imlib = params_preproc.get('imlib', 'vip-fft')  # or opencv
+    interpolation = params_preproc.get('interpolation', 'lanczos4')
 
     # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
     xy_spots = params_preproc.get('xy_spots', [])
@@ -273,7 +276,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         for row in csv_file:
             dico_lists[row[0]] = literal_eval(row[1])
     csvfile.close()
-        
+
     # SEPARATE LISTS FOR OBJ AND PSF
     OBJ_IRDIS_list = dico_lists['sci_list_irdis']
     PSF_IRDIS_list = dico_lists['psf_list_irdis']
@@ -320,13 +323,13 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
     print("Resel:")
     for i in range(len(resel)):
          print("{:.2f} px ({})".format(resel[i],filters[i]), flush=True)
-    max_resel = np.amax(resel)   
-    
+    max_resel = np.amax(resel)
+
     if bool(to_do):
 
         if not isdir(outpath):
             system("mkdir "+outpath)
-                
+
         # Extract info from example files
         if not use_cen_only:
             tmp, header = open_fits(
@@ -360,11 +363,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
         ncubes = len(file_list_l)
         print("File list ({} cubes total): ".format(ncubes), file_list_l, flush=True)
         file_lists = [file_list_l,file_list_r]
-            
-        
+
+
         # TRANSMISSION in case of a neutral density filter is used
         nd_filter_SCI = header['HIERARCH ESO INS4 FILT2 NAME'].strip()
-        
+
         nd_file = read_csv(nd_filename, sep = "   ", comment='#', engine="python",
                               header=None, names=['wavelength', 'ND_0.0', 'ND_1.0','ND_2.0', 'ND_3.5'])
         nd_wavelen = nd_file['wavelength']
@@ -372,7 +375,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             nd_transmission_SCI = nd_file[nd_filter_SCI]
         except:
             nd_transmission_SCI = [1]*len(nd_wavelen)
-    
+
         if PSF_IRDIS_list :
             header = open_header(inpath+PSF_IRDIS_list[0]+'_left.fits')
             #dit_psf_ifs = float(header['HIERARCH ESO DET SEQ1 DIT'])
@@ -455,7 +458,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             continue
                         if npsf > 0:
                             if filename[:-str_idx] in obj_psf_list[1]:
-                                bp_crop_sz_tmp = bp_crop_sz_psf 
+                                bp_crop_sz_tmp = bp_crop_sz_psf
                         if header["NAXIS1"] % 2 == 0 and header["NAXIS2"] % 2 == 0:
                             cube = cube[:, 1:, 1:]
                             header["NAXIS1"] = cube.shape[1]
@@ -516,7 +519,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                                offset=None, negative=negative, threshold=False,
                                                                                save_shifts=False, full_output=True, verbose=verbose,
                                                                                debug=False, plot=plot)
- 
+
                                     std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))
                                     if debug:
                                         write_fits(
@@ -534,7 +537,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                      channels_peak=True)
                                     cy, cx = frame_center(cube[0])
                                     for zz in range(cube.shape[0]):
-                                        cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1], imlib="opencv")
+                                        cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1],
+                                        imlib=imlib,
+                                        interpolation=interpolation)
                                     #2. alignment with upsampling
                                     cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=None, negative=negative,
                                                                                             fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], upsample_factor=int(rec_met_tmp[ii][4:]),
@@ -553,7 +558,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                                 save_shifts=False, full_output=True, verbose=True,
                                                                                 debug=False, plot=plot)
                                     for zz in range(cube.shape[0]):
-                                        cube[zz] = frame_shift(cube[zz], y_shifts_tmp[0], x_shifts_tmp[0], imlib="opencv")
+                                        cube[zz] = frame_shift(cube[zz], y_shifts_tmp[0], x_shifts_tmp[0],
+                                        imlib=imlib,
+                                        interpolation=interpolation)
                                     y_shifts = y_shifts+y_shifts_tmp[0]
                                     x_shifts = x_shifts+x_shifts_tmp[0]
                                     if debug:
@@ -679,7 +686,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         x_shifts = float(
                                             np.interp([mjd], unique_mjd_cen, x_shifts_cen))
                                         cube = cube_shift(
-                                            cube, y_shifts, x_shifts, nproc=nproc, imlib="opencv")
+                                            cube, y_shifts, x_shifts, nproc=nproc,
+                                            imlib=imlib,
+                                            interpolation=interpolation)
                                         std_shift.append(
                                             np.sqrt((y_shifts_cen_err)**2+(x_shifts_cen_err)**2))
 #                                        if debug:
@@ -705,7 +714,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                                           interpolation='bilinear',
                                                                                           save_shifts=False, plot=plot,
                                                                                           nproc=nproc)
-                                    std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))                                                           
+                                    std_shift.append(np.sqrt(np.std(y_shifts)**2+np.std(x_shifts)**2))
                                     if debug:
                                         write_fits(
                                             outpath+"TMP_test_cube_cen{}_{}.fits".format(labels[fi], rec_met_tmp[ii]), cube)
@@ -720,8 +729,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             if fi == 1:
                                 rec_met_psf = rec_met_tmp[idx_min_shift]
                             else:
-                                rec_met = rec_met_tmp[idx_min_shift] 
-                                
+                                rec_met = rec_met_tmp[idx_min_shift]
+
                             print("Best centering method for {}{}: {}".format(labels[fi],filt,rec_met_tmp))
                             print("Press c if satisfied. q otherwise", flush=True)
                           #  pdb.set_trace()
@@ -883,14 +892,16 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                  channels_peak=True)
                                 cy, cx = frame_center(cube[0])
                                 for zz in range(cube.shape[0]):
-                                    cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1], imlib="opencv")
+                                    cube[zz] = frame_shift(cube[zz], cy-peak_yx_ch[zz,0], cx-peak_yx_ch[zz,1],
+                                    imlib=imlib,
+                                    interpolation=interpolation)
                                 #2. alignment with upsampling
                                 cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=None, negative=False,
                                                                                         fwhm=4, subi_size=cen_box_sz[fi],
                                                                                         upsample_factor=int(rec_met_tmp[4:]),
                                                                                         interpolation='lanczos4',
                                                                                         full_output=True, verbose=verbose, nproc=nproc,
-                                                                                        save_shifts=False, debug=False, plot=plot)                              
+                                                                                        save_shifts=False, debug=False, plot=plot)
                                 #3 final centering based on 2d fit
                                 cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
                                 cube_tmp[0] = np.median(cube,axis=0)
@@ -900,7 +911,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                             save_shifts=False, full_output=True, verbose=verbose,
                                                                             debug=False, plot=plot)
                                 for zz in range(cube.shape[0]):
-                                    cube[zz] = frame_shift(cube[zz], y_shifts_tmp[0], x_shifts_tmp[0], imlib="opencv")
+                                    cube[zz] = frame_shift(cube[zz], y_shifts_tmp[0], x_shifts_tmp[0],
+                                    imlib=imlib,
+                                    interpolation=interpolation)
                                 y_shifts = y_shifts+y_shifts_tmp[0]
                                 x_shifts = x_shifts+x_shifts_tmp[0]
                                 if debug:
@@ -976,9 +989,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         y_shifts_cen_std[cc] = np.std(y_tmp)
                                         x_shifts_cen_std[cc] = np.std(x_tmp)
                                         write_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_2cen_sub.fits", cube_cen_sub, header=head_cc)
-                                        cube_cen = cube_shift(cube_cen, y_tmp, x_tmp, nproc=nproc, imlib="opencv")
+                                        cube_cen = cube_shift(cube_cen, y_tmp, x_tmp, nproc=nproc,
+                                        imlib=imlib,
+                                        interpolation=interpolation)
                                         write_fits(outpath+cen_cube_names[cc]+filters_lab[ff]+"_2cen.fits", cube_cen, header=head_cc)
-                                    
+
                                        # pdb.set_trace()
                                     # if not use_cen_only:
                                         # median combine results for all MJD CEN bef and all after SCI obs
@@ -1010,9 +1025,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         if true_ncen > 3:
                                             header_mid = open_header(inpath+OBJ_IRDIS_list[int(nobj/2)]+'_left.fits')
                                             mjd_mid = float(header_mid['MJD-OBS'])
-                                                                
-                                        unique_mjd_cen = np.zeros(true_ncen)  
-                                        unique_pa_cen = np.zeros(true_ncen)  
+
+                                        unique_mjd_cen = np.zeros(true_ncen)
+                                        unique_pa_cen = np.zeros(true_ncen)
                                         y_shifts_cen = np.zeros(true_ncen)
                                         x_shifts_cen = np.zeros(true_ncen)
                                         y_shifts_cen_err = np.zeros(true_ncen)
@@ -1041,7 +1056,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         msg+= "Make sure CEN cubes and sat spots fits look good."
                                         print(msg, flush=True)
                                         set_trace()
-                                        
+
                                 if not use_cen_only:
                                     # APPLY THEM TO OBJ CUBES and account for dithering
 
@@ -1074,7 +1089,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         y_shifts = cy - pos_xy[1] - pacy
 
                                     for zz in range(n_fr):
-                                        cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz], imlib="opencv")
+                                        cube[zz] = frame_shift(cube[zz], y_shifts[zz], x_shifts[zz],
+                                        imlib=imlib,
+                                        interpolation=interpolation)
                                     if plot and fn == 0:
                                         plt.show()  # show whichever previous plot is in memory
                                         colors = ['k', 'r', 'b',
@@ -1082,7 +1099,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         # y
                                         plt.plot(range(n_fr),y_shifts,colors[0]+'-', label = 'shifts y (first cube)')
                                         print("True number of CENTER cubes:", true_ncen, flush=True)
-                                        plt.errorbar(range(true_ncen), y_shifts_cen, 
+                                        plt.errorbar(range(true_ncen), y_shifts_cen,
                                                      yerr=y_shifts_cen_err, fmt=colors[cc+1]+'o',
                                                      label='y cen shifts')
                                         plt.legend()
@@ -1172,7 +1189,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         break
 
                     if not isfile(outpath+"1_master_cube{}_{}.fits".format(labels[fi], filters[ff])) or not isfile(outpath+"1_master_derot_angles.fits") or overwrite[2]:
-                        if fi != 1 and ff == 0:  # only SCI and CEN
+                        if fi != 1:  # only SCI and CEN
                             parang_st = []
                             parang_nd = []
                         # file lbdas are in nm
@@ -1190,7 +1207,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 #master_cube[int(nn*ndits[fi]):int((nn+1)*ndits[fi])] = cube
                             except:
                                 set_trace()
-                            if fi != 1 and ff == 0:
+                            if fi != 1:
                                 parang_st.append(
                                     float(header["HIERARCH ESO TEL PARANG START"]))
                                 parang_nd_tmp = float(
@@ -1205,14 +1222,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         master_cube = master_cube/interp_trans
                         if debug:
                             print("transmission correction: ", interp_trans, flush=True)
-                        
-                    
+
+
                         # IMPORTANT WE DO NOT NORMALIZE BY DIT (any more!)
                         # /dits[fi])
                         write_fits(
                             outpath+"1_master{}_cube_{}.fits".format(labels[fi], filters[ff]), master_cube)
 
-                        if fi != 1 and ff == 0:
+                        if fi != 1:
                             # np.zeros(int(len(file_list)*ndits[fi]))
                             final_derot_angles = []
                             # np.zeros(int(len(file_list)*ndits[fi]))
@@ -1235,17 +1252,20 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 final_par_angles.extend(list(parang))
                                 counter += nfr_tmp
                             write_fits(
-                                outpath+"1_master_derot_angles{}.fits".format(labels[fi]), np.array(final_derot_angles))
+                                outpath+"1_master_derot_angles{}{}.fits".format(labels[fi],filters[ff]), np.array(final_derot_angles))
                             write_fits(
-                                outpath+"1_master_par_angles{}.fits".format(labels[fi]), np.array(final_par_angles))
+                                outpath+"1_master_par_angles{}{}.fits".format(labels[fi],filters[ff]), np.array(final_par_angles))
 
                         if fi != 1:
                             # median-ADI
                             master_cube = open_fits(outpath+"1_master{}_cube_{}.fits".format(labels[fi],filters[ff]))
-                            final_derot_angles = open_fits(outpath+"1_master_derot_angles{}.fits".format(labels[fi]))
+                            final_derot_angles = open_fits(outpath+"1_master_derot_angles{}{}.fits".format(labels[fi],filters[ff]))
                             params = MEDIAN_SUB_Params(cube=master_cube, angle_list=final_derot_angles, radius_int=10,
-                                                  nproc=nproc)
-                            ADI_frame = median_sub(algo_params=params)
+                                                  nproc=nproc, imlib=imlib, interpolation=interpolation)
+                            try:
+                                ADI_frame = median_sub(algo_params=params)
+                            except:
+                                set_trace()
                             write_fits(outpath+"median_ADI1_{}{}.fits".format(labels[fi],filters[ff]), ADI_frame)
                             #master_cube_full = None
                             #cube_full = None
@@ -1276,20 +1296,20 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                  header=True)
                         if distort_corr:
                             cube = cube_rescaling(cube, scaling_list=None, ref_xy=None,
-                                                  imlib="opencv", #Note: FFT unusable because scaling_y!=scaling_x
+                                                  imlib='opencv', #Note: FFT unusable because scaling_y!=scaling_x
                                                   interpolation='lanczos4',
                                                   scaling_y=scal_y_distort,
                                                   scaling_x=scal_x_distort)
-                        write_fits(outpath+"2_master{}_cube_{}{}.fits".format(labels[fi],filters[ff],dist_lab_tmp), 
+                        write_fits(outpath+"2_master{}_cube_{}{}.fits".format(labels[fi],filters[ff],dist_lab_tmp),
                                    cube, header=header)
                     if fi != 1:
                         # median-ADI
                         master_cube = open_fits(
                             outpath+"2_master{}_cube_{}{}.fits".format(labels[fi], filters[ff], dist_lab_tmp))
                         final_derot_angles = open_fits(
-                            outpath+"1_master_derot_angles{}.fits".format(labels[fi]))
+                            outpath+"1_master_derot_angles{}{}.fits".format(labels[fi],filters[ff]))
                         params = MEDIAN_SUB_Params(cube=master_cube, angle_list=final_derot_angles, radius_int=10,
-                                              nproc=nproc)
+                                              nproc=nproc, imlib=imlib, interpolation=interpolation)
                         ADI_frame = median_sub(algo_params=params)
                         write_fits(outpath+"median_ADI2_{}{}{}.fits".format(
                             labels[fi], filters[ff], dist_lab_tmp), ADI_frame)
@@ -1343,22 +1363,22 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         master_cube = open_fits(
                             outpath+"2_master{}_cube_{}{}.fits".format(labels[0], filters[ff], dist_lab))
                         derot_angles = open_fits(
-                            outpath+"1_master_derot_angles.fits")
+                            outpath+"1_master_derot_angles{}.fits".format(filters[ff]))
                         derot_angles = check_pa_vector(derot_angles)
                         write_fits(
-                            outpath+"1_master_derot_angles.fits", derot_angles)
+                            outpath+"1_master_derot_angles{}.fits".format(filters[ff]), derot_angles)
                         # RECENTER BASED ON BKG STAR
                         # first give good frame
                         if len(obj_psf_list) == 3:  # ie when CEN cubes are available, use that
                             cen_cube = open_fits(
                                 outpath+"2_master{}_cube_{}{}.fits".format(labels[-1], filters[ff], dist_lab))
                             cen_derot = open_fits(
-                                outpath+"1_master_derot_angles{}.fits".format(labels[-1]))
+                                outpath+"1_master_derot_angles{}{}.fits".format(labels[-1],filters[ff]))
                         else:
                             cen_cube = open_fits(
                                 outpath+"2_master{}_cube_{}{}.fits".format(labels[0], filters[ff], dist_lab))
                             cen_derot = open_fits(
-                                outpath+"1_master_derot_angles{}.fits".format(labels[0]))
+                                outpath+"1_master_derot_angles{}{}.fits".format(labels[0],filters[ff]))
 
                         if good_cen_idx is None:
                             good_frame1 = frame_rotate(
@@ -1369,7 +1389,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 [good_frame1, good_frame2], axis=0)
                         elif isinstance(good_cen_idx, int):
                             derot_angles_cen = open_fits(
-                                outpath+"1_master_derot_angles{}.fits".format(labels[-1]))
+                                outpath+"1_master_derot_angles{}{}.fits".format(labels[-1], filters[ff]))
                             idx_max = np.argmax(
                                 np.abs(derot_angles_cen[good_cen_idx]-derot_angles_cen[:]))
                             good_frame = frame_rotate(cen_cube[good_cen_idx]-cen_cube[idx_max],
@@ -1377,7 +1397,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         elif isinstance(good_cen_idx, list):
                             good_frame = []
                             derot_angles_cen = open_fits(
-                                outpath+"1_master_derot_angles{}.fits".format(labels[-1]))
+                                outpath+"1_master_derot_angles{}{}.fits".format(labels[-1], filters[ff]))
                             for gg, good_idx in enumerate(good_cen_idx):
                                 idx_max = np.argmax(
                                     np.abs(derot_angles_cen[good_idx]-derot_angles_cen[:]))
@@ -1474,7 +1494,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff]), final_shifts)
                         # REDO median-ADI
                         ADI_frame = median_sub(
-                            master_cube, derot_angles, radius_int=10, nproc=nproc)
+                            master_cube, derot_angles, radius_int=10, nproc=nproc,
+                            imlib=imlib, interpolation=interpolation)
                         write_fits(
                             outpath+"median_ADI3_{}{}_{}.fits".format(filters[ff], dist_lab, label_cen), ADI_frame)
                         # CROP
@@ -1537,7 +1558,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             header = open_header(inpath+template_strehl[fi].format(filt,nn))
                             strehl[counter:counter+nfr_tmp] = 100*float(header['HIERARCH ESO QC STREHL {}'.format(filters_lab[ff][1:].upper())])
                             header = open_fits(outpath+filename+filters_lab[ff]+"_2cen.fits")
-                            seeing[counter:counter+nfr_tmp] = float(header['HIERARCH ESO TEL IA FWHM'])       
+                            seeing[counter:counter+nfr_tmp] = float(header['HIERARCH ESO TEL IA FWHM'])
                             tau0[counter:counter+nfr_tmp] = 1000*float(header['HIERARCH ESO TEL AMBI TAU0'])
                             UTC[counter:counter+nfr_tmp] = np.linspace(float(header['UTC'])+0.5*dits[fi],float(header['UTC'])+((nfr_tmp+0.5)*dits[fi]),nfr_tmp,endpoint=False)
                             counter+=nfr_tmp
@@ -1783,7 +1804,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         subpx_shifts = (final_x_bkg[ii]-int(final_x_bkg[ii]),
                                                         final_y_bkg[ii]-int(final_y_bkg[ii]))
                                         subframe = frame_shift(subframe, subpx_shifts[1],
-                                                               subpx_shifts[0], imlib="opencv")
+                                                               subpx_shifts[0],
+                                                               imlib=imlib,
+                                                               interpolation=interpolation)
                                         _, flux_bkg[ii], _ = normalize_psf(subframe, fwhm=fwhm,
                                                                            full_output=True,
                                                                            verbose=verbose, debug=debug)
@@ -2098,7 +2121,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         # crop
                         if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
                             if crop_sz % 2 != cube.shape[1] % 2:
-                                cube = cube_shift(cube, 0.5, 0.5, nproc=nproc, imlib="opencv")
+                                cube = cube_shift(cube, 0.5, 0.5, nproc=nproc, imlib=imlib, interpolation=interpolation)
                                 cube = cube[:, 1:, 1:]
                             cube = cube_crop_frames(
                                 cube, crop_sz, verbose=verbose)
@@ -2199,7 +2222,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             else:
                                 psf_tmp = psf_norm*fluxes[cc, ss]
                             cube[cc] -= frame_shift(psf_tmp, y_tmp-cy_tmp,
-                                                    x_tmp-cx_tmp, border_mode='constant', imlib="opencv")
+                                                    x_tmp-cx_tmp,
+                                                    border_mode='constant',
+                                                    imlib=imlib,
+                                                    interpolation=interpolation)
                     if debug:
                         write_fits(
                             outpath+"TMP_last_cube_cen-sat_spots.fits", cube[cc])
@@ -2271,9 +2297,14 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         # crop
                         if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
                             if crop_sz % 2 != cube.shape[1] % 2:
-                                cube = cube_shift(cube, 0.5, 0.5, nproc=nproc, imlib="opencv")
+                                cube = cube_shift(cube, 0.5, 0.5, nproc=nproc,
+                                                  imlib=imlib,
+                                                  interpolation=interpolation)
                                 cube = cube[:, 1:, 1:]
-                                cube_notrim = cube_shift(cube_notrim, 0.5, 0.5, nproc=nproc, imlib="opencv")
+                                cube_notrim = cube_shift(cube_notrim, 0.5, 0.5,
+                                                         nproc=nproc,
+                                                         imlib=imlib,
+                                                         interpolation=interpolation)
                                 cube_notrim = cube_notrim[:, 1:, 1:]
                             cube = cube_crop_frames(
                                 cube, crop_sz, verbose=verbose)
@@ -2369,7 +2400,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 if ny_m > ny:
                                     if ny_m % 2 != ny % 2:
                                         mask_scal = frame_shift(
-                                            mask_scal, 0.5, 0.5, imlib="opencv")
+                                            mask_scal, 0.5, 0.5,
+                                            imlib=imlib,
+                                            interpolation=interpolation)
                                         mask_scal = mask_scal[1:, 1:]
                                     mask_scal = frame_crop(mask_scal, ny)
                                 elif ny > ny_m:
@@ -2377,7 +2410,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     mask_scal_fin[:ny_m, :nx_m] = mask_scal
                                     mask_scal = frame_shift(mask_scal_fin,
                                                             (ny-ny_m)/2,
-                                                            (nx-nx_m)/2, imlib="opencv")
+                                                            (nx-nx_m)/2,
+                                                            imlib=imlib,
+                                                            interpolation=interpolation)
                             else:
                                 mask = np.ones_like(frame)
                                 if mask_scal[0]:
