@@ -54,7 +54,7 @@ out or a bug is fixed:
 Requirements
 ------------
 - VIP: https://github.com/vortex-exoplanet/VIP
-- ESO SPHERE pipeline: https://www.eso.org/sci/software/pipelines/
+- ESO SPHERE pipeline kit: The source kit (with esorex and all prerequisites bundled) can be downloaded from ESO or installed through MacPorts (https://www.eso.org/sci/software/pipelines/). A more detailed procedure for the SPHERE kit is given here: https://www.eso.org/sci/software/pipelines/sphere/sphere-pipe-recipes.html
 
 
 Quick start
