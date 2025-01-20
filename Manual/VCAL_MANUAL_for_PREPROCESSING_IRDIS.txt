@@ -35,7 +35,7 @@ This file describes the structure of the preprocessing pipeline for IRDIS, and d
 
 # OBS
 coro = True  # whether the observations were coronagraphic or not
-coro_sz = 12  # if coronagraphic, provide radius of the mask in pixels - this area will be discarded (check header for size in mas and convert)
+coro_sz = 8  # if coronagraphic, provide radius of the mask in pixels - this area will be discarded to identify bad frames by correlation (check header for size in mas and convert)
 
 
 # Parts of pipeline to be run/overwritten
