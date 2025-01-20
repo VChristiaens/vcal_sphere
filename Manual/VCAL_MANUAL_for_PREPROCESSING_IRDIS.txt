@@ -125,6 +125,8 @@ idx_test_cube_psf = 0                                        # id as above for p
 cen_box_sz = 71                                              # size of the subimage for 2d fit, , for OBJ, PSF and CEN
 true_ncen = 2                                                # number of points in time to use for interpolation of center location in OBJ cubes based on location inferred in CEN cubes. Min value: 2 (set to 2 even if only 1 CEN cube available). Important: this is not necessarily equal to the number of CEN cubes (e.g. if there are 3 CEN cubes, 2 before the OBJ sequence and 1 after, true_ncen should be set to 2, not 3)
 norm_per_s = True                                            # if True, divide all frames by respective dit => have all fluxes in adu/s
+imlib = 'vip-fft'                                            # {'vip-fft', 'opencv'} Image library used in VIP for image shifts.
+interpolation = 'lanczos4'                                   # Interpolation method used for image shifts. If imlib is 'vip-fft', this is ignored. 
 template_strehl = ["science_dbi_{}{:.0f}","psf_dbi_{}{:.0f}"]
 distort_corr = 1                                             # whether to correct for distortion (anamorphism) or not (following scal_x_distort and scal_y_distort)
 final_crop_sz = 361                                          # int or list (if list, cubes of different dims will be saved). NOTE: only last odd dim will be saved using final_cubename . 823 # 361 => 2.25'' radius; but better to keep it as large as possible and only crop before post-processing. Here we just cut the useless edges (100px on each side)
