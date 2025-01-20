@@ -54,7 +54,7 @@ out or a bug is fixed:
 Requirements
 ------------
 - VIP: https://github.com/vortex-exoplanet/VIP
-- ESO SPHERE pipeline: https://www.eso.org/sci/software/pipelines/sphere/sphere-pipe-recipes.html
+- ESO SPHERE pipeline: https://www.eso.org/sci/software/pipelines/
 
 
 Quick start
