@@ -167,7 +167,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
     ## Planet?
     planet = params_postproc.get('planet',0)                      # is there a companion?
     planet_pos_crop = params_postproc.get('planet_pos_crop',None) # If so, where is it (or where is it expected)?   (x, y) in cropped frames
-    planet_pos_full = params_postproc.get('planet_pos_full',None) #(92,117) # CROPPED IN ANY CASE
+    planet_pos_full = params_postproc.get('planet_pos_full',None) # (x, y) in full frames
+    source_xy = [tuple(planet_pos_crop), tuple(planet_pos_full)]  # to pass to full frame PCA to trigger a rotation threshold
     subtract_planet = params_postproc.get('subtract_planet',0)    # this should only be used as a second iteration, after negfc on the companion has enabled to determine its parameters
 
     ## Inject fake companions? If True => will compute contrast curves
@@ -335,7 +336,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
         bin_fac_list = [bin_fac] # dirty hack to avoid re-writing it all
         if not isdir(outpath_4.format(bin_fac)):
             os.system("mkdir "+outpath_4.format(bin_fac))
-        for cc, crop_lab in enumerate(crop_lab_list):
+        for cc, crop_lab in enumerate(crop_lab_list):  # cropped frames, then non-cropped frames
             print("*** TESTING binning x{:.0f} - {} (test {}/{})***".format(bin_fac, crop_lab_list[cc],counter+1,n_tests))
             for high_pass_filter in high_pass_filter_list:
                 #1. (R)DBI if requested
@@ -389,7 +390,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                    mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                                    collapse='median', check_memory=True, full_output=True,
                                                    verbose=verbose, nproc=nproc, imlib=imlib,
-                                                   interpolation=interpolation)
+                                                   interpolation=interpolation, source_xy=source_xy[cc])
                             DBI_res = pca(algo_params=params_pca)
                             DBI, residuals, residuals_der = DBI_res
                             final_DBI[pp] = DBI
@@ -452,7 +453,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                               mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                               collapse='median', check_memory=True, full_output=False,
                                               verbose=verbose, nproc=nproc, imlib=imlib,
-                                              interpolation=interpolation)
+                                              interpolation=interpolation, source_xy=source_xy[cc])
                             RDBI_res[i]= pca(algo_params=params_pca)
 
                         write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'PCA-RDBI_{}{}.fits'.format(adimsdi,test_pcs_str),
@@ -475,7 +476,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                    mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                                    collapse='median', check_memory=True, full_output=True,
                                                    verbose=verbose, nproc=nproc, imlib=imlib,
-                                                   interpolation=interpolation)
+                                                   interpolation=interpolation, source_xy=source_xy[cc])
                             DBI_res= pca(algo_params=params_pca)
                             RDBI_res[i], residuals, residuals_der = DBI_res
                             if npc < 5:
@@ -516,7 +517,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                         mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                                         collapse='median', check_memory=True, full_output=False,
                                                         verbose=verbose, nproc=nproc, imlib=imlib,
-                                                        interpolation=interpolation)
+                                                        interpolation=interpolation, source_xy=source_xy[cc])
                                     RDBI_res[i,ff,nn] = pca(algo_params=params_pca)
                                 if i ==0:
                                     write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'TMP_PCA-RDBIman_indiv_{}_npc{:.0f}_res_der_{}.fits'.format(adimsdi,npc, filt),
@@ -1051,7 +1052,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                    scaling=scaling, svd_mode=svd_mode_all[cc], mask_center_px=mask_IWA_px,
                                                                    delta_rot=delta_rot, fwhm=fwhm, collapse='median', check_memory=True,
                                                                    full_output=False, verbose=verbose, nproc=nproc, imlib=imlib,
-                                                                   interpolation=interpolation)
+                                                                   interpolation=interpolation, source_xy=source[cc])
                                             tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                                         tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                     else:
@@ -1065,8 +1066,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                scaling=scaling, mask_center_px=mask_IWA_px, delta_rot=delta_rot,
                                                                fwhm=fwhm, collapse='median', check_memory=True,
                                                                full_output=True, verbose=verbose, mask_rdi=mask_rdi,
-                                                               nproc=nproc, imlib=imlib,
-                                                               interpolation=interpolation)
+                                                               nproc=nproc, imlib=imlib, interpolation=interpolation,
+                                                               source_xy=source_xy[cc])
                                         tmp_tmp[pp], pcs, recon, tmp_res, tmp = pca(algo_params=params_pca)
                                         if debug:
                                             write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+'npc{:.0f}'.format(npc)+label_filt+'_res.fits', tmp_res)
