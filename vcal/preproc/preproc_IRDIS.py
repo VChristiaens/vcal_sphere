@@ -776,21 +776,17 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                                save_shifts=False, full_output=True, verbose=verbose,
                                                                                debug=False, plot=False)
 
-                            elif "cross_corr" in rec_met_tmp:
+                            elif "cross_corr" in rec_met_tmp and not use_cen_only:
                                 cen_cube_names = obj_psf_list[-1]
 
-                                if fn == 0 and ff == 0:
+                                if fn == 0: # and ff == 0: # shifts can be different for each band
                                     mjd_cen = np.zeros(ncen)
                                     nfr_tmp = cube.shape[0]
-                                    x_shi = []
-                                    y_shi = []
-
-                                    y_const = []
+                                    y_const = [] # will contain satspots shifts
                                     x_const = []
 
-                                if fn == 0:
-
-                                    print("cross correlation with satspots")
+                                if fn == 0: # only run loop on all CEN files for the first SCI file
+                                    print("*** Centering by cross correlation with satspots ***")
                                     for cc in range(ncen):
                                         ### first get the MJD time of each cube
                                         head_cc = open_header(inpath + cen_cube_names[cc] + filters_lab[ff])
@@ -804,10 +800,9 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         # unique_mjd_cen = mjd_cen.copy()
                                         # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots)
                                         cube_cen_sub = cube_cen.copy()
-                                        if not use_cen_only:
-                                            m_idx = find_nearest(mjd_mean, mjd_cen[cc])
-                                            cube_near = open_fits(outpath + file_list[m_idx] + filt + "_1bpcorr.fits")
-                                            cube_cen_sub -= np.median(cube_near, axis=0)
+                                        m_idx = find_nearest(mjd_mean, mjd_cen[cc])
+                                        cube_near = open_fits(outpath + file_list[m_idx] + filt + "_1bpcorr.fits")
+                                        cube_cen_sub -= np.median(cube_near, axis=0)
                                         diff = int((ori_sz - bp_crop_sz) / 2)
                                         xy_spots_tmp = tuple(
                                             [(xy_spots[ff][i][0] - diff, xy_spots[ff][i][1] - diff) for i in
@@ -817,8 +812,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         cube_cen_sub = cube_filter_lowpass(cube_cen_sub, fwhm_size=2.)
                                         cube_cen_sub, y_tmp, x_tmp, _, _ = cube_recenter_satspots(cube_cen_sub,
                                                                                                   xy_spots_tmp,
-                                                                                                  subi_size=cen_box_sz[
-                                                                                                      2],
+                                                                                                  subi_size=cen_box_sz[2],
                                                                                                   sigfactor=sigfactor,
                                                                                                   plot=plot,
                                                                                                   fit_type='moff',
@@ -832,14 +826,17 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         cube_cen = cube_shift(cube_cen, y_tmp, x_tmp)
                                         write_fits(outpath + cen_cube_names[cc] + filters_lab[ff] + "_2cen.fits",
                                                    cube_cen, header=head_cc)
-                                        y_const.append(np.mean(y_tmp))
-                                        x_const.append(np.mean(x_tmp))
+                                        #y_const.append(np.mean(y_tmp))
+                                        #x_const.append(np.mean(x_tmp))
+                                        y_const.append(y_tmp)
+                                        x_const.append(x_tmp)
 
-                                for cc in range(ncen):
-
-                                    cube_cen, head_cc = open_fits(outpath + cen_cube_names[cc] + filt + "_1bpcorr.fits",
-                                                                  header=True)
-
+                                cc_closest = find_nearest(mjd_mean[fn], mjd_cen)
+                                cube_cen, head_cc = open_fits(outpath + cen_cube_names[cc_closest] + filt + "_1bpcorr.fits",
+                                                              header=True)
+                                y_shi = np.zeros([cube_cen.shape[0], cube.shape[0]])
+                                x_shi = np.zeros([cube_cen.shape[0], cube.shape[0]])
+                                if cube_cen.ndim == 3:
                                     for k in range(cube_cen.shape[0]):
                                         center_1_frame = cube_cen[k, :].reshape(1, cube_cen[k, :].shape[0],
                                                                                 cube_cen[k, :].shape[1])
@@ -852,31 +849,33 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                                verbose=False, plot=False,
                                                                                full_output=True)
 
-                                        y_shi.append(y)
-                                        x_shi.append(x)
+                                        y_shi[k] = y[1:]
+                                        x_shi[k] = x[1:]
+                                else:
+                                    center_1_frame = cube_cen.reshape(1,
+                                                                      cube_cen.shape[0],
+                                                                      cube_cen.shape[1])
+                                    cube_tmp = np.vstack((center_1_frame, cube))
+                                    cube_hpf = cube_filter_highpass(cube_tmp, mode='gauss-subt', fwhm_size=3)
 
-                                        if len(y_shi) and len(x_shi) % (2 * ncen) == 0:
+                                    _, y, x = cube_recenter_dft_upsampling(cube_hpf, center_fr1=None,
+                                                                           subi_size=None,
+                                                                           upsample_factor=int(rec_met_tmp[11:]),
+                                                                           verbose=False, plot=False,
+                                                                           full_output=True)
 
-                                            if fn == 0:
-                                                y_shifts = np.asanyarray(y_shi, dtype=object)
-                                                x_shifts = np.asanyarray(x_shi, dtype=object)
+                                    y_shi[k] = y[1:]
+                                    x_shi[k] = x[1:]
 
-                                                final_y_shifts = np.mean(y_shifts[:((2 * ncen) * (fn + 1))], axis=0)
-                                                final_x_shifts = np.mean(x_shifts[:((2 * ncen) * (fn + 1))], axis=0)
+                                final_y_shifts = np.zeros(cube.shape[0])
+                                final_x_shifts = np.zeros(cube.shape[0])
 
-                                                cube = cube_shift(cube, final_y_shifts[1:] + np.mean(y_const),
-                                                                  final_x_shifts[1:] + np.mean(x_const))
+                                for z in range(cube.shape[0]):
+                                    final_y_shifts[z] = np.median(y_shi[:,z] + y_const[cc_closest], axis=0)
+                                    final_x_shifts[z] = np.median(x_shi[:,z] + x_const[cc_closest], axis=0)
 
-                                            if fn >= 1:
+                                cube = cube_shift(cube, final_y_shifts, final_x_shifts)
 
-                                                y_shifts = np.asanyarray(y_shi,dtype=object)
-                                                x_shifts = np.asanyarray(x_shi,dtype=object)
-
-                                                final_y_shifts = np.mean(y_shifts[((2 * ncen) * ((fn-1)+1)):((2 * ncen) * (fn+1))], axis=0)
-                                                final_x_shifts = np.mean(x_shifts[((2 * ncen) * ((fn-1)+1)):((2 * ncen) * (fn+1))], axis=0)
-
-                                                cube = cube_shift(cube, final_y_shifts[1:] + np.mean(y_const),
-                                                                  final_x_shifts[1:] + np.mean(x_const))
 
 
                             elif "dft" in rec_met_tmp:
@@ -919,7 +918,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                 if debug:
                                     print('dft{} + 2dfit centering: xshift: {} px, yshift: {} px for cube {}_1bpcorr.fits'
                                           .format(int(rec_met_tmp[4:]), x_shifts[0], y_shifts[0], filename), flush=True)
-                            elif "satspots" in rec_met_tmp:
+
+                            elif "satspots" in rec_met_tmp or use_cen_only:
                                 if fn == 0:
                                     if ncen == 0:
                                         raise ValueError(
