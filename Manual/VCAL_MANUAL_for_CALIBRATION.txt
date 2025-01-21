@@ -11,7 +11,7 @@ STEPS:
     #4. make master SKY BKG or INS BG (or pca sky subtr)
     #5. master flat
     #6. actual reduction
-10-22 IFS
+10-20 IFS
     #10. master dark
     #11. calculate gains
     #12. master detector flat
@@ -55,7 +55,7 @@ STEPS:
     #4. make master SKY BKG or INS BG (or pca sky subtr)
     #5. master flat
     #6. actual reduction
-    ## 10-22 IFS
+    ## 10-20 IFS
     #10. master dark
     #11. calculate gains
     #12. master detector flat
