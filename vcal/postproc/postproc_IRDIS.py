@@ -147,6 +147,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
     source = sourcename.replace(" ", "") # same without space
 
     ## Options
+    imlib = params_postproc.get("imlib", "vip-fft")  # image processing library to be used
     verbose = params_postproc.get("verbose",0)                      # whether to print(more information during the reduction
     debug = params_postproc.get("debug", False)
     nproc = params_postproc.get('nproc',int(cpu_count()/2))      # number of processors to use - default set to cpu_count()/2 for efficiency
@@ -1066,7 +1067,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                scaling=scaling, mask_center_px=mask_IWA_px, delta_rot=delta_rot,
                                                                fwhm=fwhm, collapse='median', check_memory=True,
                                                                full_output=True, verbose=verbose, mask_rdi=mask_rdi,
-                                                               nproc=nproc, imlib=imlib, interpolation=interpolation,
+                                                               nproc=nproc, imlib=imlib,  interpolation=interpolation,
                                                                source_xy=source_xy[cc])
                                         if source_xy[cc] is None:  # output varies depending on source_xy
                                             tmp_tmp[pp], pcs, recon, tmp_res, tmp = pca(algo_params=params_pca)
