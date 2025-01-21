@@ -1068,12 +1068,14 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                full_output=True, verbose=verbose, mask_rdi=mask_rdi,
                                                                nproc=nproc, imlib=imlib, interpolation=interpolation,
                                                                source_xy=source_xy[cc])
-                                        tmp_tmp[pp], pcs, recon, tmp_res, tmp = pca(algo_params=params_pca)
+                                        if source_xy[cc] is None:  # output varies depending on source_xy
+                                            tmp_tmp[pp], pcs, recon, tmp_res, tmp = pca(algo_params=params_pca)
+                                        else:
+                                            tmp_tmp[pp], recon, tmp_res, tmp = pca(algo_params=params_pca)
                                         if debug:
                                             write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+'npc{:.0f}'.format(npc)+label_filt+'_res.fits', tmp_res)
                                             write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+'npc{:.0f}'.format(npc)+label_filt+'_der.fits', tmp)
                                             if pp == 0:
-                                                write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+'npc{:.0f}'.format(npc)+label_filt+'_pcs.fits', pcs)
                                                 write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+'npc{:.0f}'.format(npc)+label_filt+'_recon.fits', recon)
                                         if do_stim_map[1]:
                                             stim_map[pp] = compute_stim_map(tmp)
