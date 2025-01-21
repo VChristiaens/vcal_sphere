@@ -147,10 +147,9 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
     source = sourcename.replace(" ", "") # same without space
 
     ## Options
+    imlib = params_postproc.get("imlib", "vip-fft")  # image processing library to be used
     verbose = params_postproc.get("verbose",0)                      # whether to print(more information during the reduction
     debug = params_postproc.get("debug", False)
-    #debug = True                        # whether to print(even more information, helpful for debugging
-    #debug_ = True                       # whether to keep all the intermediate fits files of the reduction by the end of the notebook (useful for debugging)
     nproc = params_postproc.get('nproc',int(cpu_count()/2))      # number of processors to use - default set to cpu_count()/2 for efficiency
     overwrite_ADI = params_postproc.get('overwrite_ADI',1)       # whether to overwrite median-ADI results
     overwrite_pp = params_postproc.get('overwrite_pp',1)         # whether to overwrite PCA-ADI results
@@ -386,7 +385,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                    adimsdi=adimsdi, ncomp=ncomp, svd_mode=svd_mode_all[cc], scaling=scaling,
                                                    mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                                    collapse='median', check_memory=True, full_output=True,
-                                                   verbose=verbose, nproc=nproc, imlib="opencv")
+                                                   verbose=verbose, nproc=nproc, imlib=imlib)
                             DBI_res = pca(algo_params=params_pca)
                             DBI, residuals, residuals_der = DBI_res
                             final_DBI[pp] = DBI
@@ -400,7 +399,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                 write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'PCA-DBI_{}_npc{:.0f}_res_der.fits'.format(adimsdi,npc), residuals_der, verbose=False)
                                 write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'PCA-DBI_{}_npc{:.0f}_res.fits'.format(adimsdi,npc), residuals, verbose=False)
 
-                            residuals_crop = cube_shift(residuals, 0.5, 0.5, nproc=nproc)
+                            residuals_crop = cube_shift(residuals, 0.5, 0.5, nproc=nproc, imlib=imlib)
                             residuals_crop = residuals_crop[:,1:,1:]
                             residuals_crop = cube_crop_frames(residuals_crop,128)
                             write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'PCA-DBI_{}_npc{:.0f}_res_crop128.fits'.format(adimsdi,npc), residuals_crop, verbose=False)
@@ -448,7 +447,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                               ncomp=(int(n_ch-1),None), svd_mode=svd_mode_all[cc], scaling=scaling,
                                               mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                               collapse='median', check_memory=True, full_output=False,
-                                              verbose=verbose, nproc=nproc, imlib="opencv")
+                                              verbose=verbose, nproc=nproc, imlib=imlib)
                             RDBI_res[i]= pca(algo_params=params_pca)
 
                         write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'PCA-RDBI_{}{}.fits'.format(adimsdi,test_pcs_str),
@@ -470,7 +469,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                    ncomp=(int(n_ch-1),None), svd_mode=svd_mode_all[cc], scaling=scaling,
                                                    mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                                    collapse='median', check_memory=True, full_output=True,
-                                                   verbose=verbose, nproc=nproc, imlib="opencv")
+                                                   verbose=verbose, nproc=nproc, imlib=imlib)
                             DBI_res= pca(algo_params=params_pca)
                             RDBI_res[i], residuals, residuals_der = DBI_res
                             if npc < 5:
@@ -510,7 +509,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                         #ncomp=(int(n_ch-1),None), svd_mode=svd_mode_all[cc], scaling=scaling,
                                                         mask_center_px=mask_IWA_px, delta_rot=delta_rot, fwhm=fwhm,
                                                         collapse='median', check_memory=True, full_output=False,
-                                                        verbose=verbose, nproc=nproc, imlib="opencv")
+                                                        verbose=verbose, nproc=nproc, imlib=imlib)
                                     RDBI_res[i,ff,nn] = pca(algo_params=params_pca)
                                 if i ==0:
                                     write_fits(outpath_5.format(bin_fac,'DBI',crop_lab_list[cc])+'TMP_PCA-RDBIman_indiv_{}_npc{:.0f}_res_der_{}.fits'.format(adimsdi,npc, filt),
@@ -682,7 +681,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                         # crop ADI_cube if even
                         if not ADI_cube.shape[-1] %2:
                             ADI_cube = ADI_cube[:,1:,1:]
-                            ADI_cube = cube_shift(ADI_cube,0.5,0.5, nproc=nproc)
+                            ADI_cube = cube_shift(ADI_cube,0.5,0.5, nproc=nproc, imlib=imlib)
                         # crop psf if even
                         #psf = np.median(psf_cube, axis=0)
                         #psf=psf_cube[0]
@@ -713,7 +712,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
 
                         ## SUBTRACT COMPANION, IF ANY
                         if subtract_planet:
-                            ADI_cube = cube_planet_free(planet_parameter, ADI_cube, derot_angles, psfn, plsc)
+                            ADI_cube = cube_planet_free(planet_parameter, ADI_cube, derot_angles, psfn, imlib)
 
 
                         ######################## 2. Crop the cube #########################
@@ -806,7 +805,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                           derot_angles, flevel,
                                                                           plsc=plsc, rad_dists=rad_arr[ff:ff+1],
                                                                           n_branches=1, theta=(theta0+ff*th_step)%360,
-                                                                          imlib='opencv', verbose=verbose, nproc=nproc)
+                                                                          imlib=imlib, verbose=verbose, nproc=nproc)
                                 write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'_fcp_spi{:.0f}.fits'.format(ns), PCA_ADI_cube)
                                 #vip.fits.append_extension(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'_fcp_spi{:.0f}.fits'.format(ns), derot_angles)
 
@@ -829,7 +828,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                     label_filt+='_fw'
                             if not isfile(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_ADI_simple'+label_filt+'.fits') or overwrite_ADI:
                                 params = MEDIAN_SUB_Params(cube=ADI_cube, angle_list=derot_angles, fwhm=fwhm, radius_int=mask_IWA_px,
-                                                           delta_rot=delta_rot, full_output=True, verbose=True, nproc=nproc)
+                                                           delta_rot=delta_rot, full_output=True, verbose=True, nproc=nproc,
+                                                           imlib=imlib)
                                 _, tmp, tmp_tmp = median_sub(algo_params=params)
                                 if flux_weights:
                                      w = starphot/np.nansum(starphot)
@@ -895,7 +895,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                    gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
                                                                    fwhm=4, debug=False, recenter_median=False,
                                                                    fit_type='gaus', negative=False, crop=False,
-                                                                   subframesize=dim-2, imlib='opencv',
+                                                                   subframesize=dim-2, imlib=imlib,
                                                                    interpolation='lanczos4', plot=True,
                                                                    full_output=True)
                                         _, ref_cube, _, _, _, _, shifts_x_ref, shifts_y_ref = res
@@ -915,7 +915,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                    gammaval=1, min_spat_freq=0.5, max_spat_freq=3,
                                                                    fwhm=4, debug=False, recenter_median=False,
                                                                    fit_type='gaus', negative=False, crop=False,
-                                                                   subframesize=dim-2, imlib='opencv',
+                                                                   subframesize=dim-2, imlib=imlib,
                                                                    interpolation='lanczos4', plot=True,
                                                                    full_output=True)
                                             _, _, _, _, _, _, shifts_x_ref[tt], shifts_y_ref[tt] = res
@@ -968,7 +968,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                     t0 = time_ini()
                                 tmp_tmp[pp] = pca_annulus(PCA_ADI_cube_sann, derot_angles, int(npc), asize*fwhm, r_pl, cube_ref=ref_cube_tmp,
                                                           scaling=scaling, svd_mode=svd_mode_all[1], collapse='median',
-                                                          imlib='opencv', interpolation='lanczos4')
+                                                          imlib=imlib, interpolation='lanczos4')
                                 snr_tmp[pp] = snr(tmp_tmp[pp], (xx_comp,yy_comp), fwhm, plot=False, exclude_negative_lobes=True,
                                                                  verbose=False)
                                 if verbose:
@@ -1032,7 +1032,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                         params_nmf = NMF_Params(cube=PCA_ADI_cube, angle_list=derot_angles,
                                                                 cube_ref=ref_cube, ncomp=npc, scaling=scaling,
                                                                 max_iter=100, random_state=None,
-                                                                mask_center_px=mask_IWA_px, imlib='opencv',
+                                                                mask_center_px=mask_IWA_px, imlib=imlib,
                                                                 interpolation='lanczos4', collapse='median',
                                                                 full_output=False, verbose=True, nproc=nproc)
                                         tmp_nmf[pp] = nmf(algo_params=params_nmf)
@@ -1043,7 +1043,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                    cube_ref=ref_cube, scale_list=None, ncomp=int(npc),
                                                                    scaling=scaling, svd_mode=svd_mode_all[cc], mask_center_px=mask_IWA_px,
                                                                    delta_rot=delta_rot, fwhm=fwhm, collapse='median', check_memory=True,
-                                                                   full_output=False, verbose=verbose, nproc=nproc, imlib="opencv")
+                                                                   full_output=False, verbose=verbose, nproc=nproc, imlib=imlib)
                                             tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                                         tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                     else:
@@ -1057,7 +1057,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                scaling=scaling, mask_center_px=mask_IWA_px, delta_rot=delta_rot,
                                                                fwhm=fwhm, collapse='median', check_memory=True,
                                                                full_output=True, verbose=verbose, mask_rdi=mask_rdi,
-                                                               nproc=nproc, imlib="opencv")
+                                                               nproc=nproc, imlib=imlib)
                                         tmp_tmp[pp], pcs, recon, tmp_res, tmp = pca(algo_params=params_pca)
                                         if debug:
                                             write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'TMP_PCA-{}_full_'.format(label_stg)+'npc{:.0f}'.format(npc)+label_filt+'_res.fits', tmp_res)
@@ -1134,22 +1134,22 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                             tmp_tmp_tmp = np.zeros([n_randsvd,PCA_ADI_cube.shape[1],PCA_ADI_cube.shape[2]])
                                             for nr in range(n_randsvd):
                                                 params_pca = PCA_Params(cube=PCA_ADI_cube, angle_list=derot_angles,
-                                                                       cube_ref=ref_cube, scale_list=None, ncomp=int(npc),
-                                                                       svd_mode=svd_mode_all[cc], scaling=scaling,
-                                                                       mask_center_px=mask_IWA_px, delta_rot=1,
-                                                                       fwhm=fwhm, collapse='median', check_memory=True,
-                                                                       full_output=False, verbose=verbose, nproc=nproc,
-                                                                        imlib="opencv")
+                                                                        cube_ref=ref_cube, scale_list=None, ncomp=int(npc),
+                                                                        svd_mode=svd_mode_all[cc], scaling=scaling,
+                                                                        mask_center_px=mask_IWA_px, delta_rot=1,
+                                                                        fwhm=fwhm, collapse='median', check_memory=True,
+                                                                        full_output=False, verbose=verbose, nproc=nproc,
+                                                                        imlib=imlib)
                                                 tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                                             tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                         else:
                                             params_pca = PCA_Params(cube=PCA_ADI_cube, angle_list=derot_angles,
-                                                                   cube_ref=ref_cube, scale_list=None, ncomp=int(npc),
-                                                                   svd_mode=svd_mode_all[cc], scaling=scaling,
-                                                                   mask_center_px=mask_IWA_px, delta_rot=1, fwhm=fwhm,
-                                                                   collapse='median', check_memory=True,
-                                                                   full_output=False, verbose=verbose, nproc=nproc,
-                                                                    imlib="opencv")
+                                                                    cube_ref=ref_cube, scale_list=None, ncomp=int(npc),
+                                                                    svd_mode=svd_mode_all[cc], scaling=scaling,
+                                                                    mask_center_px=mask_IWA_px, delta_rot=1, fwhm=fwhm,
+                                                                    collapse='median', check_memory=True,
+                                                                    full_output=False, verbose=verbose, nproc=nproc,
+                                                                    imlib=imlib)
                                             tmp_tmp[pp] = pca(algo_params=params_pca)
                                         for ff in range(nfcp):
                                             xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
@@ -1190,22 +1190,22 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                         tmp_tmp_tmp = np.zeros([n_randsvd,PCA_ADI_cube_ori.shape[1],PCA_ADI_cube_ori.shape[2]])
                                         for nr in range(n_randsvd):
                                             params_pca = PCA_Params(cube=PCA_ADI_cube_ori, angle_list=derot_angles,
-                                                                   cube_ref=ref_cube, scale_list=None, ncomp=int(npc),
-                                                                   svd_mode=svd_mode_all[cc], scaling=scaling,
-                                                                   mask_center_px=mask_IWA_px, delta_rot=delta_rot,
-                                                                   fwhm=fwhm, collapse='median', check_memory=True,
-                                                                   full_output=False, verbose=verbose, nproc=nproc,
-                                                                    imlib="opencv")
+                                                                    cube_ref=ref_cube, scale_list=None, ncomp=int(npc),
+                                                                    svd_mode=svd_mode_all[cc], scaling=scaling,
+                                                                    mask_center_px=mask_IWA_px, delta_rot=delta_rot,
+                                                                    fwhm=fwhm, collapse='median', check_memory=True,
+                                                                    full_output=False, verbose=verbose, nproc=nproc,
+                                                                    imlib=imlib)
                                             tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                                         tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                     else:
                                         params_pca = PCA_Params(cube=PCA_ADI_cube_ori, angle_list=derot_angles,
-                                                               cube_ref=ref_cube, scale_list=None, ncomp=int(npc),
-                                                               svd_mode=svd_mode_all[cc], scaling=scaling,
-                                                               mask_center_px=mask_IWA_px, delta_rot=delta_rot,
-                                                               fwhm=fwhm, collapse='median', check_memory=True,
-                                                               full_output=False, verbose=verbose, nproc=nproc,
-                                                                imlib="opencv")
+                                                                cube_ref=ref_cube, scale_list=None, ncomp=int(npc),
+                                                                svd_mode=svd_mode_all[cc], scaling=scaling,
+                                                                mask_center_px=mask_IWA_px, delta_rot=delta_rot,
+                                                                fwhm=fwhm, collapse='median', check_memory=True,
+                                                                full_output=False, verbose=verbose, nproc=nproc,
+                                                                imlib=imlib)
                                         tmp_tmp[pp] = pca(algo_params=params_pca)
                                                       
                                 write_fits(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'final_PCA-{}_full_{}_at_{}as'.format(label_stg,test_pcs_str,test_rad_str)+label_filt+'.fits', tmp_tmp)
@@ -1259,7 +1259,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                             scaling=scaling, min_frames_lib=max(max(npc),min_fr),
                                                                             max_frames_lib=max(max_fr,max(npc)+1),
                                                                             collapse='median', full_output=True,
-                                                                            verbose=verbose, nproc=nproc)
+                                                                            verbose=verbose, nproc=nproc, imlib=imlib)
                                         _, tmp, tmp_tmp[pp] = pca_annular(algo_params=params_pca_ann)
                                         if flux_weights:
                                             w = starphot/np.nansum(starphot)
@@ -1273,7 +1273,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                             delta_rot=delta_rot, ncomp=int(npc), svd_mode=svd_mode_all[1],
                                                                             scaling=scaling, min_frames_lib=max(npc,min_fr),
                                                                             max_frames_lib=max(max_fr,npc+1), collapse='median',
-                                                                            full_output=True, verbose=verbose, nproc=nproc)
+                                                                            full_output=True, verbose=verbose, nproc=nproc,
+                                                                            imlib=imlib)
                                         _, tmp, tmp_tmp[pp] = pca_annular(algo_params=params_pca_ann)
                                         if flux_weights:
                                             w = starphot/np.nansum(starphot)
@@ -1337,7 +1338,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                                     svd_mode=svd_mode_all[1], max_frames_lib=max(max_fr,npc+1),
                                                                                     cube_ref=ref_cube, scaling=scaling,
                                                                                     min_frames_lib=max(npc,min_fr), collapse='median',
-                                                                                    full_output=False, verbose=verbose, nproc=nproc)
+                                                                                    full_output=False, verbose=verbose, nproc=nproc,
+                                                                                    imlib=imlib)
                                                 tmp_tmp_tmp[nr] = pca_annular(algo_params=params_pca_ann)
                                             tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                         else:
@@ -1347,7 +1349,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                                 svd_mode=svd_mode_all[1], max_frames_lib=max(max_fr,npc+1),
                                                                                 cube_ref=ref_cube, scaling=scaling,
                                                                                 min_frames_lib=max(npc,min_fr), collapse='median',
-                                                                                full_output=True, verbose=verbose, nproc=nproc)
+                                                                                full_output=True, verbose=verbose, nproc=nproc,
+                                                                                imlib=imlib)
                                             _, tmp, tmp_tmp[pp] = pca_annular(algo_params=params_pca_ann)
                                             if flux_weights:
                                                 w = starphot/np.nansum(starphot)
@@ -1400,7 +1403,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                                 cube_ref=ref_cube, scaling=scaling,
                                                                                 min_frames_lib=max(npc, min_fr),
                                                                                 collapse='median', full_output=False,
-                                                                                verbose=verbose, nproc=nproc)
+                                                                                verbose=verbose, nproc=nproc,
+                                                                                imlib=imlib)
                                             tmp_tmp_tmp[nr] = pca_annular(algo_params=params_pca_ann)
                                         tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                     else:
@@ -1413,7 +1417,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                             cube_ref=ref_cube, scaling=scaling,
                                                                             min_frames_lib=max(npc, min_fr),
                                                                             collapse='median', full_output=True,
-                                                                            verbose=verbose, nproc=nproc)
+                                                                            verbose=verbose, nproc=nproc, imlib=imlib)
                                         _, tmp, tmp_tmp[pp] = pca_annular(algo_params=params_pca_ann)
                                         if flux_weights:
                                             w = starphot/np.nansum(starphot)
@@ -1447,7 +1451,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                         if fake_planet:
                             if planet:
                                 # SUBTRACT THE PLANET FROM THE CUBE
-                                cube_emp = cube_planet_free(planet_parameter, PCA_ADI_cube_ori, derot_angles, psfn, plsc)
+                                cube_emp = cube_planet_free(planet_parameter, PCA_ADI_cube_ori, derot_angles, psfn, imlib)
                                 PCA_ADI_cube_ori = cube_emp
                                 label_emp = '_empty'+label_filt
                             else:
@@ -1748,7 +1752,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                             radius_int=mask_IWA_px, delta_rot=delta_rot,
                                             svd_mode=svd_mode, nproc=1,
                                             min_frames_lib=2, max_frames_lib=200,
-                                            tol=1e-1, scaling=scaling, imlib='opencv',
+                                            tol=1e-1, scaling=scaling, imlib=imlib,
                                             interpolation='lanczos4', collapse='median',
                                             full_output=True, verbose=True, weights=None,
                                             add_res=False, interp_order=2, rtol=1e-2, atol=1)

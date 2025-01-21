@@ -56,5 +56,6 @@ prep_ref_cube: [2,3]                # whether to:
 scaling       # scaling of the cube before RDI (default: None)
 mask_PCA      # if provided, radius in arcsec for an inner mask where the coefficients to project the PCs are NOT computed (e.g. if a bright disc is present, you may want to avoid that area to not have the ref images to try to model and subtract it). Note: sat spots are at 50px (0.6'') separation => set it to 0.65'' if sat spots are present
 
-# output
+# other
+"imlib":"vip-fft"  # image library to use. Default: vip-fft
 "overwrite_pp":1  # whether to overwrite previous post-processing results
