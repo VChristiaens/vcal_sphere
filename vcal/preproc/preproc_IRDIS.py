@@ -790,7 +790,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     for cc in range(ncen):
                                         ### first get the MJD time of each cube
                                         head_cc = open_header(inpath + cen_cube_names[cc] + filters_lab[ff])
-
+                                        # rare chance a CEN cube can have a dither value of 1 px or more, meaning the
+                                        # intersection of the sat spots is not at the center of the star in OBJ cubes
+                                        pacx_cen = head_cc["ESO INS1 PAC X"]/18
+                                        pacy_cen = head_cc["ESO INS1 PAC Y"]/18
+                                        if abs(pacx_cen) > 0.5 or abs(pacy_cen) > 0.5:
+                                            print("\nATTENTION: Dithering detected in CEN cubes. Each CEN frame will be shifted accordingly.\n", flush=True)
                                         cube_cen = open_fits(
                                             outpath + cen_cube_names[cc] + filters_lab[ff] + "_1bpcorr.fits")
                                         nfr_tmp = cube_cen.shape[0]
@@ -823,6 +828,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
 
                                         write_fits(outpath + cen_cube_names[cc] + filters_lab[ff] + "_2cen_sub.fits",
                                                    cube_cen_sub, header=head_cc)
+                                        y_tmp += pacy_cen
+                                        x_tmp += pacx_cen
                                         cube_cen = cube_shift(cube_cen, y_tmp, x_tmp)
                                         write_fits(outpath + cen_cube_names[cc] + filters_lab[ff] + "_2cen.fits",
                                                    cube_cen, header=head_cc)
