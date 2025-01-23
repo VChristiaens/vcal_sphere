@@ -830,7 +830,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                    cube_cen_sub, header=head_cc)
                                         y_tmp += pacy_cen
                                         x_tmp += pacx_cen
-                                        cube_cen = cube_shift(cube_cen, y_tmp, x_tmp)
+                                        cube_cen = cube_shift(cube_cen, y_tmp, x_tmp, imlib=imlib, interpolation=interpolation,
+                                                              nproc=nproc)
                                         write_fits(outpath + cen_cube_names[cc] + filters_lab[ff] + "_2cen.fits",
                                                    cube_cen, header=head_cc)
                                         #y_const.append(np.mean(y_tmp))
@@ -881,9 +882,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     final_y_shifts[z] = np.median(y_shi[:,z] + y_const[cc_closest], axis=0)
                                     final_x_shifts[z] = np.median(x_shi[:,z] + x_const[cc_closest], axis=0)
 
-                                cube = cube_shift(cube, final_y_shifts, final_x_shifts)
-
-
+                                cube = cube_shift(cube, final_y_shifts, final_x_shifts, imlib=imlib, interpolation=interpolation,
+                                                              nproc=nproc)
 
                             elif "dft" in rec_met_tmp:
                                 # 1 rough centering with peak
