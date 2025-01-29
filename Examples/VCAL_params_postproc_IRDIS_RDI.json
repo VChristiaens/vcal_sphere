@@ -28,6 +28,7 @@
     "pcs_full":[1,51,2],
     "pcs_ann":[1,9,1],
     "max_fr":200,
+    "imlib":"vip-fft",
     "verbose":1,
     "nproc":1,
     "overwrite_ADI":1,

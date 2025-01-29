@@ -1,6 +1,5 @@
 {
     "path": "/parent-path-to-data/",
-    "inpath_filt_table": "/Users/valentin/GitHub/vcal_sphere/Static/sph_ird_filt_table.fits",
     "dit_irdis": 96,
     "dit_psf_ifs": 2,
     "dit_psf_irdis": 0.8374640,
