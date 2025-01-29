@@ -1199,7 +1199,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         # If file_list is empty, which append when there is no psf/cen then we break.
                         break
 
-                    if not isfile(outpath+"1_master_cube{}_{}.fits".format(labels[fi], filters[ff])) or not isfile(outpath+"1_master_derot_angles.fits") or overwrite[2]:
+                    if not isfile(outpath+f"1_master_cube{labels[fi]}_{filters[ff]}.fits") or not isfile(outpath+f"1_master_derot_angles{labels[fi]}{filters[ff]}.fits") or overwrite[2]:
                         if fi != 1:  # only SCI and CEN
                             parang_st = []
                             parang_nd = []
@@ -1651,7 +1651,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         # OBJECT
                         if fi != 1:
                             derot_angles = open_fits(
-                                outpath+"1_master_derot_angles{}.fits".format(labels[fi]))
+                                outpath+"1_master_derot_angles{}{}.fits".format(labels[fi], filters[ff]))
 
                         # Rejection based on pixel statistics
                         if ff == trim_ch or separate_trim == 1:
@@ -2275,7 +2275,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         derot_angles = open_fits(outpath+"3_master{}_derot_angles_clean_{}{}.fits".format(
                             labels[fi_tmp], filt, "-".join(badfr_crit_names)))
                         derot_angles_notrim = open_fits(
-                            outpath+"1_master_derot_angles{}.fits".format(labels[fi_tmp]))
+                            outpath+"1_master_derot_angles{}{}.fits".format(labels[fi_tmp], filters[ff]))
                         ntot = cube.shape[0]
                         ntot_notrim = cube_notrim.shape[0]
                         if bin_fac != 1:
