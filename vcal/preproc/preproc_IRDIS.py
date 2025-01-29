@@ -838,9 +838,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         #x_const.append(np.mean(x_tmp))
                                         y_const.append(y_tmp)
                                         x_const.append(x_tmp)
-                                import pdb
-                                pdb.set_trace()
-                                cc_closest = find_nearest(mjd_mean[fn], mjd_cen)
+
+                                if len(mjd_cen) == 1:  # check if there is only one CEN cube, otherwise find the closest one to OBJ
+                                    cc_closest = 0
+                                else:
+                                    cc_closest = find_nearest(mjd_mean[fn], mjd_cen)
+
                                 cube_cen, head_cc = open_fits(outpath + cen_cube_names[cc_closest] + filt + "_1bpcorr.fits",
                                                               header=True)
                                 y_shi = np.zeros([cube_cen.shape[0], cube.shape[0]])
