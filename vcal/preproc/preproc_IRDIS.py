@@ -838,6 +838,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         #x_const.append(np.mean(x_tmp))
                                         y_const.append(y_tmp)
                                         x_const.append(x_tmp)
+                                import pdb
                                 pdb.set_trace()
                                 cc_closest = find_nearest(mjd_mean[fn], mjd_cen)
                                 cube_cen, head_cc = open_fits(outpath + cen_cube_names[cc_closest] + filt + "_1bpcorr.fits",
