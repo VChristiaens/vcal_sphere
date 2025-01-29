@@ -1052,7 +1052,7 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                    scaling=scaling, svd_mode=svd_mode_all[cc], mask_center_px=mask_IWA_px,
                                                                    delta_rot=delta_rot, fwhm=fwhm, collapse='median', check_memory=True,
                                                                    full_output=False, verbose=verbose, nproc=nproc, imlib=imlib,
-                                                                   interpolation=interpolation, source_xy=source[cc])
+                                                                   interpolation=interpolation, source_xy=source_xy[cc])
                                             tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                                         tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                     else:
@@ -1151,8 +1151,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                        mask_center_px=mask_IWA_px, delta_rot=1,
                                                                        fwhm=fwhm, collapse='median', check_memory=True,
                                                                        full_output=False, verbose=verbose, nproc=nproc,
-                                                                       imlib=imlib,
-                                                                       interpolation=interpolation)
+                                                                       imlib=imlib, interpolation=interpolation,
+                                                                       source_xy=source_xy[cc])
                                                 tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                                             tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                         else:
@@ -1162,8 +1162,8 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
                                                                    mask_center_px=mask_IWA_px, delta_rot=1, fwhm=fwhm,
                                                                    collapse='median', check_memory=True,
                                                                    full_output=False, verbose=verbose, nproc=nproc,
-                                                                   imlib=imlib,
-                                                                   interpolation=interpolation)
+                                                                   imlib=imlib, interpolation=interpolation,
+                                                                   source_xy=source_xy[cc])
                                             tmp_tmp[pp] = pca(algo_params=params_pca)
                                         for ff in range(nfcp):
                                             xx_fcp = cx + rad_arr[ff]*np.cos(np.deg2rad(theta0+ff*th_step))
