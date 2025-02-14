@@ -790,7 +790,12 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     for cc in range(ncen):
                                         ### first get the MJD time of each cube
                                         head_cc = open_header(inpath + cen_cube_names[cc] + filters_lab[ff])
-
+                                        # rare chance a CEN cube can have a dither value of 1 px or more, meaning the
+                                        # intersection of the sat spots is not at the center of the star in OBJ cubes
+                                        pacx_cen = head_cc["ESO INS1 PAC X"]/18
+                                        pacy_cen = head_cc["ESO INS1 PAC Y"]/18
+                                        if abs(pacx_cen) > 0.5 or abs(pacy_cen) > 0.5:
+                                            print("\nATTENTION: Dithering detected in CEN cubes. Each CEN frame will be shifted accordingly.\n", flush=True)
                                         cube_cen = open_fits(
                                             outpath + cen_cube_names[cc] + filters_lab[ff] + "_1bpcorr.fits")
                                         nfr_tmp = cube_cen.shape[0]
@@ -823,7 +828,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
 
                                         write_fits(outpath + cen_cube_names[cc] + filters_lab[ff] + "_2cen_sub.fits",
                                                    cube_cen_sub, header=head_cc)
-                                        cube_cen = cube_shift(cube_cen, y_tmp, x_tmp)
+                                        y_tmp += pacy_cen
+                                        x_tmp += pacx_cen
+                                        cube_cen = cube_shift(cube_cen, y_tmp, x_tmp, imlib=imlib, interpolation=interpolation,
+                                                              nproc=nproc)
                                         write_fits(outpath + cen_cube_names[cc] + filters_lab[ff] + "_2cen.fits",
                                                    cube_cen, header=head_cc)
                                         #y_const.append(np.mean(y_tmp))
@@ -831,7 +839,11 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                         y_const.append(y_tmp)
                                         x_const.append(x_tmp)
 
-                                cc_closest = find_nearest(mjd_mean[fn], mjd_cen)
+                                if len(mjd_cen) == 1:  # check if there is only one CEN cube, otherwise find the closest one to OBJ
+                                    cc_closest = 0
+                                else:
+                                    cc_closest = find_nearest(mjd_mean[fn], mjd_cen)
+
                                 cube_cen, head_cc = open_fits(outpath + cen_cube_names[cc_closest] + filt + "_1bpcorr.fits",
                                                               header=True)
                                 y_shi = np.zeros([cube_cen.shape[0], cube.shape[0]])
@@ -874,9 +886,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     final_y_shifts[z] = np.median(y_shi[:,z] + y_const[cc_closest], axis=0)
                                     final_x_shifts[z] = np.median(x_shi[:,z] + x_const[cc_closest], axis=0)
 
-                                cube = cube_shift(cube, final_y_shifts, final_x_shifts)
-
-
+                                cube = cube_shift(cube, final_y_shifts, final_x_shifts, imlib=imlib, interpolation=interpolation,
+                                                              nproc=nproc)
 
                             elif "dft" in rec_met_tmp:
                                 # 1 rough centering with peak
@@ -1188,7 +1199,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         # If file_list is empty, which append when there is no psf/cen then we break.
                         break
 
-                    if not isfile(outpath+"1_master_cube{}_{}.fits".format(labels[fi], filters[ff])) or not isfile(outpath+"1_master_derot_angles.fits") or overwrite[2]:
+                    if not isfile(outpath+f"1_master_cube{labels[fi]}_{filters[ff]}.fits") or not isfile(outpath+f"1_master_derot_angles{labels[fi]}{filters[ff]}.fits") or overwrite[2]:
                         if fi != 1:  # only SCI and CEN
                             parang_st = []
                             parang_nd = []
@@ -1640,7 +1651,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         # OBJECT
                         if fi != 1:
                             derot_angles = open_fits(
-                                outpath+"1_master_derot_angles{}.fits".format(labels[fi]))
+                                outpath+"1_master_derot_angles{}{}.fits".format(labels[fi], filters[ff]))
 
                         # Rejection based on pixel statistics
                         if ff == trim_ch or separate_trim == 1:
@@ -2116,8 +2127,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 # PSF ONLY
                 for ff, filt in enumerate(filters):
                     if not isfile(outpath+final_psfname+".fits") or overwrite[6]:
-                        cube = open_fits(outpath+"3_master{}_cube_clean_{}{}.fits".format(
-                            labels[idx_psf], filt, "-".join(badfr_crit_names_psf)))
+                        cube = open_fits(outpath+"3_master{}_cube_clean_{}{}{}.fits".format(
+                            labels[idx_psf], filt, dist_lab, "-".join(badfr_crit_names_psf)))
                         # crop
                         if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
                             if crop_sz % 2 != cube.shape[1] % 2:
@@ -2264,7 +2275,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                         derot_angles = open_fits(outpath+"3_master{}_derot_angles_clean_{}{}.fits".format(
                             labels[fi_tmp], filt, "-".join(badfr_crit_names)))
                         derot_angles_notrim = open_fits(
-                            outpath+"1_master_derot_angles{}.fits".format(labels[fi_tmp]))
+                            outpath+"1_master_derot_angles{}{}.fits".format(labels[fi_tmp], filters[ff]))
                         ntot = cube.shape[0]
                         ntot_notrim = cube_notrim.shape[0]
                         if bin_fac != 1:
