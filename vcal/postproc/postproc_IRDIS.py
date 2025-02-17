@@ -168,7 +168,10 @@ def postproc_IRDIS(params_postproc_name='VCAL_params_postproc_IRDIS.json',
     planet = params_postproc.get('planet',0)                      # is there a companion?
     planet_pos_crop = params_postproc.get('planet_pos_crop',None) # If so, where is it (or where is it expected)?   (x, y) in cropped frames
     planet_pos_full = params_postproc.get('planet_pos_full',None) # (x, y) in full frames
-    source_xy = [tuple(planet_pos_crop), tuple(planet_pos_full)]  # to pass to full frame PCA to trigger a rotation threshold
+    if planet_pos_crop and planet_pos_full is not None:
+        source_xy = [tuple(planet_pos_crop), tuple(planet_pos_full)]  # to pass to full frame PCA to trigger a rotation threshold
+    else:
+        source_xy = None
     subtract_planet = params_postproc.get('subtract_planet',0)    # this should only be used as a second iteration, after negfc on the companion has enabled to determine its parameters
 
     ## Inject fake companions? If True => will compute contrast curves

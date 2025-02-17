@@ -337,7 +337,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
         PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn, imlib=imlib)
     if planet or fake_planet:
         cy, cx = frame_center(PCA_ASDI_cube_ori[0,0])
-    if planet or (planet_pos is not None):
+    if planet_pos is not None:
         xx_comp = planet_pos[0]
         yy_comp = planet_pos[1]
         source_xy = (xx_comp, yy_comp)
