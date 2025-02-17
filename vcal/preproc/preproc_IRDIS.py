@@ -2150,7 +2150,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             header = fits.Header()
                             header['Flux 0'] = 'Flux scaled to coronagraphic DIT'
                             header['Flux 1'] = 'Flux measured in PSF image'
-                            if len(npsf) == 0:
+                            if npsf == 0:
                                 dit_psf_irdis = dit_irdis  # no coronagraph, OBJ used as PSF
                             write_fits(outpath+final_fluxname+"{}.fits".format(filt),
                                        np.array([med_flux*dit_irdis/dit_psf_irdis, med_flux]),
