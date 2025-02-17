@@ -1271,7 +1271,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             # median-ADI
                             master_cube = open_fits(outpath+"1_master{}_cube_{}.fits".format(labels[fi],filters[ff]))
                             final_derot_angles = open_fits(outpath+"1_master_derot_angles{}{}.fits".format(labels[fi],filters[ff]))
-                            params = MEDIAN_SUB_Params(cube=master_cube, angle_list=final_derot_angles, radius_int=10,
+                            params = MEDIAN_SUB_Params(cube=master_cube, angle_list=final_derot_angles, radius_int=coro_sz,
                                                   nproc=nproc, imlib=imlib, interpolation=interpolation)
                             try:
                                 ADI_frame = median_sub(algo_params=params)
@@ -1319,7 +1319,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             outpath+"2_master{}_cube_{}{}.fits".format(labels[fi], filters[ff], dist_lab_tmp))
                         final_derot_angles = open_fits(
                             outpath+"1_master_derot_angles{}{}.fits".format(labels[fi],filters[ff]))
-                        params = MEDIAN_SUB_Params(cube=master_cube, angle_list=final_derot_angles, radius_int=10,
+                        params = MEDIAN_SUB_Params(cube=master_cube, angle_list=final_derot_angles, radius_int=coro_sz,
                                               nproc=nproc, imlib=imlib, interpolation=interpolation)
                         ADI_frame = median_sub(algo_params=params)
                         write_fits(outpath+"median_ADI2_{}{}{}.fits".format(
@@ -1505,7 +1505,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff]), final_shifts)
                         # REDO median-ADI
                         ADI_frame = median_sub(
-                            master_cube, derot_angles, radius_int=10, nproc=nproc,
+                            master_cube, derot_angles, radius_int=coro_sz, nproc=nproc,
                             imlib=imlib, interpolation=interpolation)
                         write_fits(
                             outpath+"median_ADI3_{}{}_{}.fits".format(filters[ff], dist_lab, label_cen), ADI_frame)
