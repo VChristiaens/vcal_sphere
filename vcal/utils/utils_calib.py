@@ -78,13 +78,6 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
     filt2_ifs_distort = []
     filt2_irdis_distort = []
 
-    if dit_ifs is not None and dit_irdis is not None:
-        mode = 'IRDIFS'
-    elif dit_irdis is not None:
-        mode = 'IRDIS'
-    elif dit_ifs is not None:
-        mode = 'IFS'
-
     if not readonly:
 
         file_list = [f for f in listdir(inpath) if isfile(
