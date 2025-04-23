@@ -906,6 +906,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                     imlib=imlib,
                                     interpolation=interpolation)
                                 #2. alignment with upsampling
+                                if cube.ndim == 2:
+                                    cube = np.expand_dims(cube, axis=0)  # add third axis if its not a cube
                                 cube, y_shifts, x_shifts = cube_recenter_dft_upsampling(cube, center_fr1=None, negative=False,
                                                                                         fwhm=4, subi_size=cen_box_sz[fi],
                                                                                         upsample_factor=int(rec_met_tmp[4:]),
@@ -913,7 +915,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                                         full_output=True, verbose=verbose, nproc=nproc,
                                                                                         save_shifts=False, debug=False, plot=plot)
                                 #3 final centering based on 2d fit
-                                cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
+                                cube_tmp = np.zeros([1,cube.shape[-1],cube.shape[-2]])
                                 cube_tmp[0] = np.median(cube,axis=0)
                                 _, y_shifts_tmp, x_shifts_tmp = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], model='moff',
                                                                             nproc=nproc, interpolation='lanczos4',
