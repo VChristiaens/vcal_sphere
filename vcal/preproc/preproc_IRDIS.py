@@ -2127,8 +2127,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 # PSF ONLY
                 for ff, filt in enumerate(filters):
                     if not isfile(outpath+final_psfname+".fits") or overwrite[6]:
-                        cube = open_fits(outpath+"3_master{}_cube_clean_{}{}{}.fits".format(
-                            labels[idx_psf], filt, dist_lab, "-".join(badfr_crit_names_psf)))
+                        cube = open_fits(outpath+"3_master{}_cube_clean_{}{}.fits".format(
+                            labels[idx_psf], filt, "-".join(badfr_crit_names_psf)))
                         # crop
                         if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
                             if crop_sz % 2 != cube.shape[1] % 2:
