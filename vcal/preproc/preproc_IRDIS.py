@@ -912,7 +912,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                                         fwhm=4, subi_size=cen_box_sz[fi],
                                                                                         upsample_factor=int(rec_met_tmp[4:]),
                                                                                         interpolation='lanczos4',
-                                                                                        full_output=True, verbose=verbose, nproc=nproc,
+                                                                                        full_output=True, verbose=verbose, nproc=1,
                                                                                         save_shifts=False, debug=False, plot=plot)
                                 #3 final centering based on 2d fit
                                 cube_tmp = np.zeros([1,cube.shape[-1],cube.shape[-2]])
