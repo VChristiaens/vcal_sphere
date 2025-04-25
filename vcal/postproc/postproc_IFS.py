@@ -783,7 +783,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                             scale_list=None, min_frames_lib=max(npc,10),
                                                             max_frames_lib=max(max_fr,npc+1), collapse='median',
                                                             full_output=False, verbose=verbose, nproc=nproc,
-                                                            imlib=imlib, delta_sep=0.1)
+                                                            imlib=imlib, delta_sep=0.5)
                             tmp[pp, zz] = pca_annular(algo_params=params_ann)
                             if planet:
                                 snr_tmp[pp, zz] = snr(tmp[pp,zz], (xx_comp,yy_comp), fwhm[zz], plot=False,
@@ -1302,7 +1302,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                                 min_frames_lib=max(npc1,npc2,10),
                                                                 max_frames_lib=max(max_fr,npc1+1,npc2+1), collapse='median',
                                                                 full_output=True, verbose=verbose, nproc=nproc,
-                                                                imlib=imlib, delta_sep=1)
+                                                                imlib=imlib, delta_sep=0.5)
                                 tmp_tmp, tmp_tmp_der, tmp[counter] = pca_annular(algo_params=params_ann)
                                 if do_stim_map:
                                     stim_map[counter] = compute_stim_map(tmp_tmp_der)
