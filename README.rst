@@ -2,6 +2,8 @@ vcal_sphere
 -----------
 Pipeline for calibration, pre-processing and post-processing of SPHERE IRDIS and IFS data, based on VIP routines and esorex recipes.
 
+.. image:: https://github.com/user-attachments/assets/16198baa-e739-43c4-9d98-ca4410c5eeee
+   :width: 400
 
 Installation
 ------------
