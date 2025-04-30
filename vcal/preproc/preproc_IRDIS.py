@@ -454,6 +454,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     if not isfile(outpath+"{}_1bpcorr.fits".format(filename)) or overwrite[0]:
                         bp_crop_sz_tmp = bp_crop_sz
                         cube, header = open_fits(inpath+filename, header=True)
+                        if cube.ndim == 2:
+                            cube = cube.reshape(1, cube.shape[-2], cube.shape[-1])
                         if filename[:-str_idx] in obj_psf_list[0] and use_cen_only:
                             continue
                         if npsf > 0:
@@ -913,7 +915,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                                                                                         full_output=True, verbose=verbose, nproc=nproc,
                                                                                         save_shifts=False, debug=False, plot=plot)
                                 #3 final centering based on 2d fit
-                                cube_tmp = np.zeros([1,cube.shape[1],cube.shape[2]])
+                                cube_tmp = np.zeros([1,cube.shape[-1],cube.shape[-2]])
                                 cube_tmp[0] = np.median(cube,axis=0)
                                 _, y_shifts_tmp, x_shifts_tmp = cube_recenter_2dfit(cube_tmp, xy=None, fwhm=1.2*resel[ff], subi_size=cen_box_sz[fi], model='moff',
                                                                             nproc=nproc, interpolation='lanczos4',
@@ -1271,7 +1273,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             # median-ADI
                             master_cube = open_fits(outpath+"1_master{}_cube_{}.fits".format(labels[fi],filters[ff]))
                             final_derot_angles = open_fits(outpath+"1_master_derot_angles{}{}.fits".format(labels[fi],filters[ff]))
-                            params = MEDIAN_SUB_Params(cube=master_cube, angle_list=final_derot_angles, radius_int=10,
+                            params = MEDIAN_SUB_Params(cube=master_cube, angle_list=final_derot_angles, radius_int=coro_sz,
                                                   nproc=nproc, imlib=imlib, interpolation=interpolation)
                             try:
                                 ADI_frame = median_sub(algo_params=params)
@@ -1319,7 +1321,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             outpath+"2_master{}_cube_{}{}.fits".format(labels[fi], filters[ff], dist_lab_tmp))
                         final_derot_angles = open_fits(
                             outpath+"1_master_derot_angles{}{}.fits".format(labels[fi],filters[ff]))
-                        params = MEDIAN_SUB_Params(cube=master_cube, angle_list=final_derot_angles, radius_int=10,
+                        params = MEDIAN_SUB_Params(cube=master_cube, angle_list=final_derot_angles, radius_int=coro_sz,
                                               nproc=nproc, imlib=imlib, interpolation=interpolation)
                         ADI_frame = median_sub(algo_params=params)
                         write_fits(outpath+"median_ADI2_{}{}{}.fits".format(
@@ -1505,7 +1507,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             outpath+"TMP_shifts_fine_recentering_bkg_{}.fits".format(filters[ff]), final_shifts)
                         # REDO median-ADI
                         ADI_frame = median_sub(
-                            master_cube, derot_angles, radius_int=10, nproc=nproc,
+                            master_cube, derot_angles, radius_int=coro_sz, nproc=nproc,
                             imlib=imlib, interpolation=interpolation)
                         write_fits(
                             outpath+"median_ADI3_{}{}_{}.fits".format(filters[ff], dist_lab, label_cen), ADI_frame)
@@ -2127,8 +2129,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 # PSF ONLY
                 for ff, filt in enumerate(filters):
                     if not isfile(outpath+final_psfname+".fits") or overwrite[6]:
-                        cube = open_fits(outpath+"3_master{}_cube_clean_{}{}{}.fits".format(
-                            labels[idx_psf], filt, dist_lab, "-".join(badfr_crit_names_psf)))
+                        cube = open_fits(outpath+"3_master{}_cube_clean_{}{}.fits".format(
+                            labels[idx_psf], filt, "-".join(badfr_crit_names_psf)))
                         # crop
                         if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
                             if crop_sz % 2 != cube.shape[1] % 2:
@@ -2150,6 +2152,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                             header = fits.Header()
                             header['Flux 0'] = 'Flux scaled to coronagraphic DIT'
                             header['Flux 1'] = 'Flux measured in PSF image'
+                            if npsf == 0:
+                                dit_psf_irdis = dit_irdis  # no coronagraph, OBJ used as PSF
                             write_fits(outpath+final_fluxname+"{}.fits".format(filt),
                                        np.array([med_flux*dit_irdis/dit_psf_irdis, med_flux]),
                                        header=header)

@@ -213,6 +213,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
     delta_rot_ann = params_postproc.get('delta_rot_ann', [1, 3]) # float, int or tuple expressed in FWHM. Threshold in azimuthal motion to keep frames in the PCA library created by PCA-annular. If a tuple, corresponds to the threshold for the innermost and outermost annuli, respectively.
     if type(delta_rot_ann) == list and len(delta_rot_ann) == 2:
         delta_rot_ann = tuple(delta_rot_ann)  # converts to tuple as .json parameter file does not support tuples
+    delta_sep = params_postproc.get('delta_sep', [0.1, 1])
     asize=params_postproc.get('asize',3) # width of the annnuli for either pca in concentric annuli or on a single annulus, provided in FWHM
     #### how is SVD done for PCA:
     svd_mode = params_postproc.get('svd_mode','lapack')
@@ -322,9 +323,10 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
 
     #mask_IWA_px = int(mask_IWA*fwhm_med)
     mask_IWA = mask_IWA_px/fwhm_med
-    ref_cube = [None]*nz
-    if ref_cube_name is not None:
+
+    if ref_cube_name is not None and ref_cube_name != "":
         label_stg = "RDI"
+        ref_cube = open_fits(ref_cube_name, verbose=False)
         if scaling is not None:
             label_stg += "_"+scaling
         if mask_PCA is not None:
@@ -332,12 +334,13 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
             mask_PCA = int(mask_PCA/np.median(plsc))
     else:
         label_stg = "ADI"
+        ref_cube = [None] * nz
 
     if subtract_planet:
         PCA_ASDI_cube_ori = cube_planet_free(planet_parameter, PCA_ASDI_cube_ori, derot_angles, psfn, imlib=imlib)
     if planet or fake_planet:
         cy, cx = frame_center(PCA_ASDI_cube_ori[0,0])
-    if planet or (planet_pos is not None):
+    if planet_pos is not None:
         xx_comp = planet_pos[0]
         yy_comp = planet_pos[1]
         source_xy = (xx_comp, yy_comp)
@@ -465,7 +468,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         inv_stim_map = np.zeros([ntest_pcs,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                         thr = np.zeros(ntest_pcs)
                     for pp, npc in enumerate(test_pcs_sdi):
-                        params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=None,
+                        params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=ref_cube,
                                                scale_list=scale_list,  ncomp=(int(npc),None), svd_mode=svd_mode,
                                                scaling=None, mask_center_px=mask_IWA_px, adimsdi='double',
                                                crop_ifs=crop_ifs, delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
@@ -521,7 +524,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         if svd_mode == 'randsvd':
                             tmp_tmp_tmp = np.zeros([3,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                             for nr in range(3):
-                                params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=None,
+                                params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=ref_cube,
                                                        scale_list=scale_list, ncomp=(int(npc),None), svd_mode=svd_mode,
                                                        scaling=None, mask_center_px=mask_IWA_px,crop_ifs=crop_ifs,
                                                        delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
@@ -530,7 +533,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                 tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                             tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                         else:
-                            params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=None,
+                            params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=ref_cube,
                                                    scale_list=scale_list, ncomp=(int(npc),None), svd_mode=svd_mode,
                                                    scaling=None, mask_center_px=mask_IWA_px,crop_ifs=crop_ifs,
                                                    delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
@@ -577,7 +580,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     if svd_mode == 'randsvd':
                         tmp_tmp_tmp = np.zeros([3,PCA_ASDI_cube_ori.shape[1],PCA_ASDI_cube_ori.shape[2]])
                         for nr in range(3):
-                            params_pca = PCA_Params(cube=PCA_ASDI_cube_ori, angle_list=derot_angles, cube_ref=None,
+                            params_pca = PCA_Params(cube=PCA_ASDI_cube_ori, angle_list=derot_angles, cube_ref=ref_cube,
                                                    scale_list=scale_list, ncomp=(int(npc),None), svd_mode=svd_mode,
                                                    scaling=None, mask_center_px=mask_IWA_px, crop_ifs=crop_ifs,
                                                    delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
@@ -586,7 +589,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             tmp_tmp_tmp[nr] = pca(algo_params=params_pca, source_xy=source_xy)
                         tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                     else:
-                        params_pca = PCA_Params(cube=PCA_ASDI_cube_ori, angle_list=derot_angles, cube_ref=None,
+                        params_pca = PCA_Params(cube=PCA_ASDI_cube_ori, angle_list=derot_angles, cube_ref=ref_cube,
                                                scale_list=scale_list, ncomp=(int(npc),None), svd_mode=svd_mode,
                                                scaling=None, mask_center_px=mask_IWA_px, crop_ifs=crop_ifs,
                                                delta_rot=delta_rot, fwhm=fwhm_med, collapse='median', check_memory=False,
@@ -691,7 +694,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     tmp = np.zeros([nz,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                     for pp, npc in enumerate(test_pcs_adi_full):
                         for zz in range(nz):
-                            params_pca = PCA_Params(cube=PCA_ASDI_cube[zz], angle_list=derot_angles, cube_ref=None,
+                            params_pca = PCA_Params(cube=PCA_ASDI_cube[zz], angle_list=derot_angles, cube_ref=ref_cube[zz],
                                                    scale_list=None, ncomp=int(npc), svd_mode=svd_mode, scaling=None,
                                                    mask_center_px=mask_IWA_px,crop_ifs=crop_ifs, delta_rot=delta_rot,
                                                    fwhm=fwhm[zz], collapse='median', check_memory=False,
@@ -733,7 +736,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                 test_rad_str = "rad"+"-".join(test_rad_str_list)
                 for pp, npc in enumerate(id_npc_adi_full_df):
                     for zz in range(nz):
-                        params_pca = PCA_Params(cube=PCA_ASDI_cube_ori[zz], angle_list=derot_angles, cube_ref=None,
+                        params_pca = PCA_Params(cube=PCA_ASDI_cube_ori[zz], angle_list=derot_angles, cube_ref=ref_cube[zz],
                                                scale_list=None, ncomp=(int(npc),None), svd_mode=svd_mode, scaling=None,
                                                mask_center_px=mask_IWA_px, crop_ifs=crop_ifs, delta_rot=delta_rot,
                                                fwhm=fwhm[zz], collapse='median', check_memory=False, adimsdi='double',
@@ -777,13 +780,13 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                 for pp, npc in enumerate(test_pcs_adi_ann):
                     if not isfile(outpath+'PCA-ADI_ann_npc{:.0f}'.format(npc)+label_test_ann+'.fits') or overwrite_pp:
                         for zz in range(start_nz,nz):
-                            params_ann = PCA_ANNULAR_Params(cube=PCA_ASDI_cube[zz], angle_list=derot_angles,
+                            params_ann = PCA_ANNULAR_Params(cube=PCA_ASDI_cube[zz], angle_list=derot_angles, cube_ref=ref_cube[zz],
                                                             radius_int=mask_IWA_px, fwhm=fwhm[zz], asize=asize,
                                                             delta_rot=delta_rot_ann, ncomp=int(npc), svd_mode=svd_mode,
                                                             scale_list=None, min_frames_lib=max(npc,10),
                                                             max_frames_lib=max(max_fr,npc+1), collapse='median',
                                                             full_output=False, verbose=verbose, nproc=nproc,
-                                                            imlib=imlib, delta_sep=0.5)
+                                                            imlib=imlib, delta_sep=delta_sep)
                             tmp[pp, zz] = pca_annular(algo_params=params_ann)
                             if planet:
                                 snr_tmp[pp, zz] = snr(tmp[pp,zz], (xx_comp,yy_comp), fwhm[zz], plot=False,
@@ -844,7 +847,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                     tmp = np.zeros([nz,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                     for pp, npc in enumerate(test_pcs_adi_ann):
                         for zz in range(start_nz,nz):
-                            params_ann = PCA_ANNULAR_Params(cube=PCA_ASDI_cube[zz], angle_list=derot_angles,
+                            params_ann = PCA_ANNULAR_Params(cube=PCA_ASDI_cube[zz], angle_list=derot_angles, cube_ref=ref_cube[zz],
                                                             radius_int=mask_IWA_px, fwhm=fwhm[zz], asize=asize,
                                                             delta_rot=delta_rot_ann, ncomp=int(npc), svd_mode=svd_mode,
                                                             scale_list=None, min_frames_lib=max(npc,10),
@@ -887,7 +890,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                 test_rad_str = "rad"+"-".join(test_rad_str_list)
                 for pp, npc in enumerate(id_npc_adi_ann_df):
                     for zz in range(start_nz,nz):
-                        params_ann = PCA_ANNULAR_Params(cube=PCA_ASDI_cube_ori[zz], angle_list=derot_angles,
+                        params_ann = PCA_ANNULAR_Params(cube=PCA_ASDI_cube_ori[zz], angle_list=derot_angles,cube_ref=ref_cube[zz],
                                                         radius_int=mask_IWA_px, fwhm=fwhm_med, asize=asize,
                                                         delta_rot=delta_rot_ann, ncomp=int(npc), svd_mode=svd_mode,
                                                         scale_list=None, min_frames_lib=max(npc,10),
@@ -940,7 +943,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             inv_stim_map = np.zeros([ntest_pcs,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                             thr = np.zeros(ntest_pcs)
                         for pp, npc in enumerate(test_pcs_sadi_full):
-                            params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=None,
+                            params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=ref_cube,
                                                    scale_list=scale_list, ncomp=int(npc), svd_mode=svd_mode,
                                                    scaling=scal, mask_center_px=mask_IWA_px, adimsdi='single',
                                                    delta_rot=delta_rot, fwhm=fwhm_med, collapse='median',
@@ -1003,7 +1006,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                     tmp_tmp_tmp = np.zeros([3,PCA_ASDI_cube.shape[2],PCA_ASDI_cube.shape[3]])
                                     for nr in range(3):
                                         params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles,
-                                                               cube_ref=None, scale_list=scale_list, ncomp=int(npc),
+                                                               cube_ref=ref_cube, scale_list=scale_list, ncomp=int(npc),
                                                                svd_mode=svd_mode, scaling=None,
                                                                mask_center_px=mask_IWA_px, crop_ifs=crop_ifs,
                                                                ifs_collapse_range=ifs_collapse_range,
@@ -1014,7 +1017,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                         tmp_tmp_tmp[nr] = pca(algo_params=params_pca)
                                     tmp_tmp[pp] = np.median(tmp_tmp_tmp, axis=0)
                                 else:
-                                    params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=None,
+                                    params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=ref_cube,
                                                            scale_list=scale_list, ncomp=int(npc), svd_mode=svd_mode,
                                                            scaling=None, mask_center_px=mask_IWA_px, adimsdi='single',
                                                            delta_rot=1, fwhm=fwhm_med, collapse='median',
@@ -1057,7 +1060,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         test_rad_str_list = ["{:.1f}".format(x) for x in rad_arr*plsc]
                         test_rad_str = "rad"+"-".join(test_rad_str_list)
                         for pp, npc in enumerate(id_npc_full_df):
-                            params_pca = PCA_Params(cube=PCA_ASDI_cube_ori, angle_list=derot_angles, cube_ref=None,
+                            params_pca = PCA_Params(cube=PCA_ASDI_cube_ori, angle_list=derot_angles, cube_ref=ref_cube,
                                                    scale_list=scale_list, ncomp=int(npc), svd_mode=svd_mode,
                                                    scaling=None, mask_center_px=mask_IWA_px, crop_ifs=crop_ifs,
                                                    ifs_collapse_range=ifs_collapse_range, delta_rot=1, fwhm=fwhm_med,
@@ -1119,7 +1122,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         counter = 0
                         for pp1, npc1 in enumerate(test_pcs_sadi_full_sdi):
                             for pp2, npc2 in enumerate(test_pcs_sadi_full_adi):
-                                params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=None,
+                                params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=ref_cube,
                                                        scale_list=scale_list, ncomp=(int(npc1),int(npc2)),
                                                        svd_mode=svd_mode, scaling=scal, mask_center_px=mask_IWA_px,
                                                        adimsdi='double', delta_rot=1, fwhm=fwhm_med, collapse='median',
@@ -1175,7 +1178,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             counter = 0
                             for pp1, npc1 in enumerate(test_pcs_sadi_full_sdi):
                                 for pp2, npc2 in enumerate(test_pcs_sadi_full_adi):
-                                    params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=None,
+                                    params_pca = PCA_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=ref_cube,
                                                            scale_list=scale_list, ncomp=(int(npc1),int(npc2)),
                                                            svd_mode=svd_mode, scaling=scal, mask_center_px=mask_IWA_px,
                                                            adimsdi='double', delta_rot=1, fwhm=fwhm_med,
@@ -1237,7 +1240,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         test_rad_str_list = ["{:.1f}".format(x) for x in rad_arr*plsc]
                         test_rad_str = "rad"+"-".join(test_rad_str_list)
                         for pp, idx_npc_full in enumerate(id_npc_full_df):
-                            params_pca = PCA_Params(cube=PCA_ASDI_cube_ori, angle_list=derot_angles, cube_ref=None,
+                            params_pca = PCA_Params(cube=PCA_ASDI_cube_ori, angle_list=derot_angles, cube_ref=ref_cube,
                                                    scale_list=scale_list, ncomp=(int(npc1), int(npc2)),
                                                    svd_mode=svd_mode, scaling=scal, ifs_collapse_range=ifs_collapse_range,
                                                    mask_center_px=mask_IWA_px, adimsdi='double', delta_rot=1,
@@ -1294,7 +1297,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         counter = 0
                         for pp1, npc1 in enumerate(test_pcs_sadi_ann_sdi):
                             for pp2, npc2 in enumerate(test_pcs_sadi_ann_adi):
-                                params_ann = PCA_ANNULAR_Params(cube=PCA_ASDI_cube, angle_list=derot_angles,
+                                params_ann = PCA_ANNULAR_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=ref_cube,
                                                                 radius_int=mask_IWA_px, fwhm=fwhm_med, asize=asize,
                                                                 delta_rot=delta_rot_ann, ncomp=(int(npc1),int(npc2)),
                                                                 svd_mode=svd_mode, ifs_collapse_range=ifs_collapse_range,
@@ -1302,7 +1305,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                                                                 min_frames_lib=max(npc1,npc2,10),
                                                                 max_frames_lib=max(max_fr,npc1+1,npc2+1), collapse='median',
                                                                 full_output=True, verbose=verbose, nproc=nproc,
-                                                                imlib=imlib, delta_sep=0.5)
+                                                                imlib=imlib, delta_sep=delta_sep)
                                 tmp_tmp, tmp_tmp_der, tmp[counter] = pca_annular(algo_params=params_ann)
                                 if do_stim_map:
                                     stim_map[counter] = compute_stim_map(tmp_tmp_der)
@@ -1352,7 +1355,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                             counter = 0
                             for pp1, npc1 in enumerate(test_pcs_sadi_ann_sdi):
                                 for pp2, npc2 in enumerate(test_pcs_sadi_ann_adi):
-                                    params_ann = PCA_ANNULAR_Params(cube=PCA_ASDI_cube, angle_list=derot_angles,
+                                    params_ann = PCA_ANNULAR_Params(cube=PCA_ASDI_cube, angle_list=derot_angles, cube_ref=ref_cube,
                                                                     radius_int=mask_IWA_px, fwhm=fwhm_med, asize=asize,
                                                                     delta_rot=delta_rot_ann, ncomp=(int(npc1),int(npc2)),
                                                                     svd_mode=svd_mode, scale_list=scale_list,
@@ -1415,7 +1418,7 @@ def postproc_IFS(params_postproc_name='VCAL_params_postproc_IFS.json',
                         test_rad_str_list = ["{:.1f}".format(x) for x in rad_arr*plsc]
                         test_rad_str = "rad"+"-".join(test_rad_str_list)
                         for pp, idx_npc_ann in enumerate(id_npc_ann_df):
-                            params_ann = PCA_ANNULAR_Params(cube=PCA_ASDI_cube_ori, angle_list=derot_angles,
+                            params_ann = PCA_ANNULAR_Params(cube=PCA_ASDI_cube_ori, angle_list=derot_angles, cube_ref=ref_cube,
                                                             radius_int=mask_IWA_px, fwhm=fwhm_med, asize=asize,
                                                             delta_rot=delta_rot_ann,
                                                             ncomp=(int(idx_npc_ann[0]),int(idx_npc_ann[1])), scaling=scal,

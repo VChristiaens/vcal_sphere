@@ -78,13 +78,6 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
     filt2_ifs_distort = []
     filt2_irdis_distort = []
 
-    if dit_ifs is not None and dit_irdis is not None:
-        mode = 'IRDIFS'
-    elif dit_irdis is not None:
-        mode = 'IRDIS'
-    elif dit_ifs is not None:
-        mode = 'IFS'
-
     if not readonly:
 
         file_list = [f for f in listdir(inpath) if isfile(
@@ -230,12 +223,10 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                     elif header['HIERARCH ESO DET NAME'] == 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'DARK':
                         dark_list_irdis.append(fname)
                     elif header['HIERARCH ESO DET NAME'] == 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'FLAT,LAMP' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
-                        if mode in header['HIERARCH ESO OCS DET1 IMGNAME']:
-                            flat_list_irdis.append(fname)
-                            if float(header['HIERARCH ESO DET SEQ1 DIT']) not in dit_irdis_flat:
-                                dit_irdis_flat.append(
-                                    float(header['HIERARCH ESO DET SEQ1 DIT']))
-                            #mjd_obs_flat_irdis = abs(float(header['MJD-OBS']))
+                        flat_list_irdis.append(fname)
+                        if float(header['HIERARCH ESO DET SEQ1 DIT']) not in dit_irdis_flat:
+                            dit_irdis_flat.append(
+                                float(header['HIERARCH ESO DET SEQ1 DIT']))
                     elif header['HIERARCH ESO DET NAME'] == 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'LAMP,DISTORT' and len(distort_IRDIS) == 0:
                         distort_IRDIS.append(fname)
                         dit_irdis_distort.append(
