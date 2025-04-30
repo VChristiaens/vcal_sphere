@@ -454,6 +454,8 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                     if not isfile(outpath+"{}_1bpcorr.fits".format(filename)) or overwrite[0]:
                         bp_crop_sz_tmp = bp_crop_sz
                         cube, header = open_fits(inpath+filename, header=True)
+                        if cube.ndim == 2:
+                            cube = cube_cen.reshape(1, cube.shape[-2], cube_cen.shape[-1])
                         if filename[:-str_idx] in obj_psf_list[0] and use_cen_only:
                             continue
                         if npsf > 0:
