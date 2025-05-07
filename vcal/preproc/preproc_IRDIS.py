@@ -2116,8 +2116,10 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
             print('************* 7. FINAL PSF + FLUX + FWHM *************', flush=True)
             if len(obj_psf_list) > 1:
                 idx_psf = 1
+                dist_lab_tmp = ''
             else:
                 idx_psf = 0
+                dist_lab_tmp = dist_lab  # if the OBJ files are used as PSF, they might have distortion correction!
             if isinstance(final_crop_szs[idx_psf], (float, int)):
                 crop_sz_list = [int(final_crop_szs[idx_psf])]
             elif isinstance(final_crop_szs[idx_psf], list):
@@ -2130,7 +2132,7 @@ def preproc_IRDIS(params_preproc_name='VCAL_params_preproc_IRDIS.json',
                 for ff, filt in enumerate(filters):
                     if not isfile(outpath+final_psfname+".fits") or overwrite[6]:
                         cube = open_fits(outpath+"3_master{}_cube_clean_{}{}{}.fits".format(
-                            labels[idx_psf], filt, dist_lab, "-".join(badfr_crit_names_psf)))
+                            labels[idx_psf], filt, dist_lab_tmp, "-".join(badfr_crit_names_psf)))
                         # crop
                         if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
                             if crop_sz % 2 != cube.shape[1] % 2:
