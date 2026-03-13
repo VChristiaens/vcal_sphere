@@ -12,7 +12,7 @@ B. Install dfits or dfitspy. The latter can be installed with: pip install dfits
 
 C. Install vcal_sphere (see also README file):
 	- make a local copy of the Github repo
-	- python setup.py
+	- python setup.py install
 	- pip install -r requirements.txt  # to be sure you get all packages installed 
 
 
@@ -24,18 +24,13 @@ C. Install vcal_sphere (see also README file):
 2) Uncompress all *.Z files
 
 3) cd in the 'raw' directory, and use dfits or dfitspy to list relevant header values to infer the strategy used during the observation (optionally check some raw images):
-	3a) Using dfits and fitsort:
+	3a) Using dfits and fitsort (or dfitspy):
 		dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
+		dfitspy -file SPHER*.fits -k DET.ID,DET.SEQ1.DIT,INS1.FILT.NAME,INS1.OPTI2.NAME,DPR.TYPE,INS4.COMB.ROT
 	Pro tip: make an alias in your ~/.bash_profile e.g. by adding:
-	alias dfits_irdifs='dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS.COMB.IFLT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT'
-	then simply call dfits_irdifs whenever needed in a given directory.
-
-	3b) If you've installed dfitspy, open an ipython session in your 'raw' directory and run:
-		import dfitspy
-		listfiles = dfitspy.get_files(['all'])
-		listkeys = ['HIERARCH ESO DET ID', 'HIERARCH ESO DET SEQ1 DIT', 'HIERARCH ESO INS1 FILT NAME', 'HIERARCH ESO INS1 OPTI2 NAME','HIERARCH ESO DPR TYPE' ,'HIERARCH ESO INS4 COMB ROT', 'HIERARCH ESO INS COMB IFLT']
-		fitsort = dfitspy.dfitsort(listfiles, listkeys)
-		dfitspy.dfitsort_view(fitsort)
+	alias dfits_sphere='dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS.COMB.IFLT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT'
+	alias dfits_sphere='dfitspy -file SPHER*.fits -k DET.ID,DET.SEQ1.DIT,INS1.FILT.NAME,INS1.OPTI2.NAME,DPR.TYPE,INS4.COMB.ROT'
+	then simply call dfits_sphere whenever needed in a given directory.
 
 4) If you plan to reduce IFS data, double-check the following calibration files are downloaded (it appears they are not systematically downloaded when ticking "download associated calibration files"):
 - 'SPECPOS,LAMP'

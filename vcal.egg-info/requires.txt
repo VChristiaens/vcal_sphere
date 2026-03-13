@@ -1,9 +1,13 @@
 packaging
 hciplot
+pillow
+opencv-python
 
 [dev]
 packaging
 hciplot
+pillow
+opencv-python
 sphinx
 pandoc
 pytest
