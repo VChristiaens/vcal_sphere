@@ -2403,6 +2403,14 @@ def preproc_IFS(
                     ),
                     flush=True,
                 )
+                if frac_good == 0:
+                    msg = "0 frames left for {} cube with current bad"
+                    msg += " frame trimming parameters. Adapt!"
+                    raise ValueError(msg.format(labels2[fi]))
+                elif frac_good < 0.5:
+                    msg = "WARNING: only {}% of frames left. Are you sure"
+                    msg += " to discard that many frames from the cube?"
+                    print(msg)
 
             if save_space:
                 system(f"rm {outpath}*1bpcorr.fits")
