@@ -30,11 +30,7 @@ for your environment):
 
 .. code-block:: bash
 
-  $ conda create -n vcal_env python=3.10 ipython
-
-Note: installing ipython while creating the environment with the above line will
-avoid a commonly reported issue which stems from trying to import VIP from 
-within a base python2.7 ipython console.
+  $ conda create -n vcal_env python=3.14 ipython
 
 To install vcal, simply cd into the vcal_sphere directory and run the setup file 
 in 'develop' mode:
@@ -42,7 +38,7 @@ in 'develop' mode:
 .. code-block:: bash
 
   $ cd vcal_sphere
-  $ python setup.py develop
+  $ python setup.py develop  # or install
 
 If cloned from your fork, make sure to link your vcal_sphere directory to the upstream 
 source, to be able to easily update your local copy when a new version comes 
@@ -52,6 +48,15 @@ out or a bug is fixed:
 
   $ git add remote upstream https://github.com/VChristiaens/vcal_sphere.git
 
+
+Note
+----
+To be able to run vcal without internet connection, consider defining the environment variable VCAL_PATH, which is the path where the 'Static' directory will be searched for SPHERE-related calibration files. For example add the following line in your .bash_profile :
+.. code-block:: bash
+
+  $ export add remote upstream https://github.com/VChristiaens/vcal_sphere.git
+  
+Depending on how you install vcal, the Static directory you may or may no.
 
 Requirements
 ------------

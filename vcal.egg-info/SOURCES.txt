@@ -47,9 +47,6 @@ vcal.egg-info/requires.txt
 vcal.egg-info/top_level.txt
 vcal/calib/__init__.py
 vcal/calib/calib_SPHERE.py
-vcal/instr_param/__init__.py
-vcal/instr_param/sphere.json
-vcal/instr_param/sphere_filt_spec.json
 vcal/postproc/__init__.py
 vcal/postproc/postproc_IFS.py
 vcal/postproc/postproc_IRDIS.py

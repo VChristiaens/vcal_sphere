@@ -99,7 +99,6 @@ for nn in range(len(old_names)):
 PACKAGES = [
     "vcal",
     "vcal.calib",
-    "vcal.instr_param",
     "vcal.postproc",
     "vcal.preproc",
     "vcal.utils",
