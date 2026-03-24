@@ -226,7 +226,7 @@ def calib(params_calib_name="VCAL_params_calib.json") -> None:
     # 10-19 IFS
 
     instr = params_calib["instr"]  # instrument name in file name
-    science_mode = filt_spec["mode"]  # current choice between {'DBI','CI'}
+    science_mode = "DBI"  # filt_spec["mode"] #  choice between {'DBI','CI'} BUT bug exorex in CI !!!
     # only matters for IFS data calibration
     mode = params_calib.get("mode", "YJH")
 
