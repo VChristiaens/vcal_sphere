@@ -2628,7 +2628,7 @@ def postproc_IRDIS(
                                             mask_rdi = None
                                         else:
                                             mask_tmp = np.ones_like(
-                                                ADI_cube[0]
+                                                PCA_ADI_cube[0]
                                             )
                                             if len(mask_PCA) == 2:
                                                 anchor_mask = (
