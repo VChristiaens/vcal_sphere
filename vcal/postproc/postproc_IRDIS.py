@@ -1148,12 +1148,6 @@ def postproc_IRDIS(
                                         mask_PCA[1] - mask_PCA[0],
                                         mode="mask",
                                     )[0]
-                                    boat_mask = get_annulus_segments(
-                                        mask_tmp,
-                                        mask_IWA_px,
-                                        mask_PCA[1] - mask_IWA_px,
-                                        mode="mask",
-                                    )[0]
                                 else:
                                     anchor_mask = mask_circle(
                                         mask_tmp,
@@ -1161,15 +1155,15 @@ def postproc_IRDIS(
                                         fillwith=0,
                                         mode="in",
                                     )
-                                    if mask_IWA_px > 0:
-                                        boat_mask = mask_circle(
-                                            mask_tmp,
-                                            mask_IWA_px,
-                                            fillwith=0,
-                                            mode="in",
-                                        )
-                                    else:
-                                        boat_mask = mask_tmp
+                                if mask_IWA_px > 0:
+                                    boat_mask = mask_circle(
+                                        mask_tmp,
+                                        mask_IWA_px,
+                                        fillwith=0,
+                                        mode="in",
+                                    )
+                                else:
+                                    boat_mask = mask_tmp
                                 mask_rdi = (anchor_mask, boat_mask)
                             for pp, npc in enumerate(test_pcs_full):
                                 res = pca_it(
@@ -1430,12 +1424,6 @@ def postproc_IRDIS(
                                         mask_PCA[1] - mask_PCA[0],
                                         mode="mask",
                                     )[0]
-                                    boat_mask = get_annulus_segments(
-                                        mask_tmp,
-                                        mask_IWA_px,
-                                        mask_PCA[1] - mask_IWA_px,
-                                        mode="mask",
-                                    )[0]
                                 else:
                                     anchor_mask = mask_circle(
                                         mask_tmp,
@@ -1443,15 +1431,15 @@ def postproc_IRDIS(
                                         fillwith=0,
                                         mode="in",
                                     )
-                                    if mask_IWA_px > 0:
-                                        boat_mask = mask_circle(
-                                            mask_tmp,
-                                            mask_IWA_px,
-                                            fillwith=0,
-                                            mode="in",
-                                        )
-                                    else:
-                                        boat_mask = mask_tmp
+                                if mask_IWA_px > 0:
+                                    boat_mask = mask_circle(
+                                        mask_tmp,
+                                        mask_IWA_px,
+                                        fillwith=0,
+                                        mode="in",
+                                    )
+                                else:
+                                    boat_mask = mask_tmp
                                 mask_rdi = (anchor_mask, boat_mask)
                             # res = pca_1zone_it(ADI_cube, derot_angles, cube_ref=ref_cube,
                             res = pca_1rho_it(
@@ -2640,15 +2628,6 @@ def postproc_IRDIS(
                                                         mode="mask",
                                                     )[0]
                                                 )
-                                                boat_mask = (
-                                                    get_annulus_segments(
-                                                        mask_tmp,
-                                                        mask_IWA_px,
-                                                        mask_PCA[1]
-                                                        - mask_IWA_px,
-                                                        mode="mask",
-                                                    )[0]
-                                                )
                                             else:
                                                 anchor_mask = mask_circle(
                                                     mask_tmp,
@@ -2656,15 +2635,15 @@ def postproc_IRDIS(
                                                     fillwith=0,
                                                     mode="in",
                                                 )
-                                                if mask_IWA_px > 0:
-                                                    boat_mask = mask_circle(
-                                                        mask_tmp,
-                                                        mask_IWA_px,
-                                                        fillwith=0,
-                                                        mode="in",
-                                                    )
-                                                else:
-                                                    boat_mask = mask_tmp
+                                            if mask_IWA_px > 0:
+                                                boat_mask = mask_circle(
+                                                    mask_tmp,
+                                                    mask_IWA_px,
+                                                    fillwith=0,
+                                                    mode="in",
+                                                )
+                                            else:
+                                                boat_mask = mask_tmp
                                             mask_rdi = (anchor_mask, boat_mask)
                                         params_pca = PCA_Params(
                                             cube=PCA_ADI_cube,
@@ -4717,12 +4696,6 @@ def postproc_IRDIS(
                                         mask_PCA[1] - mask_PCA[0],
                                         mode="mask",
                                     )[0]
-                                    boat_mask = get_annulus_segments(
-                                        mask_tmp,
-                                        mask_IWA_px,
-                                        mask_PCA[1] - mask_IWA_px,
-                                        mode="mask",
-                                    )[0]
                                 else:
                                     anchor_mask = mask_circle(
                                         mask_tmp,
@@ -4730,15 +4703,15 @@ def postproc_IRDIS(
                                         fillwith=0,
                                         mode="in",
                                     )
-                                    if mask_IWA_px > 0:
-                                        boat_mask = mask_circle(
-                                            mask_tmp,
-                                            mask_IWA_px,
-                                            fillwith=0,
-                                            mode="in",
-                                        )
-                                    else:
-                                        boat_mask = mask_tmp
+                                if mask_IWA_px > 0:
+                                    boat_mask = mask_circle(
+                                        mask_tmp,
+                                        mask_IWA_px,
+                                        fillwith=0,
+                                        mode="in",
+                                    )
+                                else:
+                                    boat_mask = mask_tmp
                                 mask_rdi = (anchor_mask, boat_mask)
                             for pp, npc in enumerate(test_pcs_full):
                                 res = pca_it(
