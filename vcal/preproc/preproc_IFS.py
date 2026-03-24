@@ -207,6 +207,11 @@ def preproc_IFS(
     plsc = params_preproc.get("plsc", 0.00746)  # arcsec/pixel # Maire 2016
     # print("Resel: {:.2f} / {:.2f} px (K1/K2)".format(resel[0],resel[1]))
 
+    # IFS satellite spots location in first channel
+    xy_spots = instr_cst.get(
+        "xy_spots_ifs", [[105, 169], [171, 181], [117, 103], [183, 115]]
+    )
+
     # Systematic errors (cfr. Maire et al. 2016)
     pup_off = instr_cst.get("pup_off", 135.99)
     TN = instr_cst.get("TN", -1.75)  # pm0.08 deg
@@ -692,12 +697,6 @@ def preproc_IFS(
                                     if not use_cen_only:
                                         cube_cen -= cube
                                     diff = int((ori_sz - bp_crop_sz) / 2)
-                                    xy_spots = [
-                                        [105, 169],
-                                        [171, 181],
-                                        [117, 103],
-                                        [183, 115],
-                                    ]
                                     xy_spots_tmp = tuple(
                                         [
                                             (

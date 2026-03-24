@@ -195,7 +195,13 @@ def preproc_IRDIS(
 
     # if recentering by satspots provide here a tuple of 4 tuples:  top-left, top-right, bottom-left and bottom-right spots
     xy_spots = params_preproc.get("xy_spots", [])
-    if "xy_spots" in filt_spec.keys():
+    if len(xy_spots) == 0 and not "xy_spots" in filt_spec.keys():
+        msg = "xy_spots undefined in json parameter file for preproc. "
+        msg += "Default satellite spot positions also underfined for {} filter."
+        msg += "Solution: either define in tbe parameter file, or (better) "
+        msg += "define it and make a pull request for all to benefit"
+        raise ValueError(msg.format(filt_spec["filters"][0]))
+    elif "xy_spots" in filt_spec.keys():
         xy_spots = filt_spec["xy_spots"]
     sigfactor = params_preproc.get("sigfactor", 3)
 
@@ -538,6 +544,11 @@ def preproc_IRDIS(
                     )
                 )
 
+            # hack for now: CI not properly dealt with calib...
+            # if filt_spec["mode"] == "CI" and len(lbdas):
+            #    xy_spots_fin = [xy_spots] * 2
+            # else:
+
             xy_spots_fin = [xy_spots]
             for l in range(1, len(lbdas)):
                 new_xy_pos = []
@@ -550,6 +561,7 @@ def preproc_IRDIS(
                     )
                     new_xy_pos.append((new_x, new_y))
                 xy_spots_fin.append(tuple(new_xy_pos))
+
             xy_spots = tuple(xy_spots_fin)
         print("xy_spots:", xy_spots, flush=True)
 
