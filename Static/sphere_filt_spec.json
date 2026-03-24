@@ -7,6 +7,6 @@
 "DB_K12":{"mode":"DBI","filters":["K1","K2"],"lbda":[2.110,2.251],"dlbda":[102,109], "IRFW1":"B_Ks", "IRFW2":"D_K12","modes":"DBI,CI","xy_spots": [[[435,568], [524,569], [434,480], [524,479]],[[435,558], [530,558], [434,464], [530,464]]]},
 "BB_Y":{"mode":"CI","filters":["Y"],"lbda":[1.043],"dlbda":[140], "IRFW1":"B_Y", "IRFW2":"CLEAR","modes":"DPI,CI"},
 "BB_J":{"mode":"CI","filters":["J"],"lbda":[1.245],"dlbda":[240], "IRFW1":"B_J", "IRFW2":"CLEAR","modes":"DPI,CI"},
-"BB_H":{"mode":"CI","filters":["H"],"lbda":[1.625],"dlbda":[290], "IRFW1":"B_H", "IRFW2":"CLEAR","modes":"DPI,CI"},
+"BB_H":{"mode":"CI","filters":["H"],"lbda":[1.625],"dlbda":[290], "IRFW1":"B_H", "IRFW2":"CLEAR","modes":"DPI,CI","xy_spots": [[[446,552], [514,552], [444,484], [514,483]],[[453,544], [522,544], [453,475], [522,475]]]},
 "BB_Ks":{"mode":"CI","filters":["Ks"],"lbda":[2.182],"dlbda":[300], "IRFW1":"B_Ks", "IRFW2":"CLEAR","modes":"DPI,CI","xy_spots": [[[432,568], [524,568], [432,477], [524,479]],[[438,558], [529,559], [438,467], [530,467]]]}
 }
