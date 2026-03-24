@@ -37,6 +37,7 @@ from vip_hci.var import (
     cube_filter_highpass,
     frame_center,
     frame_filter_lowpass,
+    get_annulus_segments,
 )
 from vip_hci.psfsub import (
     median_sub,
@@ -364,8 +365,21 @@ def postproc_IRDIS(
         if scaling is not None:
             label_stg += "_" + scaling
         if mask_PCA is not None and strategy != "ADI":
-            label_stg += "_mask{:.1f}".format(mask_PCA)
-            mask_PCA = int(mask_PCA / np.median(plsc_ori))
+            if np.isscalar(mask_PCA):
+                label_stg += "_mask{:.1f}".format(mask_PCA)
+                mask_PCA = (int(mask_PCA / np.median(plsc_ori)),)
+            elif len(mask_PCA) != 2:
+                msg = "If mask_PCA is set to a tuple, it can only have 2 "
+                msg += " elements."
+                raise TypeError(msg)
+            else:
+                label_stg += "_mask{:.1f}-{:.1f}".format(
+                    mask_PCA[0], mask_PCA[1]
+                )
+                mask_PCA = (
+                    int(mask_PCA[0] / np.median(plsc_ori)),
+                    int(mask_PCA[1] / np.median(plsc_ori)),
+                )
 
     if coro:
         transmission_name = f2
@@ -1056,6 +1070,7 @@ def postproc_IRDIS(
                 # 2. Skip DBI on large crops
                 elif scale_list is not None:
                     pass
+
                 # 3. ADI or (A)RDI iterative on smallest crop
                 elif cc == 0 and n_it > 0:
                     for ff, filt in enumerate(filters):
@@ -1126,9 +1141,36 @@ def postproc_IRDIS(
                                 mask_rdi = None
                             else:
                                 mask_tmp = np.ones_like(ADI_cube[0])
-                                mask_rdi = mask_circle(
-                                    mask_tmp, mask_PCA, fillwith=0, mode="in"
-                                )
+                                if len(mask_PCA) == 2:
+                                    anchor_mask = get_annulus_segments(
+                                        mask_tmp,
+                                        mask_PCA[0],
+                                        mask_PCA[1] - mask_PCA[0],
+                                        mode="mask",
+                                    )[0]
+                                    boat_mask = get_annulus_segments(
+                                        mask_tmp,
+                                        mask_IWA_px,
+                                        mask_PCA[1] - mask_IWA_px,
+                                        mode="mask",
+                                    )[0]
+                                else:
+                                    anchor_mask = mask_circle(
+                                        mask_tmp,
+                                        mask_PCA,
+                                        fillwith=0,
+                                        mode="in",
+                                    )
+                                    if mask_IWA_px > 0:
+                                        boat_mask = mask_circle(
+                                            mask_tmp,
+                                            mask_IWA_px,
+                                            fillwith=0,
+                                            mode="in",
+                                        )
+                                    else:
+                                        boat_mask = mask_tmp
+                                mask_rdi = (anchor_mask, boat_mask)
                             for pp, npc in enumerate(test_pcs_full):
                                 res = pca_it(
                                     ADI_cube,
@@ -1377,13 +1419,40 @@ def postproc_IRDIS(
                                 ]
                             )
                             # wmean_imgs = np.zeros_like(final_imgs)
-                            if mask_PCA is None or strategy == "ADI":
+                            if mask_PCA is None or strategy == "`ADI":
                                 mask_rdi = None
                             else:
                                 mask_tmp = np.ones_like(ADI_cube[0])
-                                mask_rdi = mask_circle(
-                                    mask_tmp, mask_PCA, fillwith=0, mode="in"
-                                )
+                                if len(mask_PCA) == 2:
+                                    anchor_mask = get_annulus_segments(
+                                        mask_tmp,
+                                        mask_PCA[0],
+                                        mask_PCA[1] - mask_PCA[0],
+                                        mode="mask",
+                                    )[0]
+                                    boat_mask = get_annulus_segments(
+                                        mask_tmp,
+                                        mask_IWA_px,
+                                        mask_PCA[1] - mask_IWA_px,
+                                        mode="mask",
+                                    )[0]
+                                else:
+                                    anchor_mask = mask_circle(
+                                        mask_tmp,
+                                        mask_PCA,
+                                        fillwith=0,
+                                        mode="in",
+                                    )
+                                    if mask_IWA_px > 0:
+                                        boat_mask = mask_circle(
+                                            mask_tmp,
+                                            mask_IWA_px,
+                                            fillwith=0,
+                                            mode="in",
+                                        )
+                                    else:
+                                        boat_mask = mask_tmp
+                                mask_rdi = (anchor_mask, boat_mask)
                             # res = pca_1zone_it(ADI_cube, derot_angles, cube_ref=ref_cube,
                             res = pca_1rho_it(
                                 ADI_cube,
@@ -1584,12 +1653,14 @@ def postproc_IRDIS(
                                 + final_cubename
                                 + "{}.fits".format(filt)
                             )
+                            lab_full = ""
                         else:
                             ADI_cube = open_fits(
                                 outpath_2
                                 + final_cubename
                                 + "_full{}.fits".format(filt)
                             )
+                            lab_full = "_full"
                         if isinstance(ref_cube_name, str):
                             ref_cube = open_fits(ref_cube_name.format(filt))
 
@@ -1638,12 +1709,16 @@ def postproc_IRDIS(
                             if isfile(
                                 outpath_4.format(bin_fac)
                                 + final_cubename
-                                + "{}{}.fits".format(filt, label_filt)
+                                + "{}{}{}.fits".format(
+                                    lab_full, filt, label_filt
+                                )
                             ):
                                 ADI_cube = open_fits(
                                     outpath_4.format(bin_fac)
                                     + final_cubename
-                                    + "{}{}.fits".format(filt, label_filt)
+                                    + "{}{}{}.fits".format(
+                                        lab_full, filt, label_filt
+                                    )
                                 )
                             else:
                                 ADI_cube = cube_filter_highpass(
@@ -1654,7 +1729,9 @@ def postproc_IRDIS(
                                 write_fits(
                                     outpath_4.format(bin_fac)
                                     + final_cubename
-                                    + "{}{}.fits".format(filt, label_filt),
+                                    + "{}{}{}.fits".format(
+                                        lab_full, filt, label_filt
+                                    ),
                                     ADI_cube,
                                 )
                                 # vip.fits.append_extension(outpath_4.format(bin_fac)+"final_cube_{}{}.fits".format(filt,label_filt), derot_angles)
@@ -2546,19 +2623,49 @@ def postproc_IRDIS(
                                     else:
                                         if (
                                             mask_PCA is None
-                                            or strategy == "ADI"
+                                            or strategy == "`ADI"
                                         ):
                                             mask_rdi = None
                                         else:
                                             mask_tmp = np.ones_like(
-                                                PCA_ADI_cube[0]
+                                                ADI_cube[0]
                                             )
-                                            mask_rdi = mask_circle(
-                                                mask_tmp,
-                                                mask_PCA,
-                                                fillwith=0,
-                                                mode="in",
-                                            )
+                                            if len(mask_PCA) == 2:
+                                                anchor_mask = (
+                                                    get_annulus_segments(
+                                                        mask_tmp,
+                                                        mask_PCA[0],
+                                                        mask_PCA[1]
+                                                        - mask_PCA[0],
+                                                        mode="mask",
+                                                    )[0]
+                                                )
+                                                boat_mask = (
+                                                    get_annulus_segments(
+                                                        mask_tmp,
+                                                        mask_IWA_px,
+                                                        mask_PCA[1]
+                                                        - mask_IWA_px,
+                                                        mode="mask",
+                                                    )[0]
+                                                )
+                                            else:
+                                                anchor_mask = mask_circle(
+                                                    mask_tmp,
+                                                    mask_PCA,
+                                                    fillwith=0,
+                                                    mode="in",
+                                                )
+                                                if mask_IWA_px > 0:
+                                                    boat_mask = mask_circle(
+                                                        mask_tmp,
+                                                        mask_IWA_px,
+                                                        fillwith=0,
+                                                        mode="in",
+                                                    )
+                                                else:
+                                                    boat_mask = mask_tmp
+                                            mask_rdi = (anchor_mask, boat_mask)
                                         params_pca = PCA_Params(
                                             cube=PCA_ADI_cube,
                                             angle_list=derot_angles,
@@ -4599,13 +4706,40 @@ def postproc_IRDIS(
                                 ]
                             )
                             # wmean_imgs = np.zeros_like(final_imgs)
-                            if mask_PCA is None or strategy == "ADI":
+                            if mask_PCA is None or strategy == "`ADI":
                                 mask_rdi = None
                             else:
                                 mask_tmp = np.ones_like(ADI_cube[0])
-                                mask_rdi = mask_circle(
-                                    mask_tmp, mask_PCA, fillwith=0, mode="in"
-                                )
+                                if len(mask_PCA) == 2:
+                                    anchor_mask = get_annulus_segments(
+                                        mask_tmp,
+                                        mask_PCA[0],
+                                        mask_PCA[1] - mask_PCA[0],
+                                        mode="mask",
+                                    )[0]
+                                    boat_mask = get_annulus_segments(
+                                        mask_tmp,
+                                        mask_IWA_px,
+                                        mask_PCA[1] - mask_IWA_px,
+                                        mode="mask",
+                                    )[0]
+                                else:
+                                    anchor_mask = mask_circle(
+                                        mask_tmp,
+                                        mask_PCA,
+                                        fillwith=0,
+                                        mode="in",
+                                    )
+                                    if mask_IWA_px > 0:
+                                        boat_mask = mask_circle(
+                                            mask_tmp,
+                                            mask_IWA_px,
+                                            fillwith=0,
+                                            mode="in",
+                                        )
+                                    else:
+                                        boat_mask = mask_tmp
+                                mask_rdi = (anchor_mask, boat_mask)
                             for pp, npc in enumerate(test_pcs_full):
                                 res = pca_it(
                                     ADI_cube,

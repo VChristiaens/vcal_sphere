@@ -33,7 +33,7 @@ This file describes the structure of the postprocessing pipeline for IRDIS, and 
 "wedge":[0,360]			# in which range of PA should the contrast curve be computed. First angle also sets the PA of the first injected fake planets.
 
 # Post-proc options
-"mask_IWA": 8 			# numerical mask to hide central region of final images, to be provided in pixels
+"mask_IWA": 8 			# numerical mask to hide central region of final images, to be provided in pixels. To not use any mask, set to 0.
 "exclude_negative_lobes":0      # when computing SNR (maps) whether to exclude apertures in negative lobes
 
 # PCA options
@@ -54,7 +54,7 @@ prep_ref_cube: [2,3]                # whether to:
 2) same as 1) but using median shifts inferred in 8 subframes (avoiding center area dominated by mask residuals);
 3) change all neg values into 0.
 scaling       # scaling of the cube before RDI (default: None)
-mask_PCA      # if provided, radius in arcsec for an inner mask where the coefficients to project the PCs are NOT computed (e.g. if a bright disc is present, you may want to avoid that area to not have the ref images to try to model and subtract it). Note: sat spots are at 50px (0.6'') separation => set it to 0.65'' if sat spots are present
+mask_PCA      # if provided, either a float or a tuple of 2 floats. In the former case: radius in arcsec for an inner mask where the coefficients to project the PCs are NOT computed (e.g. if a bright disc is present, you may want to avoid that area to not have the ref images to try to model and subtract it). Note: sat spots are at 50px (0.6'') separation => set it to 0.65'' if sat spots are present. In the case of a tuple of 2 floats: inner and outer radius of the anchor mask. The boat mask will be assumed to go from mask_IWA to the outer radius.
 
 # other
 "imlib":"vip-fft"  # image library to use. Default: vip-fft
