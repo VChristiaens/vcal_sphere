@@ -5,5 +5,6 @@
  "TN": -1.75,
  "ifs_off": 0,
  "scal_x_distort": 1,
- "scal_y_distort": 1.0062
+ "scal_y_distort": 1.0062,
+ "xy_spots_ifs":[[105, 169], [171, 181], [117, 103], [183, 115]]
 }
