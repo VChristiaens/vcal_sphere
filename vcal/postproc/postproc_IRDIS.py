@@ -364,7 +364,7 @@ def postproc_IRDIS(
     if isinstance(ref_cube_name, str):
         if scaling is not None:
             label_stg += "_" + scaling
-        if mask_PCA is not None and strategy != "ADI":
+        if mask_PCA is not None:
             if np.isscalar(mask_PCA):
                 label_stg += "_mask{:.1f}".format(mask_PCA)
                 mask_PCA = (int(mask_PCA / np.median(plsc_ori)),)
