@@ -285,7 +285,7 @@ def postproc_IRDIS(
     ## Post-processing
     high_pass_filter_list = params_postproc.get(
         "high_pass_filter_list", [0]
-    )  # True # whether to filter out small spatial frequencies - might be useful to remove large scale noise variations in the image, but risky in case of presence of extended authentic disk signal which can get subtracted.
+    )  # float or None # If not None nor 0, this is the size of the median filter (in FWHM) used to filter out small spatial frequencies - might be useful to remove large scale noise variations in the image, but risky if extended disk signal is present.
     mask_IWA_px = params_postproc.get(
         "mask_IWA", 5
     )  # just show pca images beyond the provided mask radius (in pixels)
@@ -1692,7 +1692,7 @@ def postproc_IRDIS(
                             pdb.set_trace()
 
                         if high_pass_filter:
-                            label_filt = "_hpf"
+                            label_filt = label_test+"_hpf"
                             # MODIFY THE IF BELOW
                             if isfile(
                                 outpath_4.format(bin_fac)
@@ -1712,7 +1712,7 @@ def postproc_IRDIS(
                                 ADI_cube = cube_filter_highpass(
                                     ADI_cube,
                                     "median-subt",
-                                    median_size=int(4 * fwhm),
+                                    median_size=int(high_pass_filter * fwhm),
                                 )
                                 write_fits(
                                     outpath_4.format(bin_fac)
