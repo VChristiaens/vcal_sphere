@@ -3199,7 +3199,7 @@ def preproc_IRDIS(
                                         subframe = frame_crop(
                                             cube[ii],
                                             crop_sz,
-                                            cenxy=(
+                                            xy=(
                                                 int(final_x_bkg[ii]),
                                                 int(final_y_bkg[ii]),
                                             ),
@@ -3896,7 +3896,7 @@ def preproc_IRDIS(
                 system("rm {}*2cen.fits".format(outpath))
 
         # ********** 8. SUBTRACT SAT SPOTS IF CEN cubes USED as OBJ cubes *********
-        if 8 in to_do and use_cen_only:
+        if False: # 8 in to_do and use_cen_only: # NOT NEEDED: will be subtracted by PCA!
             print(
                 "************* 8. SUBTRACT SAT SPOTS IF CEN cubes USED as OBJ cubes *************",
                 flush=True,
@@ -3974,7 +3974,7 @@ def preproc_IRDIS(
                             )
                             xy_pos.append((x_tmp, y_tmp))
                             sub_array = frame_crop(
-                                cube[cc], crop_sz, cenxy=xy_pos[ss]
+                                cube[cc], crop_sz, xy=xy_pos[ss]
                             )
                             r = np.sqrt((y_tmp - cy) ** 2 + (x_tmp - cx) ** 2)
                             # measure flux
@@ -4066,22 +4066,22 @@ def preproc_IRDIS(
                         not isfile(outpath + final_cubename + ".fits")
                         or overwrite[7]
                     ):
-                        cube_notrim = open_fits(
-                            outpath
-                            + "2{}_master{}_cube_{}{}.fits".format(
-                                label_cen, labels[0], filters[ff], dist_lab
-                            )
-                        )
-                        cube = open_fits(
-                            outpath
-                            + "3_master_cube_clean_{}{}{}.fits".format(
-                                filt, dist_lab, "-".join(badfr_crit_names)
-                            )
-                        )
                         if use_cen_only:
                             fi_tmp = -1
                         else:
                             fi_tmp = 0
+                        cube_notrim = open_fits(
+                            outpath
+                            + "2{}_master{}_cube_{}{}.fits".format(
+                                label_cen, labels[fi_tmp], filt, dist_lab
+                            )
+                        )
+                        cube = open_fits(
+                            outpath
+                            + "3_master{}_cube_clean_{}{}{}.fits".format(
+                                labels[fi_tmp], filt, dist_lab, "-".join(badfr_crit_names)
+                            )
+                        )
                         derot_angles = open_fits(
                             outpath
                             + "3_master{}_derot_angles_clean_{}{}.fits".format(
