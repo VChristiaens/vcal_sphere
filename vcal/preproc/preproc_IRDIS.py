@@ -1687,18 +1687,34 @@ def preproc_IRDIS(
                                         if debug:
                                             write_fits(outpath + "TMP_last_CEN.fits",
                                                        cube_cen_sub)
-                                        res = cube_recenter_satspots(
-                                            cube_cen_sub,
-                                            xy_spots_tmp,
-                                            subi_size=cen_box_sz[2],
-                                            sigfactor=sigfactor,
-                                            plot=plot,
-                                            fit_type="moff",
-                                            lbda=None,
-                                            debug=debug,
-                                            verbose=verbose,
-                                            full_output=True,
-                                        )
+                                        try:
+                                            res = cube_recenter_satspots(
+                                                cube_cen_sub,
+                                                xy_spots_tmp,
+                                                subi_size=cen_box_sz[2],
+                                                sigfactor=sigfactor,
+                                                plot=plot,
+                                                fit_type="moff",
+                                                lbda=None,
+                                                debug=debug,
+                                                verbose=verbose,
+                                                full_output=True,
+                                            )
+                                        except:
+                                            import pdb
+                                            pdb.set_trace()
+                                            res = cube_recenter_satspots(
+                                                cube_cen_sub,
+                                                xy_spots_tmp,
+                                                subi_size=cen_box_sz[2],
+                                                sigfactor=sigfactor,
+                                                plot=plot,
+                                                fit_type="gaus",
+                                                lbda=None,
+                                                debug=debug,
+                                                verbose=verbose,
+                                                full_output=True,
+                                            )                                            
                                         cube_cen_sub, y_tmp, x_tmp, _, _ = res
                                         if plot:
                                             plot_frames(
