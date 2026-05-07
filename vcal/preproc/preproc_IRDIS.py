@@ -1650,7 +1650,11 @@ def preproc_IRDIS(
                                         cube_cen_sub = np.array(
                                             cube_cen, copy=True
                                         )
-                                        if not use_cen_only:
+                                        if use_cen_only: # HPF
+                                            cube_cen_sub = cube_filter_highpass(cube_cen,
+                                                                                mode='gauss-subt',
+                                                                                fwhm_size=4*resel[ff]) # ~3 FWHM
+                                        else: # subtract closest SCI
                                             m_idx = find_nearest(
                                                 mjd_mean, mjd_cen[cc]
                                             )
@@ -1680,6 +1684,9 @@ def preproc_IRDIS(
                                                 )
                                             ]
                                         )
+                                        if debug:
+                                            write_fits(outpath + "TMP_last_CEN.fits",
+                                                       cube_cen_sub)
                                         res = cube_recenter_satspots(
                                             cube_cen_sub,
                                             xy_spots_tmp,
@@ -1865,10 +1872,10 @@ def preproc_IRDIS(
                                             np.array([unc_cen]),
                                         )
                                     if (
-                                        np.amax(x_shifts_cen_err) > 3
-                                        or np.amax(y_shifts_cen_err) > 3
+                                        np.amax(np.abs(x_shifts_cen_err)) > 3
+                                        or np.amax(np.abs(y_shifts_cen_err)) > 3
                                     ):
-                                        msg = "Warning: large std found for calculated shifts (std_x: {:.1f}, std_y: {:.1f}) px."
+                                        msg = "Warning: large std found for calculated shifts (max shift x: {:.1f}, max shift y: {:.1f}) px.".format(np.amax(x_shifts_cen_err), np.amax(y_shifts_cen_err))
                                         msg += "Make sure CEN cubes and sat spots fits look good."
                                         print(msg, flush=True)
                                         set_trace()
@@ -3006,6 +3013,14 @@ def preproc_IRDIS(
                                         verbose=debug,
                                     )
                                 )
+                                if plot:
+                                    plt.savefig(
+                                        outpath
+                                        + "badfr_stats_plot{}{}.pdf".format(
+                                            labels[fi], filt
+                                        ),
+                                        bbox_inches="tight",
+                                    )
                                 final_good_index_list = [
                                     idx
                                     for idx in list(good_index_list)
@@ -4337,19 +4352,21 @@ def preproc_IRDIS(
             fluxes = np.zeros(n_ch)
             lbdas_tmp = np.zeros_like(fluxes)
             for ff, filt in enumerate(filters):
-                fluxes[ff] = open_fits(
+                fluxes[ff] = float(open_fits(
                     outpath + final_fluxname + "{}.fits".format(filt)
-                )[0]
-                lbdas_tmp[ff] = open_fits(
+                )[0][0])
+                lbdas_tmp[ff] = float(open_fits(
                     outpath + final_fwhmname + "{}.fits".format(filt)
-                )
-                derot_angles = open_fits(
-                    outpath + final_anglename + "{}.fits".format(filt)
-                )
+                )[0])
+            derot_angles = open_fits(
+                outpath + final_anglename + "{}.fits".format(filt)
+            )
 
             n_cubes = len(derot_angles)
             scal_vector = np.zeros([n_cubes, n_ch])
             flux_fac_vec = np.zeros([n_cubes, n_ch])
+            resc_cube1_all = []
+            resc_cube2_all = []
             resc_cube_res_all = []
             for i in range(n_cubes):
                 for ff, filt in enumerate(filters):
@@ -4432,8 +4449,18 @@ def preproc_IRDIS(
                 resc_cube_res[:-1] = resc_cube
                 resc_cube_res[-1] = resc_cube[-1] - resc_cube[0]
                 write_fits(outpath + "TMP_resc_cube_res.fits", resc_cube_res)
+                resc_cube1_all.append(resc_cube_res[0])
+                resc_cube2_all.append(resc_cube_res[1])
                 resc_cube_res_all.append(resc_cube_res[-1])
+            resc_cube1_all = np.array(resc_cube1_all)
+            resc_cube2_all = np.array(resc_cube2_all)
             resc_cube_res_all = np.array(resc_cube_res_all)
+            write_fits(
+                outpath + "TMP_resc_cube1_all.fits", resc_cube1_all
+            )
+            write_fits(
+                outpath + "TMP_resc_cube2_all.fits", resc_cube2_all
+            )
             write_fits(
                 outpath + "TMP_resc_cube_res_all.fits", resc_cube_res_all
             )
