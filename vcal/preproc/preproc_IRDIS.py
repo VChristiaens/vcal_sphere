@@ -4466,6 +4466,9 @@ def preproc_IRDIS(
                 )
                 scal_vector21[i], flux_fac_vec21[i] = res21
                 scal_vector12[i], flux_fac_vec12[i] = res12
+                # reverse because we reversed it for input to find_scal_vector
+                scal_vector12[i,:] = scal_vector12[i,::-1]
+                flux_fac_vec12[i,:] = flux_fac_vec12[i,::-1]
 
                 resc_cube21 = master_cube.copy()
                 for z in range(resc_cube21.shape[0]):
@@ -4494,9 +4497,8 @@ def preproc_IRDIS(
                         master_cube.shape[2],
                     ]
                 )
-                resc_cube_res12[0] = resc_cube12[1]
-                resc_cube_res12[1] = resc_cube12[0]
-                resc_cube_res12[-1] = resc_cube12[-1] - resc_cube12[0]
+                resc_cube_res12[:-1] = resc_cube12
+                resc_cube_res12[-1] = resc_cube12[0] - resc_cube12[-1]
                 write_fits(outpath + "TMP_resc_cube_res12.fits",
                            resc_cube_res21)
                 
