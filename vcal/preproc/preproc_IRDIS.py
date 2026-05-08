@@ -245,7 +245,7 @@ def preproc_IRDIS(
     ifs_off = instr_cst.get("ifs_off", 0)
     scal_x_distort = instr_cst.get("scal_x_distort", 1.0)  # for IFS: 1.0059
     scal_y_distort = instr_cst.get("scal_y_distort", 1.0062)  # for IFS: 1.0011
-    mask_scal = params_preproc.get("mask_scal", [0.15, 0])
+    mask_scal = params_preproc.get("mask_scal", [0.6, 0])
     if isinstance(mask_scal, str):
         pass
     elif not isinstance(mask_scal, (tuple, list)):
@@ -4379,11 +4379,16 @@ def preproc_IRDIS(
             )
 
             n_cubes = len(derot_angles)
-            scal_vector = np.zeros([n_cubes, n_ch])
-            flux_fac_vec = np.zeros([n_cubes, n_ch])
+            scal_vector21 = np.zeros([n_cubes, n_ch])
+            flux_fac_vec21 = np.zeros([n_cubes, n_ch])
+            scal_vector12 = np.zeros([n_cubes, n_ch])
+            flux_fac_vec12 = np.zeros([n_cubes, n_ch])
+            desc_cube1_all = []
+            desc_cube2_all = []
             resc_cube1_all = []
             resc_cube2_all = []
-            resc_cube_res_all = []
+            resc_cube_res12_all = []
+            resc_cube_res21_all = []
             for i in range(n_cubes):
                 for ff, filt in enumerate(filters):
                     frame = open_fits(
@@ -4441,7 +4446,7 @@ def preproc_IRDIS(
                                         mask_scal,
                                     )
                     master_cube[ff] = frame
-                res = find_scal_vector(
+                res21 = find_scal_vector(
                     master_cube,
                     lbdas_tmp,
                     fluxes,
@@ -4449,28 +4454,60 @@ def preproc_IRDIS(
                     nfp=nfp,
                     debug=debug,
                 )
-                scal_vector[i], flux_fac_vec[i] = res
+                res12 = find_scal_vector(
+                    master_cube[::-1],
+                    lbdas_tmp[::-1],
+                    fluxes[::-1],
+                    mask=mask_scal,
+                    nfp=nfp,
+                    debug=debug,
+                )
+                scal_vector21[i], flux_fac_vec21[i] = res21
+                scal_vector12[i], flux_fac_vec12[i] = res12
 
-                resc_cube = master_cube.copy()
-                for z in range(resc_cube.shape[0]):
-                    resc_cube[z] *= flux_fac_vec[i, z]
-                resc_cube = cube_rescaling(resc_cube, scal_vector[i])
-                resc_cube_res = np.zeros(
+                resc_cube21 = master_cube.copy()
+                for z in range(resc_cube21.shape[0]):
+                    resc_cube21[z] *= flux_fac_vec21[i, z]
+                resc_cube21 = cube_rescaling(resc_cube21, scal_vector21[i])
+                resc_cube12 = master_cube.copy()
+                for z in range(resc_cube12.shape[0]):
+                    resc_cube12[z] *= flux_fac_vec12[i, z]
+                resc_cube12 = cube_rescaling(resc_cube12, scal_vector12[i])
+                
+                resc_cube_res21 = np.zeros(
                     [
                         master_cube.shape[0] + 1,
                         master_cube.shape[1],
                         master_cube.shape[2],
                     ]
                 )
-                resc_cube_res[:-1] = resc_cube
-                resc_cube_res[-1] = resc_cube[-1] - resc_cube[0]
-                write_fits(outpath + "TMP_resc_cube_res.fits", resc_cube_res)
-                resc_cube1_all.append(resc_cube_res[0])
-                resc_cube2_all.append(resc_cube_res[1])
-                resc_cube_res_all.append(resc_cube_res[-1])
+                resc_cube_res21[:-1] = resc_cube21
+                resc_cube_res21[-1] = resc_cube21[-1] - resc_cube21[0]
+                write_fits(outpath + "TMP_resc_cube_res21.fits",
+                           resc_cube_res21)
+                resc_cube_res12 = np.zeros(
+                    [
+                        master_cube.shape[0] + 1,
+                        master_cube.shape[1],
+                        master_cube.shape[2],
+                    ]
+                )
+                resc_cube_res12[0] = resc_cube12[1]
+                resc_cube_res12[1] = resc_cube12[0]
+                resc_cube_res12[-1] = resc_cube12[-1] - resc_cube12[0]
+                write_fits(outpath + "TMP_resc_cube_res12.fits",
+                           resc_cube_res21)
+                
+                resc_cube1_all.append(resc_cube_res21[0])
+                resc_cube2_all.append(resc_cube_res21[1])
+                desc_cube1_all.append(resc_cube_res12[0])
+                desc_cube2_all.append(resc_cube_res12[1])
+                resc_cube_res12_all.append(resc_cube_res12[-1])
+                resc_cube_res21_all.append(resc_cube_res21[-1])
             resc_cube1_all = np.array(resc_cube1_all)
             resc_cube2_all = np.array(resc_cube2_all)
-            resc_cube_res_all = np.array(resc_cube_res_all)
+            resc_cube_res12_all = np.array(resc_cube_res12_all)
+            resc_cube_res21_all = np.array(resc_cube_res21_all)
             write_fits(
                 outpath + "TMP_resc_cube1_all.fits", resc_cube1_all
             )
@@ -4478,52 +4515,94 @@ def preproc_IRDIS(
                 outpath + "TMP_resc_cube2_all.fits", resc_cube2_all
             )
             write_fits(
-                outpath + "TMP_resc_cube_res_all.fits", resc_cube_res_all
+                outpath + "TMP_desc_cube1_all.fits", desc_cube1_all
             )
-            # perform simple SDI
-            derot_cube = cube_derotate(
-                resc_cube_res_all, derot_angles, nproc=nproc
-            )
-            sdi_frame = np.median(derot_cube, axis=0)
             write_fits(
-                outpath + "median_SDI.fits", mask_circle(sdi_frame, coro_sz)
+                outpath + "TMP_desc_cube2_all.fits", desc_cube2_all
             )
-            stim_map = compute_stim_map(derot_cube)
-            inv_stim_map = compute_inverse_stim_map(
-                resc_cube_res_all, derot_angles, nproc=nproc
+            write_fits(
+                outpath + "TMP_resc_cube_res12_all.fits", resc_cube_res12_all
             )
-            thr = np.percentile(mask_circle(inv_stim_map, coro_sz), 99.9)
-            norm_stim_map = stim_map / thr
-            stim_maps = np.array(
-                [
-                    mask_circle(stim_map, coro_sz),
-                    mask_circle(inv_stim_map, coro_sz),
-                    mask_circle(norm_stim_map, coro_sz),
-                ]
+            write_fits(
+                outpath + "TMP_resc_cube_res21_all.fits", resc_cube_res21_all
             )
-            write_fits(outpath + "median_SDI_stim.fits", stim_maps)
+            
+            # perform simple SDI (unnecessary - too much diffraction near mask)
+            if False:
+                derot_cube12 = cube_derotate(
+                    resc_cube_res12_all, derot_angles, nproc=nproc
+                )
+                sdi_frame12 = np.median(derot_cube12, axis=0)
+                write_fits(
+                    outpath + "median_SDI12.fits", mask_circle(sdi_frame12,
+                                                                coro_sz)
+                )
+                stim_map12 = compute_stim_map(derot_cube12)
+                inv_stim_map12 = compute_inverse_stim_map(
+                    resc_cube_res12_all, derot_angles, nproc=nproc
+                )
+                thr = np.percentile(mask_circle(inv_stim_map12, coro_sz), 99.9)
+                norm_stim_map12 = stim_map12 / thr
+                stim_maps12 = np.array(
+                    [
+                        mask_circle(stim_map12, coro_sz),
+                        mask_circle(inv_stim_map12, coro_sz),
+                        mask_circle(norm_stim_map12, coro_sz),
+                    ]
+                )
+                write_fits(outpath + "median_SDI12_stim.fits", stim_maps12)
 
-            final_scal_vector = np.median(scal_vector, axis=0)
-            final_flux_fac = np.median(flux_fac_vec, axis=0)
-            std_scal_vector = np.std(scal_vector, axis=0)
-            std_flux_fac_vector = np.std(flux_fac_vec, axis=0)
-            print("original scal guess: ", lbdas_tmp[-1] / lbdas_tmp[:])
-            print("original flux fac guess: ", fluxes[-1] / fluxes[:])
-            print("final scal result: ", final_scal_vector)
+            # 12
+            final_scal_vector12 = np.median(scal_vector12, axis=0)
+            final_flux_fac12 = np.median(flux_fac_vec12, axis=0)
+            std_scal_vector12 = np.std(scal_vector12, axis=0)
+            std_flux_fac_vector12 = np.std(flux_fac_vec12, axis=0)
+            print("original scal guess 1-2: ", lbdas_tmp[0] / lbdas_tmp[:])
+            print("original flux fac guess 1-2: ", fluxes[0] / fluxes[:])
+            print("final scal result 1-2: ", final_scal_vector12)
             print(
-                "final flux fac result ({:.0f}): ".format(nfp), final_flux_fac
+                "final flux fac result 1-2 ({:.0f} free param): ".format(nfp),
+                final_flux_fac12
             )
-            print("std scal (from cube to cube): ", std_scal_vector)
+            print("std scal 1-2 (from cube to cube): ", std_scal_vector12)
             print(
-                "std flux fac (from cube to cube): ",
-                std_flux_fac_vector,
+                "std flux fac 1-2 (from cube to cube): ",
+                std_flux_fac_vector12,
                 flush=True,
             )
-            write_fits(outpath + final_scalefac_name, final_scal_vector)
-            write_fits(outpath + "final_flux_fac.fits", final_flux_fac)
-            write_fits(outpath + "final_scale_fac_std.fits", std_scal_vector)
+            write_fits(outpath + final_scalefac_name +'_12',
+                       final_scal_vector12)
+            write_fits(outpath + "final_flux_fac12.fits", final_flux_fac12)
+            write_fits(outpath + "final_scale_fac_std12.fits", std_scal_vector12)
             write_fits(
-                outpath + "final_flux_fac_std.fits", std_flux_fac_vector
+                outpath + "final_flux_fac_std12.fits", std_flux_fac_vector12
+            )
+            
+            # 21
+            final_scal_vector21 = np.median(scal_vector21, axis=0)
+            final_flux_fac21 = np.median(flux_fac_vec21, axis=0)
+            std_scal_vector21 = np.std(scal_vector21, axis=0)
+            std_flux_fac_vector21 = np.std(flux_fac_vec21, axis=0)
+            print("original scal guess 2-1: ", lbdas_tmp[-1] / lbdas_tmp[:])
+            print("original flux fac guess 2-1: ", fluxes[-1] / fluxes[:])
+            print("final scal result 2-1: ", final_scal_vector21)
+            print(
+                "final flux fac result 2-1 ({:.0f} free param): ".format(nfp),
+                final_flux_fac21
+            )
+            print("std scal 2-1 (from cube to cube): ", std_scal_vector21)
+            print(
+                "std flux fac 2-1 (from cube to cube): ",
+                std_flux_fac_vector21,
+                flush=True,
+            )
+            write_fits(outpath + final_scalefac_name +'_21',
+                       final_scal_vector21)
+            write_fits(outpath + "final_flux_fac21.fits", final_flux_fac21)
+            write_fits(outpath + "final_scale_fac_std21.fits",
+                       std_scal_vector21)
+            write_fits(
+                outpath + "final_flux_fac_std21.fits", std_flux_fac_vector21
             )
 
     return None
