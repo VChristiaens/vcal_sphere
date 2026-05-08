@@ -282,6 +282,9 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                 elif header['HIERARCH ESO PRO CATG'] == 'IRD_POINT_PATTERN':
                     calib_IRDIS.append(fname)
 
+        sky_list_ifs_ori = sky_list_ifs
+        sky_list_irdis_ori = sky_list_irdis
+
         for fname in fits_list:  # all fits files
             header = open_header(inpath+fname)
             if header['HIERARCH ESO DPR TYPE'] == 'OBJECT,AO':
@@ -312,6 +315,15 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                 distort_ins_bg_IFS.append(fname)
             elif header['HIERARCH ESO DET NAME'] == 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'DARK,BACKGROUND' and float(header['HIERARCH ESO DET SEQ1 DIT']) in dit_irdis_distort:
                 distort_ins_bg_IRDIS.append(fname)
+            # FILL SKY lists with other DITs in case none matched the SCI DITS
+            if len(sky_list_ifs_ori) == 0 and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'SKY':
+                sky_list_ifs.append(fname)
+                sky_list_mjd_ifs.append(header['MJD-OBS'])
+                ifs_mode = _check_mode(ifs_mode)
+            elif len(sky_list_irdis_ori) == 0 and header['HIERARCH ESO DET NAME'] == 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'SKY' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
+                sky_list_irdis.append(fname)
+                sky_list_mjd_irdis.append(header['MJD-OBS'])
+                
 
         # SORT ALL LISTS IN ALPHABETICAL ORDER (will be chronological)
         file_list.sort()
