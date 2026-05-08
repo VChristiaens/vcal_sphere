@@ -4452,6 +4452,7 @@ def preproc_IRDIS(
                     fluxes,
                     mask=mask_scal,
                     nfp=nfp,
+                    check_vec=False,
                     debug=debug,
                 )
                 res12 = find_scal_vector(
@@ -4460,6 +4461,7 @@ def preproc_IRDIS(
                     fluxes[::-1],
                     mask=mask_scal,
                     nfp=nfp,
+                    check_vec=False,
                     debug=debug,
                 )
                 scal_vector21[i], flux_fac_vec21[i] = res21
