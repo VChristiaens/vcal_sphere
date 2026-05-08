@@ -4506,6 +4506,8 @@ def preproc_IRDIS(
                 resc_cube_res21_all.append(resc_cube_res21[-1])
             resc_cube1_all = np.array(resc_cube1_all)
             resc_cube2_all = np.array(resc_cube2_all)
+            desc_cube1_all = np.array(desc_cube1_all)
+            desc_cube2_all = np.array(desc_cube2_all)
             resc_cube_res12_all = np.array(resc_cube_res12_all)
             resc_cube_res21_all = np.array(resc_cube_res21_all)
             write_fits(
