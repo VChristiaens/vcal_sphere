@@ -4206,11 +4206,30 @@ def preproc_IRDIS(
                             derot_angles = derot_angles_bin
                             derot_angles_notrim = derot_angles_bin_notrim
                         if not cc:
+                            # crop by max shift amplitude (to avoid empty edge)
+                            if use_cen_only:
+                                tmp_str = (outpath
+                                           + "TMP_shifts_cen_y{}_{}_{}.fits")
+                            else:
+                                tmp_str = (outpath
+                                           + "TMP_shifts_y{}_{}_{}.fits")
+                            ny, nx = cube.shape[1:]
+                            all_max_shifts = []
+                            for ff, filt in enumerate(filters):
+                                shifts = open_fits(tmp_str.format(labels[0],
+                                                                  filters[ff],
+                                                                  rec_met))
+                                all_max_shifts.append(max(np.abs(shifts)))
+                            max_sh = int(max(all_max_shifts))
+                            max_crop_sz = ny-max_sh-2
+                            if max_crop_sz%2 != ny%2:
+                                max_crop_sz -= 1
+                            cube_full = cube_crop_frames(cube, max_crop_sz)
                             write_fits(
                                 outpath
                                 + final_cubename
                                 + "_full{}.fits".format(filt),
-                                cube,
+                                cube_full,
                             )
                         # crop
                         if cube.shape[1] > crop_sz or cube.shape[2] > crop_sz:
