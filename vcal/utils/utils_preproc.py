@@ -1089,8 +1089,8 @@ def find_intersect(xy):
         else:
             return None
 
-    L1 = line([xy[0][0], xy[0][1], [xy[3][0], xy[3][1]])
-    L2 = line([xy[1][0], xy[1][1], [xy[2][0], xy[2][1]])
+    L1 = line([xy[0][0], xy[0][1]], [xy[3][0], xy[3][1]])
+    L2 = line([xy[1][0], xy[1][1]], [xy[2][0], xy[2][1]])
     xy_cen = intersection(L1, L2)
 
     return xy_cen
@@ -1114,11 +1114,8 @@ def turn_w(xy):
     midl = find_intersect(xy)
     y_m = midl[1]
     x_m = midl[0]
-    n_spots = len(xy_spots[ff])
-    r_sats = [dist(y_m, x_m,
-                   xy_spots[ff][s][1],
-                   xy_spots[ff][s][0])
-              for s in range(n_spots)]
+    n_spots = len(xy)
+    r_sats = [dist(y_m, x_m, xy[s][1], xy[s][0]) for s in range(n_spots)]
     r_sat = np.median(r_sats)
     new_xy = ((x_m, y_m+r_sat), (x_m+r_sat, y_m),
               (x_m-r_sat, y_m), (x_m, y_m-r_sat))
