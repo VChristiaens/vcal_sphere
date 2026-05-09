@@ -204,7 +204,7 @@ def preproc_IRDIS(
         raise ValueError(msg.format(filt_spec["filters"][0]))
     elif "xy_spots" in filt_spec.keys():
         xy_spots = filt_spec["xy_spots"]
-    patt_key = "HIEREARCH ESO OCS WAFFLE ORIENT"  # header key for waffle pattern
+    patt_key = "HIERARCH ESO OCS WAFFLE ORIENT"  # header key for waffle pattern
     sigfactor = params_preproc.get("sigfactor", 3)
 
     badfr_crit_names = params_preproc["badfr_crit_names"]
