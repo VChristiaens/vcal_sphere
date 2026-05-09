@@ -58,7 +58,7 @@ from vip_hci.var import (
     mask_circle,
     frame_filter_lowpass,
     cube_filter_highpass,
-    cube_filter_lowpass,
+    cube_filter_lowpass
 )
 from ..utils import (
     cube_recenter_bkg,
@@ -66,6 +66,7 @@ from ..utils import (
     interpolate_bkg_pos,
     find_rot_cen,
     circ_interp,
+    turn_w
 )
 
 mpl_backend("Agg")
@@ -203,6 +204,7 @@ def preproc_IRDIS(
         raise ValueError(msg.format(filt_spec["filters"][0]))
     elif "xy_spots" in filt_spec.keys():
         xy_spots = filt_spec["xy_spots"]
+    patt_key = "HIEREARCH ESO OCS WAFFLE ORIENT"  # header key for waffle pattern
     sigfactor = params_preproc.get("sigfactor", 3)
 
     badfr_crit_names = params_preproc["badfr_crit_names"]
@@ -860,6 +862,16 @@ def preproc_IRDIS(
                                             # np.zeros([ncen,n_frc])
                                             x_shifts_cen_std = []
                                         mjd_cen[cc] = float(head_cc["MJD-OBS"])
+                                        
+                                        # switch to '+' pattern coords?
+                                        waffle_pattern = head_cc[patt_key]
+                                        if waffle_pattern.strip() == "+":
+                                            # rotate all xy by +45deg
+                                            xy_spots_fin = turn_w(xy_spots[ff])
+                                        else:
+                                            xy_spots_fin = xy_spots[ff]
+                                            
+                                            
                                         # SUBTRACT TEST OBJ CUBE (to easily find sat spots)
                                         if not use_cen_only:
                                             cube_cen -= np.median(cube, axis=0)
@@ -867,11 +879,11 @@ def preproc_IRDIS(
                                         xy_spots_tmp = tuple(
                                             [
                                                 (
-                                                    xy_spots[ff][i][0] - diff,
-                                                    xy_spots[ff][i][1] - diff,
+                                                    xy_spots_fin[i][0] - diff,
+                                                    xy_spots_fin[i][1] - diff,
                                                 )
                                                 for i in range(
-                                                    len(xy_spots[ff])
+                                                    len(xy_spots_fin)
                                                 )
                                             ]
                                         )
@@ -1286,6 +1298,17 @@ def preproc_IRDIS(
                                             3600 * 24
                                         )  # MJD-OBS corresponds to start of exposure
                                         # unique_mjd_cen = mjd_cen.copy()
+                                        
+                                        # switch to '+' pattern coords?
+                                        waffle_pattern = head_cc[patt_key]
+                                        if waffle_pattern.strip() == "+":
+                                            # rotate all xy by +45deg
+                                            xy_spots_fin = turn_w(xy_spots[ff])
+                                        else:
+                                            xy_spots_fin = xy_spots[ff]
+                                        write_fits(outpath+"TMP_xy_spots.fits",
+                                                   np.array(xy_spots_fin))
+                                        
                                         # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots)
                                         cube_cen_sub = cube_cen.copy()
                                         m_idx = find_nearest(
@@ -1304,11 +1327,11 @@ def preproc_IRDIS(
                                         xy_spots_tmp = tuple(
                                             [
                                                 (
-                                                    xy_spots[ff][i][0] - diff,
-                                                    xy_spots[ff][i][1] - diff,
+                                                    xy_spots_fin[i][0] - diff,
+                                                    xy_spots_fin[i][1] - diff,
                                                 )
                                                 for i in range(
-                                                    len(xy_spots[ff])
+                                                    len(xy_spots_fin)
                                                 )
                                             ]
                                         )
@@ -1646,6 +1669,15 @@ def preproc_IRDIS(
                                         ) + (nfr_tmp * dits[-1] / 2.0) / (
                                             3600 * 24
                                         )
+                                            
+                                        # switch to '+' pattern coords?
+                                        waffle_pattern = head_cc[patt_key]
+                                        if waffle_pattern.strip() == "+":
+                                            # rotate all xy by +45deg
+                                            xy_spots_fin = turn_w(xy_spots[ff])
+                                        else:
+                                            xy_spots_fin = xy_spots[ff]
+                                                
                                         # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots)
                                         cube_cen_sub = np.array(
                                             cube_cen, copy=True
@@ -1676,11 +1708,11 @@ def preproc_IRDIS(
                                         xy_spots_tmp = tuple(
                                             [
                                                 (
-                                                    xy_spots[ff][i][0] - diff,
-                                                    xy_spots[ff][i][1] - diff,
+                                                    xy_spots_fin[i][0] - diff,
+                                                    xy_spots_fin[i][1] - diff,
                                                 )
                                                 for i in range(
-                                                    len(xy_spots[ff])
+                                                    len(xy_spots_fin)
                                                 )
                                             ]
                                         )
@@ -4455,30 +4487,20 @@ def preproc_IRDIS(
                     check_vec=False,
                     debug=debug,
                 )
-                res12 = find_scal_vector(
-                    master_cube[::-1],
-                    lbdas_tmp[::-1],
-                    fluxes[::-1],
-                    mask=mask_scal,
-                    nfp=nfp,
-                    check_vec=False,
-                    debug=debug,
-                )
                 scal_vector21[i], flux_fac_vec21[i] = res21
-                scal_vector12[i], flux_fac_vec12[i] = res12
-                # reverse because we reversed it for input to find_scal_vector
-                scal_vector12[i,:] = scal_vector12[i,::-1]
-                flux_fac_vec12[i,:] = flux_fac_vec12[i,::-1]
 
                 resc_cube21 = master_cube.copy()
                 for z in range(resc_cube21.shape[0]):
                     resc_cube21[z] *= flux_fac_vec21[i, z]
                 resc_cube21 = cube_rescaling(resc_cube21, scal_vector21[i])
                 resc_cube12 = master_cube.copy()
+                resc_cube12 = cube_rescaling(resc_cube12,
+                                             1/scal_vector21[i,::-1])
+                # NOTE: recall find_scal_vector here if below doesn't work well
                 for z in range(resc_cube12.shape[0]):
-                    resc_cube12[z] *= flux_fac_vec12[i, z]
-                resc_cube12 = cube_rescaling(resc_cube12, scal_vector12[i])
-                
+                    j = z+1
+                    resc_cube12[z] /= flux_fac_vec21[i, -j]
+                    
                 resc_cube_res21 = np.zeros(
                     [
                         master_cube.shape[0] + 1,
@@ -4526,6 +4548,13 @@ def preproc_IRDIS(
             write_fits(
                 outpath + "TMP_desc_cube2_all.fits", desc_cube2_all
             )
+            # CROP to avoid noise at edge
+            crop_sz12 = int(master_cube.shape[0]/np.amax(scal_vector21))
+            if crop_sz12 < master_cube.shape[0]:
+                if crop_sz12%2 != master_cube.shape[0]%2:
+                    crop_sz12 -=1
+                resc_cube_res12_all = cube_crop_frames(resc_cube_res12_all,
+                                                       crop_sz12)
             write_fits(
                 outpath + "TMP_resc_cube_res12_all.fits", resc_cube_res12_all
             )
@@ -4559,56 +4588,56 @@ def preproc_IRDIS(
                 write_fits(outpath + "median_SDI12_stim.fits", stim_maps12)
 
             # 12
-            final_scal_vector12 = np.median(scal_vector12, axis=0)
-            final_flux_fac12 = np.median(flux_fac_vec12, axis=0)
-            std_scal_vector12 = np.std(scal_vector12, axis=0)
-            std_flux_fac_vector12 = np.std(flux_fac_vec12, axis=0)
-            print("original scal guess 1-2: ", lbdas_tmp[0] / lbdas_tmp[:])
-            print("original flux fac guess 1-2: ", fluxes[0] / fluxes[:])
-            print("final scal result 1-2: ", final_scal_vector12)
-            print(
-                "final flux fac result 1-2 ({:.0f} free param): ".format(nfp),
-                final_flux_fac12
-            )
-            print("std scal 1-2 (from cube to cube): ", std_scal_vector12)
-            print(
-                "std flux fac 1-2 (from cube to cube): ",
-                std_flux_fac_vector12,
-                flush=True,
-            )
-            write_fits(outpath + final_scalefac_name +'_12',
-                       final_scal_vector12)
-            write_fits(outpath + "final_flux_fac12.fits", final_flux_fac12)
-            write_fits(outpath + "final_scale_fac_std12.fits", std_scal_vector12)
-            write_fits(
-                outpath + "final_flux_fac_std12.fits", std_flux_fac_vector12
-            )
+            # final_scal_vector12 = np.median(scal_vector12, axis=0)
+            # final_flux_fac12 = np.median(flux_fac_vec12, axis=0)
+            # std_scal_vector12 = np.std(scal_vector12, axis=0)
+            # std_flux_fac_vector12 = np.std(flux_fac_vec12, axis=0)
+            # print("original scal guess 1-2: ", lbdas_tmp[0] / lbdas_tmp[:])
+            # print("original flux fac guess 1-2: ", fluxes[0] / fluxes[:])
+            # print("final scal result 1-2: ", final_scal_vector12)
+            # print(
+            #     "final flux fac result 1-2 ({:.0f} free param): ".format(nfp),
+            #     final_flux_fac12
+            # )
+            # print("std scal 1-2 (from cube to cube): ", std_scal_vector12)
+            # print(
+            #     "std flux fac 1-2 (from cube to cube): ",
+            #     std_flux_fac_vector12,
+            #     flush=True,
+            # )
+            # write_fits(outpath + final_scalefac_name +'_12',
+            #            final_scal_vector12)
+            # write_fits(outpath + "final_flux_fac12.fits", final_flux_fac12)
+            # write_fits(outpath + "final_scale_fac_std12.fits", std_scal_vector12)
+            # write_fits(
+            #     outpath + "final_flux_fac_std12.fits", std_flux_fac_vector12
+            # )
             
             # 21
             final_scal_vector21 = np.median(scal_vector21, axis=0)
             final_flux_fac21 = np.median(flux_fac_vec21, axis=0)
             std_scal_vector21 = np.std(scal_vector21, axis=0)
             std_flux_fac_vector21 = np.std(flux_fac_vec21, axis=0)
-            print("original scal guess 2-1: ", lbdas_tmp[-1] / lbdas_tmp[:])
-            print("original flux fac guess 2-1: ", fluxes[-1] / fluxes[:])
-            print("final scal result 2-1: ", final_scal_vector21)
+            print("original scal guess: ", lbdas_tmp[-1] / lbdas_tmp[:])
+            print("original flux fac guess: ", fluxes[-1] / fluxes[:])
+            print("final scal result: ", final_scal_vector21)
             print(
-                "final flux fac result 2-1 ({:.0f} free param): ".format(nfp),
+                "final flux fac result ({:.0f} free param): ".format(nfp),
                 final_flux_fac21
             )
-            print("std scal 2-1 (from cube to cube): ", std_scal_vector21)
+            print("std scal (from cube to cube): ", std_scal_vector21)
             print(
-                "std flux fac 2-1 (from cube to cube): ",
+                "std flux fac (from cube to cube): ",
                 std_flux_fac_vector21,
                 flush=True,
             )
-            write_fits(outpath + final_scalefac_name +'_21',
+            write_fits(outpath + final_scalefac_name,
                        final_scal_vector21)
-            write_fits(outpath + "final_flux_fac21.fits", final_flux_fac21)
-            write_fits(outpath + "final_scale_fac_std21.fits",
+            write_fits(outpath + "final_flux_fac.fits", final_flux_fac21)
+            write_fits(outpath + "final_scale_fac_std.fits",
                        std_scal_vector21)
             write_fits(
-                outpath + "final_flux_fac_std21.fits", std_flux_fac_vector21
+                outpath + "final_flux_fac_std.fits", std_flux_fac_vector21
             )
 
     return None

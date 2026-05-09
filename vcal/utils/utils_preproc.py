@@ -13,7 +13,8 @@ __all__ = ['cube_recenter_bkg',
            'leastsq_circle',
            'plot_data_circle',
            'find_rot_cen',
-           'circ_interp'
+           'circ_interp',
+           'find_intersect'
            ]
 
 from pdb import set_trace
@@ -1050,3 +1051,77 @@ def shifts_from_med_circ(array, derot_angles, med_x, med_y, fwhm=5,
         return shifts_x, shifts_y, cen_unc
     else:
         return shifts_x, shifts_y
+    
+    
+def find_intersect(xy):
+    """Find the intersect of 2 lines connecting 4 input points.
+
+    Parameters
+    ----------
+    xy : tuple of 4 tuples of 2 elements
+        Tuple with coordinates X,Y of the 4 satellite spots. When the spots are
+        in an X configuration, the order is the following: top-left, top-right,
+        bottom-left and bottom-right. When the spots are in an + (cross-like)
+        configuration, the order is the following: top, right, left, bottom.
+        
+    Returns
+    -------
+    x, y : tuple of 2 floats
+        XY coordinates of the intersect
+    """
+
+    def line(p1, p2):
+        """Calculate coefs A, B, C of line equation by 2 points."""
+        A = (p1[1] - p2[1])
+        B = (p2[0] - p1[0])
+        C = (p1[0] * p2[1] - p2[0] * p1[1])
+        return A, B, -C
+
+    def intersection(L1, L2):
+        """Find intersection point (if any) of 2 lines provided by coefs."""
+        D = L1[0] * L2[1] - L1[1] * L2[0]
+        Dx = L1[2] * L2[1] - L1[1] * L2[2]
+        Dy = L1[0] * L2[2] - L1[2] * L2[0]
+        if D != 0:
+            x = Dx / D
+            y = Dy / D
+            return x, y
+        else:
+            return None
+
+    L1 = line([xy[0][0], xy[0][1], [xy[3][0], xy[3][1]])
+    L2 = line([xy[1][0], xy[1][1], [xy[2][0], xy[2][1]])
+    xy_cen = intersection(L1, L2)
+
+    return xy_cen
+
+def turn_w(xy):
+    """Turn input waffle xy coordinates from 'x' to '+' configuration.
+
+    Parameters
+    ----------
+    xy : tuple of 4 tuples of 2 elements
+        Tuple with coordinates X,Y of the 4 satellite spots. When the spots are
+        in an X configuration, the order is the following: top-left, top-right,
+        bottom-left and bottom-right. When the spots are in an + (cross-like)
+        configuration, the order is the following: top, right, left, bottom.
+        
+    Returns
+    -------
+    x, y : tuple of 4 tuples of 2 floats
+        Set of 4 new XY coordinates for the satellite spots.
+    """
+    midl = find_intersect(xy)
+    y_m = midl[1]
+    x_m = midl[0]
+    n_spots = len(xy_spots[ff])
+    r_sats = [dist(y_m, x_m,
+                   xy_spots[ff][s][1],
+                   xy_spots[ff][s][0])
+              for s in range(n_spots)]
+    r_sat = np.median(r_sats)
+    new_xy = ((x_m, y_m+r_sat), (x_m+r_sat, y_m),
+              (x_m-r_sat, y_m), (x_m, y_m-r_sat))
+    
+    return new_xy
+    
