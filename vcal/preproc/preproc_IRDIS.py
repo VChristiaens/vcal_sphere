@@ -4499,7 +4499,7 @@ def preproc_IRDIS(
                 # NOTE: recall find_scal_vector here if below doesn't work well
                 for z in range(resc_cube12.shape[0]):
                     j = z+1
-                    resc_cube12[z] /= flux_fac_vec21[i, -j]
+                    resc_cube12[z] /= float(flux_fac_vec21[i, -j])
                     
                 resc_cube_res21 = np.zeros(
                     [
@@ -4522,7 +4522,7 @@ def preproc_IRDIS(
                 resc_cube_res12[:-1] = resc_cube12
                 resc_cube_res12[-1] = resc_cube12[0] - resc_cube12[-1]
                 write_fits(outpath + "TMP_resc_cube_res12.fits",
-                           resc_cube_res21)
+                           resc_cube_res12)
                 
                 resc_cube1_all.append(resc_cube_res21[0])
                 resc_cube2_all.append(resc_cube_res21[1])
@@ -4549,9 +4549,9 @@ def preproc_IRDIS(
                 outpath + "TMP_desc_cube2_all.fits", desc_cube2_all
             )
             # CROP to avoid noise at edge
-            crop_sz12 = int(master_cube.shape[0]/np.amax(scal_vector21))
-            if crop_sz12 < master_cube.shape[0]:
-                if crop_sz12%2 != master_cube.shape[0]%2:
+            crop_sz12 = int(master_cube.shape[-1]/np.amax(scal_vector21))
+            if crop_sz12 < master_cube.shape[-1]:
+                if crop_sz12%2 != master_cube.shape[-1]%2:
                     crop_sz12 -=1
                 resc_cube_res12_all = cube_crop_frames(resc_cube_res12_all,
                                                        crop_sz12)
