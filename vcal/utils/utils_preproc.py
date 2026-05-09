@@ -14,7 +14,8 @@ __all__ = ['cube_recenter_bkg',
            'plot_data_circle',
            'find_rot_cen',
            'circ_interp',
-           'find_intersect'
+           'find_intersect',
+           'turn_w'
            ]
 
 from pdb import set_trace
