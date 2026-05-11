@@ -3885,6 +3885,11 @@ def preproc_IRDIS(
                             header["Flux 1"] = "Flux measured in PSF image"
                             if npsf == 0:
                                 dit_psf_irdis = dit_irdis  # no coronagraph, OBJ used as PSF
+                            interp_trans = np.interp(
+                                lbdas[ff] * 1000,
+                                np.array(nd_wavelen),
+                                nd_trans[1],
+                            )
                             write_fits(
                                 outpath
                                 + final_fluxname
@@ -3892,7 +3897,7 @@ def preproc_IRDIS(
                                 np.array(
                                     [
                                         med_flux * dit_irdis / dit_psf_irdis,
-                                        med_flux,
+                                        med_flux * interp_trans,
                                     ]
                                 ),
                                 header=header,
@@ -4215,9 +4220,9 @@ def preproc_IRDIS(
                                            + "TMP_shifts_y{}_{}_{}.fits")
                             ny, nx = cube.shape[1:]
                             all_max_shifts = []
-                            for ff, filt in enumerate(filters):
+                            for ff2, filt2 in enumerate(filters):
                                 shifts = open_fits(tmp_str.format(labels[0],
-                                                                  filters[ff],
+                                                                  filt2,
                                                                   rec_met))
                                 all_max_shifts.append(max(np.abs(shifts)))
                             max_sh = int(max(all_max_shifts))
