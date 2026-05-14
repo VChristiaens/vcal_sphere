@@ -4131,7 +4131,7 @@ def preproc_IRDIS(
                 # for bb, bin_fac in enumerate(bin_fac_list):
                 for ff, filt in enumerate(filters):
                     if (
-                        not isfile(outpath + final_cubename + ".fits")
+                        not isfile(outpath + final_cubename + "{}.fits".format(filt))
                         or overwrite[7]
                     ):
                         if use_cen_only:

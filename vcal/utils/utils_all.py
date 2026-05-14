@@ -4,7 +4,7 @@
 General utility routines used in vcal.
 """
 
-__author__ = 'V. Christiaens'
+__author__ = 'V. Christiaens', 'I. Hammond'
 __all__ = ['set_backend',
          'nonzero_median',
          'cube_crop_quadrant',
