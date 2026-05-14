@@ -384,7 +384,7 @@ def postproc_IRDIS(
     if coro:
         transmission_name = f2
         transmission = open_fits(transmission_name)
-        transmission = (transmission[1], transmission[0])
+        # transmission = (transmission[1], transmission[0])
     else:
         transmission = None
 
