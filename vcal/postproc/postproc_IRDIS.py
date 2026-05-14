@@ -204,8 +204,8 @@ def postproc_IRDIS(
     outpath_2 = path_irdis + "2_preproc_vip{}/".format(label_test_pre)
 
     # from postproc param file
-    sourcename = params_postproc["sourcename"]  # can have spaces
-    details = params_postproc["details"]
+    sourcename = params_postproc.get("sourcename", "")  # can have spaces
+    details = params_postproc.get("details", "")
     label_test = params_postproc.get("label_test", "")
 
     source = sourcename.replace(" ", "")  # same without space
