@@ -2268,12 +2268,15 @@ def preproc_IRDIS(
                             if nn == 0:
                                 # np.zeros([int(len(file_list)*ndits[fi]),cube.shape[1],cube.shape[2]])
                                 master_cube = []
-                            try:
+                            if cube.ndim == 3:
                                 for jj in range(cube.shape[0]):
                                     master_cube.append(cube[jj])
                                 # master_cube[int(nn*ndits[fi]):int((nn+1)*ndits[fi])] = cube
-                            except:
-                                set_trace()
+                            elif cube.ndim == 2:
+                                master_cube.append(cube)
+                            else:
+                                msg = "cube {}_2cen has wrong shape"
+                                raise ValueError(msg.format(filename+filt))
                             if fi != 1:
                                 parang_st.append(
                                     float(
@@ -4468,8 +4471,8 @@ def preproc_IRDIS(
             n_cubes = len(derot_angles)
             scal_vector21 = np.zeros([n_cubes, n_ch])
             flux_fac_vec21 = np.zeros([n_cubes, n_ch])
-            scal_vector12 = np.zeros([n_cubes, n_ch])
-            flux_fac_vec12 = np.zeros([n_cubes, n_ch])
+            # scal_vector12 = np.zeros([n_cubes, n_ch])
+            # flux_fac_vec12 = np.zeros([n_cubes, n_ch])
             desc_cube1_all = []
             desc_cube2_all = []
             resc_cube1_all = []
