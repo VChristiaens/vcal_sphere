@@ -1546,23 +1546,28 @@ def preproc_IRDIS(
                                         interpolation=interpolation,
                                     )
                                 # 2. alignment with upsampling
-                                cube, y_shifts, x_shifts = (
-                                    cube_recenter_dft_upsampling(
-                                        cube,
-                                        center_fr1=None,
-                                        negative=False,
-                                        fwhm=4,
-                                        subi_size=cen_box_sz[fi],
-                                        upsample_factor=int(rec_met_tmp[4:]),
-                                        interpolation="lanczos4",
-                                        full_output=True,
-                                        verbose=verbose,
-                                        nproc=nproc,
-                                        save_shifts=False,
-                                        debug=False,
-                                        plot=plot,
+                                if cube.ndim == 3 and cube.shape[0]>1:
+                                    cube, y_shifts, x_shifts = (
+                                        cube_recenter_dft_upsampling(
+                                            cube,
+                                            center_fr1=None,
+                                            negative=False,
+                                            fwhm=4,
+                                            subi_size=cen_box_sz[fi],
+                                            upsample_factor=int(rec_met_tmp[4:]),
+                                            interpolation="lanczos4",
+                                            full_output=True,
+                                            verbose=verbose,
+                                            nproc=nproc,
+                                            save_shifts=False,
+                                            debug=False,
+                                            plot=plot,
+                                        )
                                     )
-                                )
+                                elif cube.ndim == 3:
+                                    y_shifts = np.array([0])
+                                    x_shifts = np.array([0])
+                                    
                                 # 3 final centering based on 2d fit
                                 cube_tmp = np.zeros(
                                     [1, cube.shape[-1], cube.shape[-2]]
