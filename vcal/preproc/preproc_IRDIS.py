@@ -2294,7 +2294,7 @@ def preproc_IRDIS(
                                                 labels[fi], filters[ff]))
                                             idx0 = np.sum(ndits[fi][:nn])
                                             idx_bad = [idxb+idx0 for idxb in idx_bad]
-                                            nmcube1 = [mcube1[i] for i in range(ndits[fi][nn]) if i nor in idx_bad]
+                                            nmcube1 = [mcube1[i] for i in range(ndits[fi][nn]) if i not in idx_bad]
                                             write_fits(outpath + "1_master{}_cube_{}.fits".format(
                                                 labels[fi], filters[ff]), np.array(nmcube1))
                                             if fi != 1:
@@ -2302,8 +2302,8 @@ def preproc_IRDIS(
                                                     labels[fi], filters[ff]))
                                                 mder1 = open_fits(outpath + "1_master_par_angles{}{}.fits".format(
                                                     labels[fi], filters[ff]))
-                                                nmangs1 = [mangs1[i] for i in range(ndits[fi][nn]) if i nor in idx_bad]
-                                                nmder1 = [mder1[i] for i in range(ndits[fi][nn]) if i nor in idx_bad]
+                                                nmangs1 = [mangs1[i] for i in range(ndits[fi][nn]) if i not in idx_bad]
+                                                nmder1 = [mder1[i] for i in range(ndits[fi][nn]) if i not in idx_bad]
                                                 write_fits(outpath + "1_master_derot_angles{}{}.fits".format(
                                                     labels[fi], filters[ff]), np.array(nmangs1))
                                                 write_fits(outpath + "1_master_par_angles{}{}.fits".format(
