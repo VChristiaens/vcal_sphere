@@ -1735,6 +1735,7 @@ def preproc_IRDIS(
                                             sum_fr[z] = np.sum(cube_cen_sub[z])
                                         good1 = sum_fr>0
                                         good2 = np.isfinite(sum_fr)
+                                        
                                         try:
                                             res = cube_recenter_satspots(
                                                 cube_cen_sub[good1 & good2],
@@ -1816,7 +1817,7 @@ def preproc_IRDIS(
                                             header=head_cc,
                                         )
                                         cube_cen = cube_shift(
-                                            cube_cen,
+                                            cube_cen[good1 & good2],
                                             y_tmp,
                                             x_tmp,
                                             nproc=nproc,
