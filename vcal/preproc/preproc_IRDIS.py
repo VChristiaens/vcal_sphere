@@ -1722,9 +1722,17 @@ def preproc_IRDIS(
                                         if debug:
                                             write_fits(outpath + "TMP_last_CEN.fits",
                                                        cube_cen_sub)
+                                        # Remove from cube any outlier frame
+                                        # such as pure zeros or NaNs
+                                        nz = cube_cen_sub.shape[0]
+                                        sum_fr = np.zeros(nz)
+                                        for z in range(nz):
+                                            sum_fr[z] = np.sum(cube_cen_sub[z])
+                                        good1 = sum_fr>0
+                                        good2 = np.isfinite(sum_fr)
                                         try:
                                             res = cube_recenter_satspots(
-                                                cube_cen_sub,
+                                                cube_cen_sub[good1 & good2],
                                                 xy_spots_tmp,
                                                 subi_size=cen_box_sz[2],
                                                 sigfactor=sigfactor,
@@ -1735,22 +1743,40 @@ def preproc_IRDIS(
                                                 verbose=verbose,
                                                 full_output=True,
                                             )
+                                            cube_cen_sub, y_tmp, x_tmp, _, _ = res
+                                            # account for any dithering in the CEN cubes (extremely rare). if not accounted
+                                            # for, the satspot intersection won't correspond to the same position in OBJ cubes
+                                            y_tmp += pacy_cen
+                                            x_tmp += pacx_cen
                                         except:
-                                            import pdb
-                                            pdb.set_trace()
-                                            res = cube_recenter_satspots(
-                                                cube_cen_sub,
-                                                xy_spots_tmp,
-                                                subi_size=cen_box_sz[2],
-                                                sigfactor=sigfactor,
-                                                plot=plot,
-                                                fit_type="gaus",
-                                                lbda=None,
-                                                debug=debug,
-                                                verbose=verbose,
-                                                full_output=True,
-                                            )                                            
-                                        cube_cen_sub, y_tmp, x_tmp, _, _ = res
+                                            try:
+                                                res = cube_recenter_satspots(
+                                                    cube_cen_sub[good1 & good2],
+                                                    xy_spots_tmp,
+                                                    subi_size=cen_box_sz[2],
+                                                    sigfactor=sigfactor,
+                                                    plot=plot,
+                                                    fit_type="gaus",
+                                                    lbda=None,
+                                                    debug=debug,
+                                                    verbose=verbose,
+                                                    full_output=True,
+                                                )
+                                                cube_cen_sub, y_tmp, x_tmp, _, _ = res
+                                                # account for any dithering in the CEN cubes (extremely rare). if not accounted
+                                                # for, the satspot intersection won't correspond to the same position in OBJ cubes
+                                                y_tmp += pacy_cen
+                                                x_tmp += pacx_cen
+                                            except:
+                                                msg = "FAILED finding spots "
+                                                msg += "for cube {}. SKIPPING "
+                                                msg += "and adopting same "
+                                                msg += "coordinates as "
+                                                msg += "previous good cube."
+                                                print(msg.format(cen_cube_names[cc]))
+                                                y_tmp = np.array([y_tmp[-1]]*nz)
+                                                x_tmp = np.array([x_tmp[-1]]*nz)
+                                        
                                         if plot:
                                             plot_frames(
                                                 cube_cen_sub,
@@ -1769,10 +1795,6 @@ def preproc_IRDIS(
                                             )
                                             plt.close("all")
 
-                                        # account for any dithering in the CEN cubes (extremely rare). if not accounted
-                                        # for, the satspot intersection won't correspond to the same position in OBJ cubes
-                                        y_tmp += pacy_cen
-                                        x_tmp += pacx_cen
 
                                         y_shifts_cen_tmp.append(y_tmp)
                                         x_shifts_cen_tmp.append(x_tmp)
