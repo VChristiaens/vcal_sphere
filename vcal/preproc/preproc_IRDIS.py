@@ -1181,10 +1181,13 @@ def preproc_IRDIS(
                                 + ".fits"
                             )
                             mjd_tmp = float(head_tmp["MJD-OBS"])
-                            mjd_tmp_list = [
-                                mjd_tmp + i * dit_irdis / 86400
-                                for i in range(head_tmp["NAXIS3"])
-                            ]  # DIT in seconds to MJD
+                            if "NAXIS3" in head_tmp.keys():
+                                mjd_tmp_list = [
+                                    mjd_tmp + i * dit_irdis / 86400
+                                    for i in range(head_tmp["NAXIS3"])
+                                ]  # DIT in seconds to MJD
+                            else: # sometimes single image is present
+                                mjd_tmp_list = [mjd_tmp]
                             mjd_all.extend(mjd_tmp_list)
                             mjd_mean.append(np.mean(mjd_tmp_list))
                             pa_sci_ini.append(
