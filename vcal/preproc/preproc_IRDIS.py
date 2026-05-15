@@ -2269,10 +2269,14 @@ def preproc_IRDIS(
                                 # np.zeros([int(len(file_list)*ndits[fi]),cube.shape[1],cube.shape[2]])
                                 master_cube = []
                             if cube.ndim == 3:
+                                if cube.shape[-1] > bp_crop_sz:
+                                    cube = cube_crop_frames(cube, bp_crop_sz)
                                 for jj in range(cube.shape[0]):
                                     master_cube.append(cube[jj])
                                 # master_cube[int(nn*ndits[fi]):int((nn+1)*ndits[fi])] = cube
                             elif cube.ndim == 2:
+                                if cube.shape[-1] > bp_crop_sz:
+                                    cube = frame_crop(cube, bp_crop_sz)
                                 master_cube.append(cube)
                             else:
                                 msg = "cube {}_2cen has wrong shape"
