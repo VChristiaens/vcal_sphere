@@ -2283,16 +2283,16 @@ def preproc_IRDIS(
                                                          ndits[fi][nn],
                                                          nfr))
                                         set_trace()
-                                        msg = "Enter index of bad frame(s) "
-                                        msg += "[int or list of int]"
-                                        idx_bad = input(msg)
-                                        if not isinstance(idx_bad, list):
-                                            idx_bad = [idx_bad]
+                                        msg = "Enter index of bad frame(s)"
+                                        msg+= "(single int or multiple ints "
+                                        msg+= "separated by space)"
+                                        idx_bad = input(msg).split()
+                                        idx_bad = [int(idxb) for idxb in idx_bad]
                                         # case 1: cube 1 needs trimming
                                         if ndits[fi][nn] > nfr:
                                             mcube1 = open_fits(outpath + "1_master{}_cube_{}.fits".format(
                                                 labels[fi], filters[ff]))
-                                            idx0 = np.sum(ndits[fi][:nn])
+                                            idx0 = int(np.sum(ndits[fi][:nn]))
                                             idx_bad = [idxb+idx0 for idxb in idx_bad]
                                             nmcube1 = [mcube1[i] for i in range(ndits[fi][nn]) if i not in idx_bad]
                                             write_fits(outpath + "1_master{}_cube_{}.fits".format(
