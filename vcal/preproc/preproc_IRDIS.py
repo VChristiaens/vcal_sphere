@@ -2291,23 +2291,24 @@ def preproc_IRDIS(
                                         # case 1: cube 1 needs trimming
                                         if ndits[fi][nn] > nfr:
                                             mcube1 = open_fits(outpath + "1_master{}_cube_{}.fits".format(
-                                                labels[fi], filters[ff]))
+                                                labels[fi], filters[ff-1]))
+                                            nfr_ori = mcube1.shape[0]
                                             idx0 = int(np.sum(ndits[fi][:nn]))
                                             idx_bad = [idxb+idx0 for idxb in idx_bad]
-                                            nmcube1 = [mcube1[i] for i in range(ndits[fi][nn]) if i not in idx_bad]
+                                            nmcube1 = [mcube1[i] for i in range(nfr_ori) if i not in idx_bad]
                                             write_fits(outpath + "1_master{}_cube_{}.fits".format(
-                                                labels[fi], filters[ff]), np.array(nmcube1))
+                                                labels[fi], filters[ff-1]), np.array(nmcube1))
                                             if fi != 1:
                                                 mangs1 = open_fits(outpath + "1_master_derot_angles{}{}.fits".format(
-                                                    labels[fi], filters[ff]))
+                                                    labels[fi], filters[ff-1]))
                                                 mder1 = open_fits(outpath + "1_master_par_angles{}{}.fits".format(
-                                                    labels[fi], filters[ff]))
-                                                nmangs1 = [mangs1[i] for i in range(ndits[fi][nn]) if i not in idx_bad]
-                                                nmder1 = [mder1[i] for i in range(ndits[fi][nn]) if i not in idx_bad]
+                                                    labels[fi], filters[ff-1]))
+                                                nmangs1 = [mangs1[i] for i in range(nfr_ori) if i not in idx_bad]
+                                                nmder1 = [mder1[i] for i in range(nfr_ori) if i not in idx_bad]
                                                 write_fits(outpath + "1_master_derot_angles{}{}.fits".format(
-                                                    labels[fi], filters[ff]), np.array(nmangs1))
+                                                    labels[fi], filters[ff-1]), np.array(nmangs1))
                                                 write_fits(outpath + "1_master_par_angles{}{}.fits".format(
-                                                    labels[fi], filters[ff]), np.array(nmder1))
+                                                    labels[fi], filters[ff-1]), np.array(nmder1))
                                         # Case 2: cube 2 not yet built to trim
                                         else:
                                             ncube = [cube[i] for i in range(nfr) if i not in idx_bad]
