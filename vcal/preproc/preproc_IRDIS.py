@@ -673,7 +673,8 @@ def preproc_IRDIS(
                 for ff, filt in enumerate(filters_lab):
                     if (
                         not isfile(
-                            outpath + "{}_2cen.fits".format(file_list[-1])
+                            outpath + "{}{}_2cen.fits".format(file_list[-1],
+                                                              filt)
                         )
                         or overwrite[1]
                     ):
