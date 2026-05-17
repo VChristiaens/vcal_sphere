@@ -1164,537 +1164,156 @@ def preproc_IRDIS(
                             )
                         #  pdb.set_trace()
 
-                    if isinstance(rec_met_tmp, str):
-                        final_y_shifts = []
-                        final_x_shifts = []
-                        final_y_shifts_std = []
-                        final_x_shifts_std = []
-                        mjd_all = []
-                        mjd_mean = []
-                        pa_sci_ini = []
-                        pa_sci_fin = []
-                        for fn_tmp, filename_tmp in enumerate(file_list):
-                            head_tmp = open_header(
-                                inpath
-                                + OBJ_IRDIS_list[fn_tmp]
-                                + filters_lab[ff]
-                                + ".fits"
-                            )
-                            mjd_tmp = float(head_tmp["MJD-OBS"])
-                            if "NAXIS3" in head_tmp.keys():
-                                mjd_tmp_list = [
-                                    mjd_tmp + i * dit_irdis / 86400
-                                    for i in range(head_tmp["NAXIS3"])
-                                ]  # DIT in seconds to MJD
-                            else: # sometimes single image is present
-                                mjd_tmp_list = [mjd_tmp]
-                            mjd_all.extend(mjd_tmp_list)
-                            mjd_mean.append(np.mean(mjd_tmp_list))
-                            pa_sci_ini.append(
-                                float(
-                                    head_tmp["HIERARCH ESO TEL PARANG START"]
+                        if isinstance(rec_met_tmp, str):
+                            final_y_shifts = []
+                            final_x_shifts = []
+                            final_y_shifts_std = []
+                            final_x_shifts_std = []
+                            mjd_all = []
+                            mjd_mean = []
+                            pa_sci_ini = []
+                            pa_sci_fin = []
+                            for fn_tmp, filename_tmp in enumerate(file_list):
+                                head_tmp = open_header(
+                                    inpath
+                                    + OBJ_IRDIS_list[fn_tmp]
+                                    + filters_lab[ff]
+                                    + ".fits"
                                 )
-                            )
-                            pa_sci_fin.append(
-                                float(head_tmp["HIERARCH ESO TEL PARANG END"])
-                            )
-                        mjd_all = np.array(mjd_all)
-                        for fn, filename in enumerate(file_list):
-                            if (
-                                (fn > 0 and fi == 0) or fn > npsf - 1
-                            ) and use_cen_only:
-                                continue
-                            cube, header = open_fits(
-                                outpath + filename + filt + "_1bpcorr.fits",
-                                header=True,
-                            )
-                            cube = np.nan_to_num(
-                                cube, copy=False
-                            )  # check for nans
-                            pacx = (
-                                header["ESO INS1 PAC X"] / 18
-                            )  # 18 microns -> pixels, ref SPHERE manual
-                            pacy = header["ESO INS1 PAC Y"] / 18
-                            n_fr = cube.shape[0]
-                            if "2dfit" in rec_met_tmp:
-                                if cube.ndim == 2:  # can have one frame
-                                    tmp = frame_filter_lowpass(cube)
-                                else:
-                                    tmp = frame_filter_lowpass(
-                                        np.median(cube, axis=0)
+                                mjd_tmp = float(head_tmp["MJD-OBS"])
+                                if "NAXIS3" in head_tmp.keys():
+                                    mjd_tmp_list = [
+                                        mjd_tmp + i * dit_irdis / 86400
+                                        for i in range(head_tmp["NAXIS3"])
+                                    ]  # DIT in seconds to MJD
+                                else: # sometimes single image is present
+                                    mjd_tmp_list = [mjd_tmp]
+                                mjd_all.extend(mjd_tmp_list)
+                                mjd_mean.append(np.mean(mjd_tmp_list))
+                                pa_sci_ini.append(
+                                    float(
+                                        head_tmp["HIERARCH ESO TEL PARANG START"]
                                     )
-                                y_max, x_max = np.unravel_index(
-                                    np.argmax(tmp), tmp.shape
                                 )
-                                cube, y_shifts, x_shifts = cube_recenter_2dfit(
-                                    cube,
-                                    xy=(int(x_max), int(y_max)),
-                                    fwhm=1.2 * resel[ff],
-                                    subi_size=cen_box_sz[fi],
-                                    model=rec_met_tmp[:-6],
-                                    nproc=nproc,
-                                    interpolation="lanczos4",
-                                    offset=None,
-                                    negative=negative,
-                                    threshold=False,
-                                    save_shifts=False,
-                                    full_output=True,
-                                    verbose=verbose,
-                                    debug=False,
-                                    plot=False,
+                                pa_sci_fin.append(
+                                    float(head_tmp["HIERARCH ESO TEL PARANG END"])
                                 )
-
-                            elif (
-                                "cross_corr" in rec_met_tmp
-                                and not use_cen_only
-                            ):
-                                cen_cube_names = obj_psf_list[-1]
-
+                            mjd_all = np.array(mjd_all)
+                            for fn, filename in enumerate(file_list):
                                 if (
-                                    fn == 0
-                                ):  # and ff == 0: # shifts can be different for each band
-                                    mjd_cen = np.zeros(ncen)
-                                    nfr_tmp = cube.shape[0]
-                                    y_const = []  # to contain satspots shifts
-                                    x_const = []
-
-                                if (
-                                    fn == 0
-                                ):  # only run loop on all CEN files for the first SCI file
-                                    print(
-                                        "*** Centering by cross correlation with satspots ***"
-                                    )
-                                    for cc in range(ncen):
-                                        ### first get the MJD time of each cube
-                                        head_cc = open_header(
-                                            inpath
-                                            + cen_cube_names[cc]
-                                            + filters_lab[ff]
-                                        )
-                                        # rare chance a CEN cube can have a dither value of 1 px or more, meaning the
-                                        # intersection of the sat spots is not at the center of the star in OBJ cubes
-                                        pacx_cen = (
-                                            head_cc["ESO INS1 PAC X"] / 18
-                                        )
-                                        pacy_cen = (
-                                            head_cc["ESO INS1 PAC Y"] / 18
-                                        )
-                                        if (
-                                            abs(pacx_cen) > 0.5
-                                            or abs(pacy_cen) > 0.5
-                                        ):
-                                            print(
-                                                "\nATTENTION: Dithering detected in CEN cubes. Each CEN frame will be shifted accordingly.\n",
-                                                flush=True,
-                                            )
-                                        cube_cen = open_fits(
-                                            outpath
-                                            + cen_cube_names[cc]
-                                            + filters_lab[ff]
-                                            + "_1bpcorr.fits"
-                                        )
-                                        nfr_tmp = cube_cen.shape[0]
-
-                                        mjd_cen[cc] = float(
-                                            head_cc["MJD-OBS"]
-                                        ) + (nfr_tmp * dits[-1] / 2.0) / (
-                                            3600 * 24
-                                        )  # MJD-OBS corresponds to start of exposure
-                                        # unique_mjd_cen = mjd_cen.copy()
-                                        
-                                        # switch to '+' pattern coords?
-                                        waffle_pattern = head_cc[patt_key]
-                                        if waffle_pattern.strip() == "+":
-                                            # rotate all xy by +45deg
-                                            xy_spots_fin = turn_w(xy_spots[ff])
-                                        else:
-                                            xy_spots_fin = xy_spots[ff]
-                                        write_fits(outpath+"TMP_xy_spots.fits",
-                                                   np.array(xy_spots_fin))
-                                        
-                                        # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots)
-                                        cube_cen_sub = cube_cen.copy()
-                                        m_idx = find_nearest(
-                                            mjd_mean, mjd_cen[cc]
-                                        )
-                                        cube_near = open_fits(
-                                            outpath
-                                            + file_list[m_idx]
-                                            + filt
-                                            + "_1bpcorr.fits"
-                                        )
-                                        cube_cen_sub -= np.median(
-                                            cube_near, axis=0
-                                        )
-                                        diff = int((ori_sz - bp_crop_sz) / 2)
-                                        xy_spots_tmp = tuple(
-                                            [
-                                                (
-                                                    xy_spots_fin[i][0] - diff,
-                                                    xy_spots_fin[i][1] - diff,
-                                                )
-                                                for i in range(
-                                                    len(xy_spots_fin)
-                                                )
-                                            ]
-                                        )
-                                        cube_cen_sub = cube_filter_highpass(
-                                            cube_cen_sub,
-                                            mode="gauss-subt",
-                                            fwhm_size=8,
-                                        )
-                                        cube_cen_sub = cube_filter_lowpass(
-                                            cube_cen_sub, fwhm_size=2.0
-                                        )
-                                        cube_cen_sub, y_tmp, x_tmp, _, _ = (
-                                            cube_recenter_satspots(
-                                                cube_cen_sub,
-                                                xy_spots_tmp,
-                                                subi_size=cen_box_sz[2],
-                                                sigfactor=sigfactor,
-                                                plot=plot,
-                                                fit_type="moff",
-                                                lbda=None,
-                                                debug=debug,
-                                                verbose=verbose,
-                                                full_output=True,
-                                            )
-                                        )
-
-                                        write_fits(
-                                            outpath
-                                            + cen_cube_names[cc]
-                                            + filters_lab[ff]
-                                            + "_2cen_sub.fits",
-                                            cube_cen_sub,
-                                            header=head_cc,
-                                        )
-                                        y_tmp += pacy_cen
-                                        x_tmp += pacx_cen
-                                        cube_cen_cen = cube_shift(
-                                            cube_cen,
-                                            y_tmp,
-                                            x_tmp,
-                                            imlib=imlib,
-                                            interpolation=interpolation,
-                                            nproc=nproc,
-                                        )
-                                        write_fits(
-                                            outpath
-                                            + cen_cube_names[cc]
-                                            + filters_lab[ff]
-                                            + "_2cen.fits",
-                                            cube_cen_cen,
-                                            header=head_cc,
-                                        )
-                                        # y_const.append(np.mean(y_tmp))
-                                        # x_const.append(np.mean(x_tmp))
-                                        y_const.append(y_tmp)
-                                        x_const.append(x_tmp)
-
-                                # check if there is only one CEN cube, otherwise find the closest one to OBJ
-                                if len(mjd_cen) == 1:
-                                    cc_clo = 0
-                                else:
-                                    cc_clo = find_nearest(
-                                        mjd_mean[fn], mjd_cen
-                                    )
-
-                                cube_cen, head_cc = open_fits(
-                                    outpath
-                                    + cen_cube_names[cc_clo]
-                                    + filt
-                                    + "_1bpcorr.fits",
+                                    (fn > 0 and fi == 0) or fn > npsf - 1
+                                ) and use_cen_only:
+                                    continue
+                                cube, header = open_fits(
+                                    outpath + filename + filt + "_1bpcorr.fits",
                                     header=True,
                                 )
-                                y_shi = np.zeros(
-                                    [cube_cen.shape[0], cube.shape[0]]
-                                )
-                                x_shi = np.zeros(
-                                    [cube_cen.shape[0], cube.shape[0]]
-                                )
-                                if cube_cen.ndim == 3:
-                                    for k in range(cube_cen.shape[0]):
-                                        center_1_frame = cube_cen[
-                                            k, :
-                                        ].reshape(
-                                            1,
-                                            cube_cen[k, :].shape[0],
-                                            cube_cen[k, :].shape[1],
+                                cube = np.nan_to_num(
+                                    cube, copy=False
+                                )  # check for nans
+                                pacx = (
+                                    header["ESO INS1 PAC X"] / 18
+                                )  # 18 microns -> pixels, ref SPHERE manual
+                                pacy = header["ESO INS1 PAC Y"] / 18
+                                n_fr = cube.shape[0]
+                                if "2dfit" in rec_met_tmp:
+                                    if cube.ndim == 2:  # can have one frame
+                                        tmp = frame_filter_lowpass(cube)
+                                    else:
+                                        tmp = frame_filter_lowpass(
+                                            np.median(cube, axis=0)
                                         )
-                                        cube_tmp = np.vstack(
-                                            (center_1_frame, cube)
-                                        )
-
-                                        if cube_tmp.shape[-1] > 71:
-                                            cyc, cxc = frame_center(cube_tmp)
-                                            # approx xy of star from sat spots
-                                            xc_med = np.median(x_const[cc_clo])
-                                            yc_med = np.median(y_const[cc_clo])
-                                            xy_s = (cxc - xc_med, cyc - yc_med)
-                                            print(xy_s)
-                                            cube_crop = cube_crop_frames(
-                                                cube_tmp,
-                                                71,
-                                                xy_s,
-                                                force=True,
-                                                verbose=False,
-                                            )
-                                        else:
-                                            cube_crop = cube_tmp
-                                        cube_hpf = cube_filter_highpass(
-                                            cube_crop,
-                                            mode="gauss-subt",
-                                            fwhm_size=3,
-                                        )
-
-                                        tmp, y, x = (
-                                            cube_recenter_dft_upsampling(
-                                                cube_hpf,
-                                                center_fr1=None,
-                                                subi_size=None,
-                                                upsample_factor=int(
-                                                    rec_met_tmp[11:]
-                                                ),
-                                                verbose=False,
-                                                plot=False,
-                                                full_output=True,
-                                            )
-                                        )
-                                        # DEBUG
-                                        if fn == 0 or fn == 2 or fn == 3:
-                                            write_fits(
-                                                outpath
-                                                + "TMP_cube_cc{}_{}.fits".format(
-                                                    filt, fn
-                                                ),
-                                                tmp,
-                                            )
-                                        y_shi[k] = y[1:]
-                                        x_shi[k] = x[1:]
-                                else:
-                                    center_1_frame = cube_cen.reshape(
-                                        1, cube_cen.shape[0], cube_cen.shape[1]
+                                    y_max, x_max = np.unravel_index(
+                                        np.argmax(tmp), tmp.shape
                                     )
-                                    cube_tmp = np.vstack(
-                                        (center_1_frame, cube)
-                                    )
-                                    cube_hpf = cube_filter_highpass(
-                                        cube_tmp,
-                                        mode="gauss-subt",
-                                        fwhm_size=3,
-                                    )
-
-                                    _, y, x = cube_recenter_dft_upsampling(
-                                        cube_hpf,
-                                        center_fr1=None,
-                                        subi_size=None,
-                                        upsample_factor=int(rec_met_tmp[11:]),
-                                        verbose=False,
-                                        plot=False,
-                                        full_output=True,
-                                    )
-
-                                    y_shi[k] = y[1:]
-                                    x_shi[k] = x[1:]
-
-                                final_y_shifts = np.zeros(cube.shape[0])
-                                final_x_shifts = np.zeros(cube.shape[0])
-
-                                for z in range(cube.shape[0]):
-                                    final_y_shifts[z] = np.median(
-                                        y_shi[:, z] + y_const[cc_clo],
-                                        axis=0,
-                                    )
-                                    final_x_shifts[z] = np.median(
-                                        x_shi[:, z] + x_const[cc_clo],
-                                        axis=0,
-                                    )
-
-                                cube = cube_shift(
-                                    cube,
-                                    final_y_shifts,
-                                    final_x_shifts,
-                                    imlib=imlib,
-                                    interpolation=interpolation,
-                                    nproc=nproc,
-                                )
-
-                            elif "dft" in rec_met_tmp:
-                                # 1 rough centering with peak
-                                _, peak_y, peak_x = peak_coordinates(
-                                    cube,
-                                    fwhm=1.2 * resel[ff],
-                                    approx_peak=None,
-                                    search_box=None,
-                                    channels_peak=False,
-                                )
-                                _, peak_yx_ch = peak_coordinates(
-                                    cube,
-                                    fwhm=1.2 * resel[ff],
-                                    approx_peak=(peak_y, peak_x),
-                                    search_box=31,
-                                    channels_peak=True,
-                                )
-                                cy, cx = frame_center(cube[0])
-                                for zz in range(cube.shape[0]):
-                                    cube[zz] = frame_shift(
-                                        cube[zz],
-                                        cy - peak_yx_ch[zz, 0],
-                                        cx - peak_yx_ch[zz, 1],
-                                        imlib=imlib,
-                                        interpolation=interpolation,
-                                    )
-                                # 2. alignment with upsampling
-                                if cube.ndim == 3 and cube.shape[0]>1:
-                                    cube, y_shifts, x_shifts = (
-                                        cube_recenter_dft_upsampling(
-                                            cube,
-                                            center_fr1=None,
-                                            negative=False,
-                                            fwhm=4,
-                                            subi_size=cen_box_sz[fi],
-                                            upsample_factor=int(rec_met_tmp[4:]),
-                                            interpolation="lanczos4",
-                                            full_output=True,
-                                            verbose=verbose,
-                                            nproc=nproc,
-                                            save_shifts=False,
-                                            debug=False,
-                                            plot=plot,
-                                        )
-                                    )
-                                elif cube.ndim == 3:
-                                    y_shifts = np.array([0])
-                                    x_shifts = np.array([0])
-                                    
-                                # 3 final centering based on 2d fit
-                                cube_tmp = np.zeros(
-                                    [1, cube.shape[-1], cube.shape[-2]]
-                                )
-                                cube_tmp[0] = np.median(cube, axis=0)
-                                _, y_shifts_tmp, x_shifts_tmp = (
-                                    cube_recenter_2dfit(
-                                        cube_tmp,
-                                        xy=None,
+                                    cube, y_shifts, x_shifts = cube_recenter_2dfit(
+                                        cube,
+                                        xy=(int(x_max), int(y_max)),
                                         fwhm=1.2 * resel[ff],
                                         subi_size=cen_box_sz[fi],
-                                        model="moff",
+                                        model=rec_met_tmp[:-6],
                                         nproc=nproc,
                                         interpolation="lanczos4",
                                         offset=None,
-                                        negative=False,
+                                        negative=negative,
                                         threshold=False,
                                         save_shifts=False,
                                         full_output=True,
                                         verbose=verbose,
                                         debug=False,
-                                        plot=plot,
+                                        plot=False,
                                     )
-                                )
-                                for zz in range(cube.shape[0]):
-                                    cube[zz] = frame_shift(
-                                        cube[zz],
-                                        y_shifts_tmp[0],
-                                        x_shifts_tmp[0],
-                                        imlib=imlib,
-                                        interpolation=interpolation,
-                                    )
-                                y_shifts = y_shifts + y_shifts_tmp[0]
-                                x_shifts = x_shifts + x_shifts_tmp[0]
-                                if debug:
-                                    print(
-                                        "dft{} + 2dfit centering: xshift: {} px, yshift: {} px for cube {}_1bpcorr.fits".format(
-                                            int(rec_met_tmp[4:]),
-                                            x_shifts[0],
-                                            y_shifts[0],
-                                            filename,
-                                        ),
-                                        flush=True,
-                                    )
-
-                            elif "satspots" in rec_met_tmp or use_cen_only:
-                                if fn == 0:
-                                    if ncen == 0:
-                                        raise ValueError(
-                                            "No CENTER file found. Cannot recenter based on satellite spots."
-                                        )
-                                    # INFER SHIFTS FROM CEN CUBES
+    
+                                elif (
+                                    "cross_corr" in rec_met_tmp
+                                    and not use_cen_only
+                                ):
                                     cen_cube_names = obj_psf_list[-1]
-                                    mjd_cen = np.zeros(ncen)
-                                    pa_cen = []
-                                    for cc in range(ncen):
-                                        ### first get the MJD time of each cube
-                                        head_cc = open_header(
-                                            inpath
-                                            + cen_cube_names[cc]
-                                            + filters_lab[ff]
+    
+                                    if (
+                                        fn == 0
+                                    ):  # and ff == 0: # shifts can be different for each band
+                                        mjd_cen = np.zeros(ncen)
+                                        nfr_tmp = cube.shape[0]
+                                        y_const = []  # to contain satspots shifts
+                                        x_const = []
+    
+                                    if (
+                                        fn == 0
+                                    ):  # only run loop on all CEN files for the first SCI file
+                                        print(
+                                            "*** Centering by cross correlation with satspots ***"
                                         )
-                                        # rare chance a CEN cube can have a dither value of 1 px or more, meaning the
-                                        # intersection of the sat spots is not at the center of the star in OBJ cubes
-                                        pacx_cen = (
-                                            head_cc["ESO INS1 PAC X"] / 18
-                                        )
-                                        pacy_cen = (
-                                            head_cc["ESO INS1 PAC Y"] / 18
-                                        )
-                                        if (
-                                            abs(pacx_cen) > 0.5
-                                            or abs(pacy_cen) > 0.5
-                                        ):
-                                            print(
-                                                "\nATTENTION: Dithering detected in CEN cubes. Each CEN frame will be shifted accordingly.\n",
-                                                flush=True,
+                                        for cc in range(ncen):
+                                            ### first get the MJD time of each cube
+                                            head_cc = open_header(
+                                                inpath
+                                                + cen_cube_names[cc]
+                                                + filters_lab[ff]
                                             )
-
-                                        pa_cen.append(
-                                            float(
-                                                head_cc[
-                                                    "HIERARCH ESO TEL PARANG START"
-                                                ]
+                                            # rare chance a CEN cube can have a dither value of 1 px or more, meaning the
+                                            # intersection of the sat spots is not at the center of the star in OBJ cubes
+                                            pacx_cen = (
+                                                head_cc["ESO INS1 PAC X"] / 18
                                             )
-                                        )
-                                        cube_cen = open_fits(
-                                            outpath
-                                            + cen_cube_names[cc]
-                                            + filters_lab[ff]
-                                            + "_1bpcorr.fits"
-                                        )
-                                        nfr_tmp = cube_cen.shape[0]
-                                        if cc == 0:
-                                            # n_frc=cube_cen.shape[0]
-                                            # np.zeros([ncen,n_frc])
-                                            y_shifts_cen_tmp = []
-                                            # np.zeros([ncen,n_frc])
-                                            x_shifts_cen_tmp = []
-                                            y_shifts_cen_med = np.zeros([ncen])
-                                            x_shifts_cen_med = np.zeros([ncen])
-                                            y_shifts_cen_std = np.zeros([ncen])
-                                            x_shifts_cen_std = np.zeros([ncen])
-                                        # MJD-OBS corresponds to start of exposure
-                                        mjd_cen[cc] = float(
-                                            head_cc["MJD-OBS"]
-                                        ) + (nfr_tmp * dits[-1] / 2.0) / (
-                                            3600 * 24
-                                        )
+                                            pacy_cen = (
+                                                head_cc["ESO INS1 PAC Y"] / 18
+                                            )
+                                            if (
+                                                abs(pacx_cen) > 0.5
+                                                or abs(pacy_cen) > 0.5
+                                            ):
+                                                print(
+                                                    "\nATTENTION: Dithering detected in CEN cubes. Each CEN frame will be shifted accordingly.\n",
+                                                    flush=True,
+                                                )
+                                            cube_cen = open_fits(
+                                                outpath
+                                                + cen_cube_names[cc]
+                                                + filters_lab[ff]
+                                                + "_1bpcorr.fits"
+                                            )
+                                            nfr_tmp = cube_cen.shape[0]
+    
+                                            mjd_cen[cc] = float(
+                                                head_cc["MJD-OBS"]
+                                            ) + (nfr_tmp * dits[-1] / 2.0) / (
+                                                3600 * 24
+                                            )  # MJD-OBS corresponds to start of exposure
+                                            # unique_mjd_cen = mjd_cen.copy()
                                             
-                                        # switch to '+' pattern coords?
-                                        waffle_pattern = head_cc[patt_key]
-                                        if waffle_pattern.strip() == "+":
-                                            # rotate all xy by +45deg
-                                            xy_spots_fin = turn_w(xy_spots[ff])
-                                        else:
-                                            xy_spots_fin = xy_spots[ff]
-                                                
-                                        # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots)
-                                        cube_cen_sub = np.array(
-                                            cube_cen, copy=True
-                                        )
-                                        if use_cen_only: # HPF
-                                            cube_cen_sub = cube_filter_highpass(cube_cen,
-                                                                                mode='gauss-subt',
-                                                                                fwhm_size=4*resel[ff]) # ~3 FWHM
-                                        else: # subtract closest SCI
+                                            # switch to '+' pattern coords?
+                                            waffle_pattern = head_cc[patt_key]
+                                            if waffle_pattern.strip() == "+":
+                                                # rotate all xy by +45deg
+                                                xy_spots_fin = turn_w(xy_spots[ff])
+                                            else:
+                                                xy_spots_fin = xy_spots[ff]
+                                            write_fits(outpath+"TMP_xy_spots.fits",
+                                                       np.array(xy_spots_fin))
+                                            
+                                            # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots)
+                                            cube_cen_sub = cube_cen.copy()
                                             m_idx = find_nearest(
                                                 mjd_mean, mjd_cen[cc]
                                             )
@@ -1707,54 +1326,416 @@ def preproc_IRDIS(
                                             cube_cen_sub -= np.median(
                                                 cube_near, axis=0
                                             )
-                                            print(
-                                                f"\nOBJ cube {file_list[m_idx]}{filt}_1bpcorr.fits will be subtracted from "
-                                                f"CEN cube {cen_cube_names[cc]}{filters_lab[ff]}_1bpcorr.fits\n",
-                                                flush=True,
+                                            diff = int((ori_sz - bp_crop_sz) / 2)
+                                            xy_spots_tmp = tuple(
+                                                [
+                                                    (
+                                                        xy_spots_fin[i][0] - diff,
+                                                        xy_spots_fin[i][1] - diff,
+                                                    )
+                                                    for i in range(
+                                                        len(xy_spots_fin)
+                                                    )
+                                                ]
                                             )
-                                        diff = int((ori_sz - bp_crop_sz) / 2)
-                                        xy_spots_tmp = tuple(
-                                            [
-                                                (
-                                                    xy_spots_fin[i][0] - diff,
-                                                    xy_spots_fin[i][1] - diff,
-                                                )
-                                                for i in range(
-                                                    len(xy_spots_fin)
-                                                )
-                                            ]
-                                        )
-                                        if debug:
-                                            write_fits(outpath + "TMP_last_CEN.fits",
-                                                       cube_cen_sub)
-                                        # Remove from cube any outlier frame
-                                        # such as pure zeros or NaNs
-                                        nz = cube_cen_sub.shape[0]
-                                        sum_fr = np.zeros(nz)
-                                        for z in range(nz):
-                                            sum_fr[z] = np.sum(cube_cen_sub[z])
-                                        good1 = sum_fr>0
-                                        good2 = np.isfinite(sum_fr)
-                                        
-                                        try:
-                                            res = cube_recenter_satspots(
-                                                cube_cen_sub[good1 & good2],
-                                                xy_spots_tmp,
-                                                subi_size=cen_box_sz[2],
-                                                sigfactor=sigfactor,
-                                                plot=plot,
-                                                fit_type="moff",
-                                                lbda=None,
-                                                debug=debug,
-                                                verbose=verbose,
-                                                full_output=True,
+                                            cube_cen_sub = cube_filter_highpass(
+                                                cube_cen_sub,
+                                                mode="gauss-subt",
+                                                fwhm_size=8,
                                             )
-                                            cube_cen_sub, y_tmp, x_tmp, _, _ = res
-                                            # account for any dithering in the CEN cubes (extremely rare). if not accounted
-                                            # for, the satspot intersection won't correspond to the same position in OBJ cubes
+                                            cube_cen_sub = cube_filter_lowpass(
+                                                cube_cen_sub, fwhm_size=2.0
+                                            )
+                                            cube_cen_sub, y_tmp, x_tmp, _, _ = (
+                                                cube_recenter_satspots(
+                                                    cube_cen_sub,
+                                                    xy_spots_tmp,
+                                                    subi_size=cen_box_sz[2],
+                                                    sigfactor=sigfactor,
+                                                    plot=plot,
+                                                    fit_type="moff",
+                                                    lbda=None,
+                                                    debug=debug,
+                                                    verbose=verbose,
+                                                    full_output=True,
+                                                )
+                                            )
+    
+                                            write_fits(
+                                                outpath
+                                                + cen_cube_names[cc]
+                                                + filters_lab[ff]
+                                                + "_2cen_sub.fits",
+                                                cube_cen_sub,
+                                                header=head_cc,
+                                            )
                                             y_tmp += pacy_cen
                                             x_tmp += pacx_cen
-                                        except:
+                                            cube_cen_cen = cube_shift(
+                                                cube_cen,
+                                                y_tmp,
+                                                x_tmp,
+                                                imlib=imlib,
+                                                interpolation=interpolation,
+                                                nproc=nproc,
+                                            )
+                                            write_fits(
+                                                outpath
+                                                + cen_cube_names[cc]
+                                                + filters_lab[ff]
+                                                + "_2cen.fits",
+                                                cube_cen_cen,
+                                                header=head_cc,
+                                            )
+                                            # y_const.append(np.mean(y_tmp))
+                                            # x_const.append(np.mean(x_tmp))
+                                            y_const.append(y_tmp)
+                                            x_const.append(x_tmp)
+    
+                                    # check if there is only one CEN cube, otherwise find the closest one to OBJ
+                                    if len(mjd_cen) == 1:
+                                        cc_clo = 0
+                                    else:
+                                        cc_clo = find_nearest(
+                                            mjd_mean[fn], mjd_cen
+                                        )
+    
+                                    cube_cen, head_cc = open_fits(
+                                        outpath
+                                        + cen_cube_names[cc_clo]
+                                        + filt
+                                        + "_1bpcorr.fits",
+                                        header=True,
+                                    )
+                                    y_shi = np.zeros(
+                                        [cube_cen.shape[0], cube.shape[0]]
+                                    )
+                                    x_shi = np.zeros(
+                                        [cube_cen.shape[0], cube.shape[0]]
+                                    )
+                                    if cube_cen.ndim == 3:
+                                        for k in range(cube_cen.shape[0]):
+                                            center_1_frame = cube_cen[
+                                                k, :
+                                            ].reshape(
+                                                1,
+                                                cube_cen[k, :].shape[0],
+                                                cube_cen[k, :].shape[1],
+                                            )
+                                            cube_tmp = np.vstack(
+                                                (center_1_frame, cube)
+                                            )
+    
+                                            if cube_tmp.shape[-1] > 71:
+                                                cyc, cxc = frame_center(cube_tmp)
+                                                # approx xy of star from sat spots
+                                                xc_med = np.median(x_const[cc_clo])
+                                                yc_med = np.median(y_const[cc_clo])
+                                                xy_s = (cxc - xc_med, cyc - yc_med)
+                                                print(xy_s)
+                                                cube_crop = cube_crop_frames(
+                                                    cube_tmp,
+                                                    71,
+                                                    xy_s,
+                                                    force=True,
+                                                    verbose=False,
+                                                )
+                                            else:
+                                                cube_crop = cube_tmp
+                                            cube_hpf = cube_filter_highpass(
+                                                cube_crop,
+                                                mode="gauss-subt",
+                                                fwhm_size=3,
+                                            )
+    
+                                            tmp, y, x = (
+                                                cube_recenter_dft_upsampling(
+                                                    cube_hpf,
+                                                    center_fr1=None,
+                                                    subi_size=None,
+                                                    upsample_factor=int(
+                                                        rec_met_tmp[11:]
+                                                    ),
+                                                    verbose=False,
+                                                    plot=False,
+                                                    full_output=True,
+                                                )
+                                            )
+                                            # DEBUG
+                                            if fn == 0 or fn == 2 or fn == 3:
+                                                write_fits(
+                                                    outpath
+                                                    + "TMP_cube_cc{}_{}.fits".format(
+                                                        filt, fn
+                                                    ),
+                                                    tmp,
+                                                )
+                                            y_shi[k] = y[1:]
+                                            x_shi[k] = x[1:]
+                                    else:
+                                        center_1_frame = cube_cen.reshape(
+                                            1, cube_cen.shape[0], cube_cen.shape[1]
+                                        )
+                                        cube_tmp = np.vstack(
+                                            (center_1_frame, cube)
+                                        )
+                                        cube_hpf = cube_filter_highpass(
+                                            cube_tmp,
+                                            mode="gauss-subt",
+                                            fwhm_size=3,
+                                        )
+    
+                                        _, y, x = cube_recenter_dft_upsampling(
+                                            cube_hpf,
+                                            center_fr1=None,
+                                            subi_size=None,
+                                            upsample_factor=int(rec_met_tmp[11:]),
+                                            verbose=False,
+                                            plot=False,
+                                            full_output=True,
+                                        )
+    
+                                        y_shi[k] = y[1:]
+                                        x_shi[k] = x[1:]
+    
+                                    final_y_shifts = np.zeros(cube.shape[0])
+                                    final_x_shifts = np.zeros(cube.shape[0])
+    
+                                    for z in range(cube.shape[0]):
+                                        final_y_shifts[z] = np.median(
+                                            y_shi[:, z] + y_const[cc_clo],
+                                            axis=0,
+                                        )
+                                        final_x_shifts[z] = np.median(
+                                            x_shi[:, z] + x_const[cc_clo],
+                                            axis=0,
+                                        )
+    
+                                    cube = cube_shift(
+                                        cube,
+                                        final_y_shifts,
+                                        final_x_shifts,
+                                        imlib=imlib,
+                                        interpolation=interpolation,
+                                        nproc=nproc,
+                                    )
+    
+                                elif "dft" in rec_met_tmp:
+                                    # 1 rough centering with peak
+                                    _, peak_y, peak_x = peak_coordinates(
+                                        cube,
+                                        fwhm=1.2 * resel[ff],
+                                        approx_peak=None,
+                                        search_box=None,
+                                        channels_peak=False,
+                                    )
+                                    _, peak_yx_ch = peak_coordinates(
+                                        cube,
+                                        fwhm=1.2 * resel[ff],
+                                        approx_peak=(peak_y, peak_x),
+                                        search_box=31,
+                                        channels_peak=True,
+                                    )
+                                    cy, cx = frame_center(cube[0])
+                                    for zz in range(cube.shape[0]):
+                                        cube[zz] = frame_shift(
+                                            cube[zz],
+                                            cy - peak_yx_ch[zz, 0],
+                                            cx - peak_yx_ch[zz, 1],
+                                            imlib=imlib,
+                                            interpolation=interpolation,
+                                        )
+                                    # 2. alignment with upsampling
+                                    if cube.ndim == 3 and cube.shape[0]>1:
+                                        cube, y_shifts, x_shifts = (
+                                            cube_recenter_dft_upsampling(
+                                                cube,
+                                                center_fr1=None,
+                                                negative=False,
+                                                fwhm=4,
+                                                subi_size=cen_box_sz[fi],
+                                                upsample_factor=int(rec_met_tmp[4:]),
+                                                interpolation="lanczos4",
+                                                full_output=True,
+                                                verbose=verbose,
+                                                nproc=nproc,
+                                                save_shifts=False,
+                                                debug=False,
+                                                plot=plot,
+                                            )
+                                        )
+                                    elif cube.ndim == 3:
+                                        y_shifts = np.array([0])
+                                        x_shifts = np.array([0])
+                                        
+                                    # 3 final centering based on 2d fit
+                                    cube_tmp = np.zeros(
+                                        [1, cube.shape[-1], cube.shape[-2]]
+                                    )
+                                    cube_tmp[0] = np.median(cube, axis=0)
+                                    _, y_shifts_tmp, x_shifts_tmp = (
+                                        cube_recenter_2dfit(
+                                            cube_tmp,
+                                            xy=None,
+                                            fwhm=1.2 * resel[ff],
+                                            subi_size=cen_box_sz[fi],
+                                            model="moff",
+                                            nproc=nproc,
+                                            interpolation="lanczos4",
+                                            offset=None,
+                                            negative=False,
+                                            threshold=False,
+                                            save_shifts=False,
+                                            full_output=True,
+                                            verbose=verbose,
+                                            debug=False,
+                                            plot=plot,
+                                        )
+                                    )
+                                    for zz in range(cube.shape[0]):
+                                        cube[zz] = frame_shift(
+                                            cube[zz],
+                                            y_shifts_tmp[0],
+                                            x_shifts_tmp[0],
+                                            imlib=imlib,
+                                            interpolation=interpolation,
+                                        )
+                                    y_shifts = y_shifts + y_shifts_tmp[0]
+                                    x_shifts = x_shifts + x_shifts_tmp[0]
+                                    if debug:
+                                        print(
+                                            "dft{} + 2dfit centering: xshift: {} px, yshift: {} px for cube {}_1bpcorr.fits".format(
+                                                int(rec_met_tmp[4:]),
+                                                x_shifts[0],
+                                                y_shifts[0],
+                                                filename,
+                                            ),
+                                            flush=True,
+                                        )
+    
+                                elif "satspots" in rec_met_tmp or use_cen_only:
+                                    if fn == 0:
+                                        if ncen == 0:
+                                            raise ValueError(
+                                                "No CENTER file found. Cannot recenter based on satellite spots."
+                                            )
+                                        # INFER SHIFTS FROM CEN CUBES
+                                        cen_cube_names = obj_psf_list[-1]
+                                        mjd_cen = np.zeros(ncen)
+                                        pa_cen = []
+                                        for cc in range(ncen):
+                                            ### first get the MJD time of each cube
+                                            head_cc = open_header(
+                                                inpath
+                                                + cen_cube_names[cc]
+                                                + filters_lab[ff]
+                                            )
+                                            # rare chance a CEN cube can have a dither value of 1 px or more, meaning the
+                                            # intersection of the sat spots is not at the center of the star in OBJ cubes
+                                            pacx_cen = (
+                                                head_cc["ESO INS1 PAC X"] / 18
+                                            )
+                                            pacy_cen = (
+                                                head_cc["ESO INS1 PAC Y"] / 18
+                                            )
+                                            if (
+                                                abs(pacx_cen) > 0.5
+                                                or abs(pacy_cen) > 0.5
+                                            ):
+                                                print(
+                                                    "\nATTENTION: Dithering detected in CEN cubes. Each CEN frame will be shifted accordingly.\n",
+                                                    flush=True,
+                                                )
+    
+                                            pa_cen.append(
+                                                float(
+                                                    head_cc[
+                                                        "HIERARCH ESO TEL PARANG START"
+                                                    ]
+                                                )
+                                            )
+                                            cube_cen = open_fits(
+                                                outpath
+                                                + cen_cube_names[cc]
+                                                + filters_lab[ff]
+                                                + "_1bpcorr.fits"
+                                            )
+                                            nfr_tmp = cube_cen.shape[0]
+                                            if cc == 0:
+                                                # n_frc=cube_cen.shape[0]
+                                                # np.zeros([ncen,n_frc])
+                                                y_shifts_cen_tmp = []
+                                                # np.zeros([ncen,n_frc])
+                                                x_shifts_cen_tmp = []
+                                                y_shifts_cen_med = np.zeros([ncen])
+                                                x_shifts_cen_med = np.zeros([ncen])
+                                                y_shifts_cen_std = np.zeros([ncen])
+                                                x_shifts_cen_std = np.zeros([ncen])
+                                            # MJD-OBS corresponds to start of exposure
+                                            mjd_cen[cc] = float(
+                                                head_cc["MJD-OBS"]
+                                            ) + (nfr_tmp * dits[-1] / 2.0) / (
+                                                3600 * 24
+                                            )
+                                                
+                                            # switch to '+' pattern coords?
+                                            waffle_pattern = head_cc[patt_key]
+                                            if waffle_pattern.strip() == "+":
+                                                # rotate all xy by +45deg
+                                                xy_spots_fin = turn_w(xy_spots[ff])
+                                            else:
+                                                xy_spots_fin = xy_spots[ff]
+                                                    
+                                            # SUBTRACT NEAREST OBJ CUBE (to easily find sat spots)
+                                            cube_cen_sub = np.array(
+                                                cube_cen, copy=True
+                                            )
+                                            if use_cen_only: # HPF
+                                                cube_cen_sub = cube_filter_highpass(cube_cen,
+                                                                                    mode='gauss-subt',
+                                                                                    fwhm_size=4*resel[ff]) # ~3 FWHM
+                                            else: # subtract closest SCI
+                                                m_idx = find_nearest(
+                                                    mjd_mean, mjd_cen[cc]
+                                                )
+                                                cube_near = open_fits(
+                                                    outpath
+                                                    + file_list[m_idx]
+                                                    + filt
+                                                    + "_1bpcorr.fits"
+                                                )
+                                                cube_cen_sub -= np.median(
+                                                    cube_near, axis=0
+                                                )
+                                                print(
+                                                    f"\nOBJ cube {file_list[m_idx]}{filt}_1bpcorr.fits will be subtracted from "
+                                                    f"CEN cube {cen_cube_names[cc]}{filters_lab[ff]}_1bpcorr.fits\n",
+                                                    flush=True,
+                                                )
+                                            diff = int((ori_sz - bp_crop_sz) / 2)
+                                            xy_spots_tmp = tuple(
+                                                [
+                                                    (
+                                                        xy_spots_fin[i][0] - diff,
+                                                        xy_spots_fin[i][1] - diff,
+                                                    )
+                                                    for i in range(
+                                                        len(xy_spots_fin)
+                                                    )
+                                                ]
+                                            )
+                                            if debug:
+                                                write_fits(outpath + "TMP_last_CEN.fits",
+                                                           cube_cen_sub)
+                                            # Remove from cube any outlier frame
+                                            # such as pure zeros or NaNs
+                                            nz = cube_cen_sub.shape[0]
+                                            sum_fr = np.zeros(nz)
+                                            for z in range(nz):
+                                                sum_fr[z] = np.sum(cube_cen_sub[z])
+                                            good1 = sum_fr>0
+                                            good2 = np.isfinite(sum_fr)
+                                            
                                             try:
                                                 res = cube_recenter_satspots(
                                                     cube_cen_sub[good1 & good2],
@@ -1762,7 +1743,7 @@ def preproc_IRDIS(
                                                     subi_size=cen_box_sz[2],
                                                     sigfactor=sigfactor,
                                                     plot=plot,
-                                                    fit_type="gaus",
+                                                    fit_type="moff",
                                                     lbda=None,
                                                     debug=debug,
                                                     verbose=verbose,
@@ -1774,451 +1755,470 @@ def preproc_IRDIS(
                                                 y_tmp += pacy_cen
                                                 x_tmp += pacx_cen
                                             except:
-                                                msg = "FAILED finding spots "
-                                                msg += "for cube {}. SKIPPING "
-                                                msg += "and adopting same "
-                                                msg += "coordinates as "
-                                                msg += "previous good cube."
-                                                print(msg.format(cen_cube_names[cc]))
-                                                y_tmp = np.array([y_tmp[-1]]*nz)
-                                                x_tmp = np.array([x_tmp[-1]]*nz)
-                                        
-                                        if plot:
-                                            plot_frames(
+                                                try:
+                                                    res = cube_recenter_satspots(
+                                                        cube_cen_sub[good1 & good2],
+                                                        xy_spots_tmp,
+                                                        subi_size=cen_box_sz[2],
+                                                        sigfactor=sigfactor,
+                                                        plot=plot,
+                                                        fit_type="gaus",
+                                                        lbda=None,
+                                                        debug=debug,
+                                                        verbose=verbose,
+                                                        full_output=True,
+                                                    )
+                                                    cube_cen_sub, y_tmp, x_tmp, _, _ = res
+                                                    # account for any dithering in the CEN cubes (extremely rare). if not accounted
+                                                    # for, the satspot intersection won't correspond to the same position in OBJ cubes
+                                                    y_tmp += pacy_cen
+                                                    x_tmp += pacx_cen
+                                                except:
+                                                    msg = "FAILED finding spots "
+                                                    msg += "for cube {}. SKIPPING "
+                                                    msg += "and adopting same "
+                                                    msg += "coordinates as "
+                                                    msg += "previous good cube."
+                                                    print(msg.format(cen_cube_names[cc]))
+                                                    y_tmp = np.array([y_tmp[-1]]*nz)
+                                                    x_tmp = np.array([x_tmp[-1]]*nz)
+                                            
+                                            if plot:
+                                                plot_frames(
+                                                    cube_cen_sub,
+                                                    dpi=300,
+                                                    cmap="inferno",
+                                                    vmin=np.percentile(
+                                                        cube_cen_sub, q=1
+                                                    ),
+                                                    vmax=np.percentile(
+                                                        cube_cen_sub, q=99.9
+                                                    ),
+                                                    label=f"Subtracted \n{cen_cube_names[cc]}{filt}_1bpcorr.fits",
+                                                    label_size=8,
+                                                    save=outpath
+                                                    + f"Detected_satspots_{cen_cube_names[cc]}{filt}.pdf",
+                                                )
+                                                plt.close("all")
+    
+    
+                                            y_shifts_cen_tmp.append(y_tmp)
+                                            x_shifts_cen_tmp.append(x_tmp)
+                                            y_shifts_cen_med[cc] = np.median(y_tmp)
+                                            x_shifts_cen_med[cc] = np.median(x_tmp)
+                                            y_shifts_cen_std[cc] = np.std(y_tmp)
+                                            x_shifts_cen_std[cc] = np.std(x_tmp)
+                                            write_fits(
+                                                outpath
+                                                + cen_cube_names[cc]
+                                                + filters_lab[ff]
+                                                + "_2cen_sub.fits",
                                                 cube_cen_sub,
-                                                dpi=300,
-                                                cmap="inferno",
-                                                vmin=np.percentile(
-                                                    cube_cen_sub, q=1
-                                                ),
-                                                vmax=np.percentile(
-                                                    cube_cen_sub, q=99.9
-                                                ),
-                                                label=f"Subtracted \n{cen_cube_names[cc]}{filt}_1bpcorr.fits",
-                                                label_size=8,
-                                                save=outpath
-                                                + f"Detected_satspots_{cen_cube_names[cc]}{filt}.pdf",
+                                                header=head_cc,
                                             )
-                                            plt.close("all")
-
-
-                                        y_shifts_cen_tmp.append(y_tmp)
-                                        x_shifts_cen_tmp.append(x_tmp)
-                                        y_shifts_cen_med[cc] = np.median(y_tmp)
-                                        x_shifts_cen_med[cc] = np.median(x_tmp)
-                                        y_shifts_cen_std[cc] = np.std(y_tmp)
-                                        x_shifts_cen_std[cc] = np.std(x_tmp)
-                                        write_fits(
-                                            outpath
-                                            + cen_cube_names[cc]
-                                            + filters_lab[ff]
-                                            + "_2cen_sub.fits",
-                                            cube_cen_sub,
-                                            header=head_cc,
-                                        )
-                                        cube_cen = cube_shift(
-                                            cube_cen[good1 & good2],
-                                            y_tmp,
-                                            x_tmp,
-                                            nproc=nproc,
-                                            imlib=imlib,
-                                            interpolation=interpolation,
-                                        )
-                                        write_fits(
-                                            outpath
-                                            + cen_cube_names[cc]
-                                            + filters_lab[ff]
-                                            + "_2cen.fits",
-                                            cube_cen,
-                                            header=head_cc,
-                                        )
-
-                                    # pdb.set_trace()
-                                    # if not use_cen_only:
-                                    # median combine results for all MJD CEN bef and all after SCI obs
-                                    # cube, header_ini = open_fits(inpath+OBJ_IRDIS_list[fn]+'_left.fits', header=True)
-                                    nfr_tmp = cube.shape[0]
-                                    # mjd of first obs
-                                    mjd = float(header["MJD-OBS"]) + (
-                                        nfr_tmp * dits[fi] / 2.0
-                                    ) / (3600 * 24)
-                                    mjd_fin = mjd
-                                    if true_ncen is None or true_ncen == 0:
-                                        unique_mjd_cen = mjd_cen.copy()
-                                        y_shifts_cen = y_shifts_cen_med
-                                        x_shifts_cen = x_shifts_cen_med
-                                        y_shifts_cen_err = y_shifts_cen_std
-                                        x_shifts_cen_err = x_shifts_cen_std
-                                        true_ncen = ncen
-                                    elif true_ncen > 4:
-                                        unique_mjd_cen = mjd_cen.copy()
-                                        y_shifts_cen = y_shifts_cen_med
-                                        x_shifts_cen = x_shifts_cen_med
-                                        y_shifts_cen_err = y_shifts_cen_std
-                                        x_shifts_cen_err = x_shifts_cen_std
-                                    else:
-                                        if true_ncen > ncen:
-                                            raise ValueError(
-                                                "Code not compatible with true_ncen > ncen"
+                                            cube_cen = cube_shift(
+                                                cube_cen[good1 & good2],
+                                                y_tmp,
+                                                x_tmp,
+                                                nproc=nproc,
+                                                imlib=imlib,
+                                                interpolation=interpolation,
                                             )
-                                        if true_ncen > 2:
-                                            header_fin = open_header(
-                                                inpath
-                                                + OBJ_IRDIS_list[-1]
-                                                + "_left.fits"
+                                            write_fits(
+                                                outpath
+                                                + cen_cube_names[cc]
+                                                + filters_lab[ff]
+                                                + "_2cen.fits",
+                                                cube_cen,
+                                                header=head_cc,
                                             )
-                                            mjd_fin = float(
-                                                header_fin["MJD-OBS"]
-                                            )
-                                        if true_ncen > 3:
-                                            header_mid = open_header(
-                                                inpath
-                                                + OBJ_IRDIS_list[int(nobj / 2)]
-                                                + "_left.fits"
-                                            )
-                                            mjd_mid = float(
-                                                header_mid["MJD-OBS"]
-                                            )
-
-                                        unique_mjd_cen = np.zeros([true_ncen])
-                                        unique_pa_cen = np.zeros([true_ncen])
-                                        y_shifts_cen = np.zeros([true_ncen])
-                                        x_shifts_cen = np.zeros([true_ncen])
-                                        y_shifts_cen_err = np.zeros(
-                                            [true_ncen]
-                                        )
-                                        x_shifts_cen_err = np.zeros(
-                                            [true_ncen]
-                                        )
-                                        for cc in range(true_ncen):
-                                            if cc == 0:
-                                                cond = mjd_cen < mjd
-                                            elif cc == true_ncen - 1:
-                                                cond = (
-                                                    mjd_cen > mjd_fin
-                                                )  # if a science cube is taken after the last center file, this will give False for cond
-                                            elif cc == 1 and true_ncen == 3:
-                                                cond = (mjd_cen > mjd) & (
-                                                    mjd_cen < mjd_fin
+    
+                                        # pdb.set_trace()
+                                        # if not use_cen_only:
+                                        # median combine results for all MJD CEN bef and all after SCI obs
+                                        # cube, header_ini = open_fits(inpath+OBJ_IRDIS_list[fn]+'_left.fits', header=True)
+                                        nfr_tmp = cube.shape[0]
+                                        # mjd of first obs
+                                        mjd = float(header["MJD-OBS"]) + (
+                                            nfr_tmp * dits[fi] / 2.0
+                                        ) / (3600 * 24)
+                                        mjd_fin = mjd
+                                        if true_ncen is None or true_ncen == 0:
+                                            unique_mjd_cen = mjd_cen.copy()
+                                            y_shifts_cen = y_shifts_cen_med
+                                            x_shifts_cen = x_shifts_cen_med
+                                            y_shifts_cen_err = y_shifts_cen_std
+                                            x_shifts_cen_err = x_shifts_cen_std
+                                            true_ncen = ncen
+                                        elif true_ncen > 4:
+                                            unique_mjd_cen = mjd_cen.copy()
+                                            y_shifts_cen = y_shifts_cen_med
+                                            x_shifts_cen = x_shifts_cen_med
+                                            y_shifts_cen_err = y_shifts_cen_std
+                                            x_shifts_cen_err = x_shifts_cen_std
+                                        else:
+                                            if true_ncen > ncen:
+                                                raise ValueError(
+                                                    "Code not compatible with true_ncen > ncen"
                                                 )
-                                            elif cc == 1 and true_ncen == 4:
-                                                cond = (mjd_cen > mjd) & (
-                                                    mjd_cen < mjd_mid
+                                            if true_ncen > 2:
+                                                header_fin = open_header(
+                                                    inpath
+                                                    + OBJ_IRDIS_list[-1]
+                                                    + "_left.fits"
                                                 )
-                                            else:
-                                                cond = (mjd_cen < mjd_fin) & (
-                                                    mjd_cen > mjd_mid
+                                                mjd_fin = float(
+                                                    header_fin["MJD-OBS"]
                                                 )
-                                            unique_mjd_cen[cc] = np.median(
-                                                mjd_cen[np.where(cond)]
+                                            if true_ncen > 3:
+                                                header_mid = open_header(
+                                                    inpath
+                                                    + OBJ_IRDIS_list[int(nobj / 2)]
+                                                    + "_left.fits"
+                                                )
+                                                mjd_mid = float(
+                                                    header_mid["MJD-OBS"]
+                                                )
+    
+                                            unique_mjd_cen = np.zeros([true_ncen])
+                                            unique_pa_cen = np.zeros([true_ncen])
+                                            y_shifts_cen = np.zeros([true_ncen])
+                                            x_shifts_cen = np.zeros([true_ncen])
+                                            y_shifts_cen_err = np.zeros(
+                                                [true_ncen]
                                             )
-                                            unique_pa_cen[cc] = np.median(
-                                                np.array(pa_cen)[
-                                                    np.where(cond)
-                                                ]
+                                            x_shifts_cen_err = np.zeros(
+                                                [true_ncen]
                                             )
-                                            y_shifts_cen[cc] = np.median(
-                                                y_shifts_cen_med[
-                                                    np.where(cond)
-                                                ]
+                                            for cc in range(true_ncen):
+                                                if cc == 0:
+                                                    cond = mjd_cen < mjd
+                                                elif cc == true_ncen - 1:
+                                                    cond = (
+                                                        mjd_cen > mjd_fin
+                                                    )  # if a science cube is taken after the last center file, this will give False for cond
+                                                elif cc == 1 and true_ncen == 3:
+                                                    cond = (mjd_cen > mjd) & (
+                                                        mjd_cen < mjd_fin
+                                                    )
+                                                elif cc == 1 and true_ncen == 4:
+                                                    cond = (mjd_cen > mjd) & (
+                                                        mjd_cen < mjd_mid
+                                                    )
+                                                else:
+                                                    cond = (mjd_cen < mjd_fin) & (
+                                                        mjd_cen > mjd_mid
+                                                    )
+                                                unique_mjd_cen[cc] = np.median(
+                                                    mjd_cen[np.where(cond)]
+                                                )
+                                                unique_pa_cen[cc] = np.median(
+                                                    np.array(pa_cen)[
+                                                        np.where(cond)
+                                                    ]
+                                                )
+                                                y_shifts_cen[cc] = np.median(
+                                                    y_shifts_cen_med[
+                                                        np.where(cond)
+                                                    ]
+                                                )
+                                                x_shifts_cen[cc] = np.median(
+                                                    x_shifts_cen_med[
+                                                        np.where(cond)
+                                                    ]
+                                                )
+                                                y_shifts_cen_err[cc] = np.std(
+                                                    y_shifts_cen_std[
+                                                        np.where(cond)
+                                                    ]
+                                                )
+                                                x_shifts_cen_err[cc] = np.std(
+                                                    x_shifts_cen_std[
+                                                        np.where(cond)
+                                                    ]
+                                                )  # SAVE UNCERTAINTY ON CENTERING
+                                            unc_cen = np.sqrt(
+                                                np.power(
+                                                    np.amax(y_shifts_cen_std), 2
+                                                )
+                                                + np.power(
+                                                    np.amax(x_shifts_cen_std), 2
+                                                )
                                             )
-                                            x_shifts_cen[cc] = np.median(
-                                                x_shifts_cen_med[
-                                                    np.where(cond)
-                                                ]
+                                            write_fits(
+                                                outpath
+                                                + "Uncertainty_on_centering_sat_spots_px.fits",
+                                                np.array([unc_cen]),
                                             )
-                                            y_shifts_cen_err[cc] = np.std(
-                                                y_shifts_cen_std[
-                                                    np.where(cond)
-                                                ]
+                                        if (
+                                            np.amax(np.abs(x_shifts_cen_err)) > 3
+                                            or np.amax(np.abs(y_shifts_cen_err)) > 3
+                                        ):
+                                            msg = "Warning: large std found for calculated shifts (max shift x: {:.1f}, max shift y: {:.1f}) px.".format(np.amax(x_shifts_cen_err), np.amax(y_shifts_cen_err))
+                                            msg += "Make sure CEN cubes and sat spots fits look good."
+                                            print(msg, flush=True)
+                                            set_trace()
+    
+                                    if not use_cen_only:
+                                        # APPLY THEM TO OBJ CUBES and account for dithering
+    
+                                        ## if only one CEN cube: just set CEN shift
+                                        if len(unique_pa_cen) == 1:
+                                            y_shifts = np.ones(n_fr)
+                                            x_shifts = np.ones(n_fr)
+    
+                                            y_shifts *= np.nanmedian(y_shifts_cen)
+                                            x_shifts *= np.nanmedian(x_shifts_cen)
+    
+                                            y_shifts -= pacy
+                                            x_shifts -= pacx
+    
+                                            # cancel 1pt-linear interpolation
+                                            # mjd_ori = float(header["MJD-OBS"])
+                                            # for zz in range(n_fr):
+                                            #     y_shifts[zz] = (
+                                            #         np.interp(
+                                            #             mjd_ori
+                                            #             + (
+                                            #                 dits[fi]
+                                            #                 * (zz + 0.5)
+                                            #                 / n_fr
+                                            #             )
+                                            #             / (3600 * 24),
+                                            #             unique_mjd_cen,
+                                            #             y_shifts_cen,
+                                            #         )
+                                            #         - pacy
+                                            #     )
+                                            #     x_shifts[zz] = (
+                                            #         np.interp(
+                                            #             mjd_ori
+                                            #             + (
+                                            #                 dits[fi]
+                                            #                 * (zz + 0.5)
+                                            #                 / n_fr
+                                            #             )
+                                            #             / (3600 * 24),
+                                            #             unique_mjd_cen,
+                                            #             x_shifts_cen,
+                                            #         )
+                                            #         - pacx
+                                            #     )
+                                        else:
+                                            ## NEW: "circular" interpolation based on cen shifts
+                                            cy, cx = frame_center(cube)
+                                            cen_xy = (cx, cy)
+                                            rot_x, rot_y, r, th0 = find_rot_cen(
+                                                cen_xy,
+                                                y_shifts_cen,
+                                                x_shifts_cen,
+                                                unique_pa_cen,
+                                                verbose=verbose,
                                             )
-                                            x_shifts_cen_err[cc] = np.std(
-                                                x_shifts_cen_std[
-                                                    np.where(cond)
-                                                ]
-                                            )  # SAVE UNCERTAINTY ON CENTERING
-                                        unc_cen = np.sqrt(
-                                            np.power(
-                                                np.amax(y_shifts_cen_std), 2
+                                            rot_xy = (rot_x, rot_y)
+                                            pos_xy = circ_interp(
+                                                n_fr,
+                                                rot_xy,
+                                                r,
+                                                th0,
+                                                unique_pa_cen,
+                                                pa_sci_ini[fn],
+                                                pa_sci_fin[fn],
                                             )
-                                            + np.power(
-                                                np.amax(x_shifts_cen_std), 2
+                                            if verbose:
+                                                print(
+                                                    f"pos_xy: {pos_xy}", flush=True
+                                                )
+                                            x_shifts = cx - pos_xy[0] - pacx
+                                            y_shifts = cy - pos_xy[1] - pacy
+    
+                                        for zz in range(n_fr):
+                                            cube[zz] = frame_shift(
+                                                cube[zz],
+                                                y_shifts[zz],
+                                                x_shifts[zz],
+                                                imlib=imlib,
+                                                interpolation=interpolation,
                                             )
-                                        )
-                                        write_fits(
-                                            outpath
-                                            + "Uncertainty_on_centering_sat_spots_px.fits",
-                                            np.array([unc_cen]),
-                                        )
-                                    if (
-                                        np.amax(np.abs(x_shifts_cen_err)) > 3
-                                        or np.amax(np.abs(y_shifts_cen_err)) > 3
-                                    ):
-                                        msg = "Warning: large std found for calculated shifts (max shift x: {:.1f}, max shift y: {:.1f}) px.".format(np.amax(x_shifts_cen_err), np.amax(y_shifts_cen_err))
-                                        msg += "Make sure CEN cubes and sat spots fits look good."
-                                        print(msg, flush=True)
-                                        set_trace()
-
-                                if not use_cen_only:
-                                    # APPLY THEM TO OBJ CUBES and account for dithering
-
-                                    ## if only one CEN cube: just set CEN shift
-                                    if len(unique_pa_cen) == 1:
-                                        y_shifts = np.ones(n_fr)
-                                        x_shifts = np.ones(n_fr)
-
-                                        y_shifts *= np.nanmedian(y_shifts_cen)
-                                        x_shifts *= np.nanmedian(x_shifts_cen)
-
-                                        y_shifts -= pacy
-                                        x_shifts -= pacx
-
-                                        # cancel 1pt-linear interpolation
-                                        # mjd_ori = float(header["MJD-OBS"])
-                                        # for zz in range(n_fr):
-                                        #     y_shifts[zz] = (
-                                        #         np.interp(
-                                        #             mjd_ori
-                                        #             + (
-                                        #                 dits[fi]
-                                        #                 * (zz + 0.5)
-                                        #                 / n_fr
-                                        #             )
-                                        #             / (3600 * 24),
-                                        #             unique_mjd_cen,
-                                        #             y_shifts_cen,
-                                        #         )
-                                        #         - pacy
-                                        #     )
-                                        #     x_shifts[zz] = (
-                                        #         np.interp(
-                                        #             mjd_ori
-                                        #             + (
-                                        #                 dits[fi]
-                                        #                 * (zz + 0.5)
-                                        #                 / n_fr
-                                        #             )
-                                        #             / (3600 * 24),
-                                        #             unique_mjd_cen,
-                                        #             x_shifts_cen,
-                                        #         )
-                                        #         - pacx
-                                        #     )
-                                    else:
-                                        ## NEW: "circular" interpolation based on cen shifts
-                                        cy, cx = frame_center(cube)
-                                        cen_xy = (cx, cy)
-                                        rot_x, rot_y, r, th0 = find_rot_cen(
-                                            cen_xy,
-                                            y_shifts_cen,
-                                            x_shifts_cen,
-                                            unique_pa_cen,
-                                            verbose=verbose,
-                                        )
-                                        rot_xy = (rot_x, rot_y)
-                                        pos_xy = circ_interp(
-                                            n_fr,
-                                            rot_xy,
-                                            r,
-                                            th0,
-                                            unique_pa_cen,
-                                            pa_sci_ini[fn],
-                                            pa_sci_fin[fn],
-                                        )
-                                        if verbose:
+                                        if plot and fn == 0:
+                                            plt.show()  # show whichever previous plot is in memory
+                                            colors = [
+                                                "k",
+                                                "r",
+                                                "b",
+                                                "y",
+                                                "c",
+                                                "m",
+                                                "g",
+                                            ]
+                                            # y
+                                            plt.plot(
+                                                range(n_fr),
+                                                y_shifts,
+                                                colors[0] + "-",
+                                                label="shifts y (first cube)",
+                                            )
                                             print(
-                                                f"pos_xy: {pos_xy}", flush=True
+                                                "True number of CENTER cubes:",
+                                                true_ncen,
+                                                flush=True,
                                             )
-                                        x_shifts = cx - pos_xy[0] - pacx
-                                        y_shifts = cy - pos_xy[1] - pacy
-
-                                    for zz in range(n_fr):
-                                        cube[zz] = frame_shift(
-                                            cube[zz],
-                                            y_shifts[zz],
-                                            x_shifts[zz],
-                                            imlib=imlib,
-                                            interpolation=interpolation,
-                                        )
-                                    if plot and fn == 0:
-                                        plt.show()  # show whichever previous plot is in memory
-                                        colors = [
-                                            "k",
-                                            "r",
-                                            "b",
-                                            "y",
-                                            "c",
-                                            "m",
-                                            "g",
-                                        ]
-                                        # y
-                                        plt.plot(
-                                            range(n_fr),
-                                            y_shifts,
-                                            colors[0] + "-",
-                                            label="shifts y (first cube)",
-                                        )
-                                        print(
-                                            "True number of CENTER cubes:",
-                                            true_ncen,
-                                            flush=True,
-                                        )
-                                        plt.errorbar(
-                                            range(true_ncen),
-                                            y_shifts_cen,
-                                            yerr=y_shifts_cen_err,
-                                            fmt=colors[cc + 1] + "o",
-                                            label="y cen shifts",
-                                        )
-                                        plt.legend()
-                                        plt.show()
-                                        # x
-                                        plt.plot(
-                                            range(n_fr),
-                                            x_shifts,
-                                            colors[0] + "-",
-                                            label="shifts x (first cube)",
-                                        )
-                                        plt.errorbar(
-                                            range(true_ncen),
-                                            x_shifts_cen,
-                                            yerr=x_shifts_cen_err,
-                                            fmt=colors[cc + 1] + "o",
-                                            label="x cen shifts",
-                                        )
-                                        plt.legend()
-                                        plt.show()
-                                        write_fits(
-                                            outpath
-                                            + "TMP_test_cube_cen{}_{}.fits".format(
-                                                labels[fi], rec_met_tmp
-                                            ),
-                                            cube,
-                                        )
-
-                            elif "radon" in rec_met_tmp:
-                                cube, y_shifts, x_shifts = cube_recenter_radon(
-                                    cube,
-                                    full_output=True,
-                                    verbose=True,
-                                    interpolation="lanczos4",
-                                )
-                            elif "speckle" in rec_met_tmp:
-                                cube, _, _, x_shifts, y_shifts = (
-                                    cube_recenter_via_speckles(
+                                            plt.errorbar(
+                                                range(true_ncen),
+                                                y_shifts_cen,
+                                                yerr=y_shifts_cen_err,
+                                                fmt=colors[cc + 1] + "o",
+                                                label="y cen shifts",
+                                            )
+                                            plt.legend()
+                                            plt.show()
+                                            # x
+                                            plt.plot(
+                                                range(n_fr),
+                                                x_shifts,
+                                                colors[0] + "-",
+                                                label="shifts x (first cube)",
+                                            )
+                                            plt.errorbar(
+                                                range(true_ncen),
+                                                x_shifts_cen,
+                                                yerr=x_shifts_cen_err,
+                                                fmt=colors[cc + 1] + "o",
+                                                label="x cen shifts",
+                                            )
+                                            plt.legend()
+                                            plt.show()
+                                            write_fits(
+                                                outpath
+                                                + "TMP_test_cube_cen{}_{}.fits".format(
+                                                    labels[fi], rec_met_tmp
+                                                ),
+                                                cube,
+                                            )
+    
+                                elif "radon" in rec_met_tmp:
+                                    cube, y_shifts, x_shifts = cube_recenter_radon(
                                         cube,
-                                        cube_ref=None,
-                                        alignment_iter=5,
-                                        gammaval=1,
-                                        min_spat_freq=0.5,
-                                        max_spat_freq=3,
-                                        fwhm=1.2 * max_resel,
-                                        debug=False,
-                                        negative=negative,
-                                        recenter_median=False,
-                                        subframesize=cen_box_sz[fi],
-                                        interpolation="bilinear",
-                                        save_shifts=False,
-                                        plot=False,
-                                        nproc=nproc,
+                                        full_output=True,
+                                        verbose=True,
+                                        interpolation="lanczos4",
                                     )
+                                elif "speckle" in rec_met_tmp:
+                                    cube, _, _, x_shifts, y_shifts = (
+                                        cube_recenter_via_speckles(
+                                            cube,
+                                            cube_ref=None,
+                                            alignment_iter=5,
+                                            gammaval=1,
+                                            min_spat_freq=0.5,
+                                            max_spat_freq=3,
+                                            fwhm=1.2 * max_resel,
+                                            debug=False,
+                                            negative=negative,
+                                            recenter_median=False,
+                                            subframesize=cen_box_sz[fi],
+                                            interpolation="bilinear",
+                                            save_shifts=False,
+                                            plot=False,
+                                            nproc=nproc,
+                                        )
+                                    )
+                                else:
+                                    raise ValueError(
+                                        "Centering method not recognized"
+                                    )
+                                if fi > 0 or not use_cen_only:
+                                    write_fits(
+                                        outpath + filename + filt + "_2cen.fits",
+                                        cube,
+                                        header=header,
+                                    )
+                                    if "cross_corr" not in rec_met_tmp:
+                                        final_y_shifts.extend(y_shifts.tolist())
+                                        final_x_shifts.extend(x_shifts.tolist())
+                                        final_y_shifts_std.extend(
+                                            [np.std(y_shifts)] * len(y_shifts)
+                                        )
+                                        final_x_shifts_std.extend(
+                                            [np.std(x_shifts)] * len(x_shifts)
+                                        )
+                                # write_fits(outpath+"TMP_final_shifts{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), np.array([final_y_shifts,final_x_shifts]))
+                            if "satspots" in rec_met_tmp:
+                                if fi != 1 and plot and not use_cen_only:
+                                    f, (ax1) = plt.subplots(1, 1, figsize=(15, 10))
+                                    # unique_mjd_cen = mjd_cen.copy()
+                                    t0 = np.amin(unique_mjd_cen)
+                                    ax1.errorbar(  # np.arange(1,len(file_list)+1,1./cube.shape[0]),
+                                        (mjd_all - t0) * 60 * 24,
+                                        final_y_shifts,
+                                        final_y_shifts_std,
+                                        fmt="bo",
+                                        label="y",
+                                    )
+                                    ax1.errorbar(  # np.arange(1,len(file_list)+1,1./cube.shape[0]),
+                                        (mjd_all - t0) * 60 * 24,
+                                        final_x_shifts,
+                                        final_x_shifts_std,
+                                        fmt="ro",
+                                        label="x",
+                                    )
+                                    if "satspots" in rec_met_tmp:
+                                        ax1.errorbar(
+                                            (unique_mjd_cen - t0) / 60.0,
+                                            y_shifts_cen,
+                                            y_shifts_cen_err,
+                                            fmt="co",
+                                            label="y cen",
+                                        )
+                                        ax1.errorbar(
+                                            (unique_mjd_cen - t0) / 60.0,
+                                            x_shifts_cen,
+                                            x_shifts_cen_err,
+                                            fmt="mo",
+                                            label="x cen",
+                                        )
+                                    ax1.set_xlabel("Time from start of obs. (min)")
+                                    plt.legend(loc="best")
+                                    plt.savefig(
+                                        outpath
+                                        + "Shifts_xy{}_{}.pdf".format(
+                                            labels[fi], rec_met_tmp
+                                        ),
+                                        bbox_inches="tight",
+                                        format="pdf",
+                                    )
+                                    plt.clf()
+    
+                                write_fits(
+                                    outpath
+                                    + "TMP_shifts_cen_y{}_{}_{}.fits".format(
+                                        labels[fi], filters[ff], rec_met_tmp
+                                    ),
+                                    y_shifts_cen,
                                 )
-                            else:
-                                raise ValueError(
-                                    "Centering method not recognized"
+                                write_fits(
+                                    outpath
+                                    + "TMP_shifts_cen_x{}_{}_{}.fits".format(
+                                        labels[fi], filters[ff], rec_met_tmp
+                                    ),
+                                    x_shifts_cen,
                                 )
+    
                             if fi > 0 or not use_cen_only:
                                 write_fits(
-                                    outpath + filename + filt + "_2cen.fits",
-                                    cube,
-                                    header=header,
-                                )
-                                if "cross_corr" not in rec_met_tmp:
-                                    final_y_shifts.extend(y_shifts.tolist())
-                                    final_x_shifts.extend(x_shifts.tolist())
-                                    final_y_shifts_std.extend(
-                                        [np.std(y_shifts)] * len(y_shifts)
-                                    )
-                                    final_x_shifts_std.extend(
-                                        [np.std(x_shifts)] * len(x_shifts)
-                                    )
-                            # write_fits(outpath+"TMP_final_shifts{}_{}.fits".format(labels[fi],rec_met_tmp[ii]), np.array([final_y_shifts,final_x_shifts]))
-                        if "satspots" in rec_met_tmp:
-                            if fi != 1 and plot and not use_cen_only:
-                                f, (ax1) = plt.subplots(1, 1, figsize=(15, 10))
-                                # unique_mjd_cen = mjd_cen.copy()
-                                t0 = np.amin(unique_mjd_cen)
-                                ax1.errorbar(  # np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                    (mjd_all - t0) * 60 * 24,
-                                    final_y_shifts,
-                                    final_y_shifts_std,
-                                    fmt="bo",
-                                    label="y",
-                                )
-                                ax1.errorbar(  # np.arange(1,len(file_list)+1,1./cube.shape[0]),
-                                    (mjd_all - t0) * 60 * 24,
-                                    final_x_shifts,
-                                    final_x_shifts_std,
-                                    fmt="ro",
-                                    label="x",
-                                )
-                                if "satspots" in rec_met_tmp:
-                                    ax1.errorbar(
-                                        (unique_mjd_cen - t0) / 60.0,
-                                        y_shifts_cen,
-                                        y_shifts_cen_err,
-                                        fmt="co",
-                                        label="y cen",
-                                    )
-                                    ax1.errorbar(
-                                        (unique_mjd_cen - t0) / 60.0,
-                                        x_shifts_cen,
-                                        x_shifts_cen_err,
-                                        fmt="mo",
-                                        label="x cen",
-                                    )
-                                ax1.set_xlabel("Time from start of obs. (min)")
-                                plt.legend(loc="best")
-                                plt.savefig(
                                     outpath
-                                    + "Shifts_xy{}_{}.pdf".format(
-                                        labels[fi], rec_met_tmp
+                                    + "TMP_shifts_y{}_{}_{}.fits".format(
+                                        labels[fi], filters[ff], rec_met_tmp
                                     ),
-                                    bbox_inches="tight",
-                                    format="pdf",
+                                    np.array(final_y_shifts),
                                 )
-                                plt.clf()
-
-                            write_fits(
-                                outpath
-                                + "TMP_shifts_cen_y{}_{}_{}.fits".format(
-                                    labels[fi], filters[ff], rec_met_tmp
-                                ),
-                                y_shifts_cen,
-                            )
-                            write_fits(
-                                outpath
-                                + "TMP_shifts_cen_x{}_{}_{}.fits".format(
-                                    labels[fi], filters[ff], rec_met_tmp
-                                ),
-                                x_shifts_cen,
-                            )
-
-                        if fi > 0 or not use_cen_only:
-                            write_fits(
-                                outpath
-                                + "TMP_shifts_y{}_{}_{}.fits".format(
-                                    labels[fi], filters[ff], rec_met_tmp
-                                ),
-                                np.array(final_y_shifts),
-                            )
-                            write_fits(
-                                outpath
-                                + "TMP_shifts_x{}_{}_{}.fits".format(
-                                    labels[fi], filters[ff], rec_met_tmp
-                                ),
-                                np.array(final_x_shifts),
-                            )
+                                write_fits(
+                                    outpath
+                                    + "TMP_shifts_x{}_{}_{}.fits".format(
+                                        labels[fi], filters[ff], rec_met_tmp
+                                    ),
+                                    np.array(final_x_shifts),
+                                )
 
         # ******************************* MASTER CUBES ******************************
         if 3 in to_do:
