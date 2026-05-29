@@ -24,8 +24,9 @@ C. Install vcal_sphere (see also README file):
 2) Uncompress all *.Z files
 
 3) cd in the 'raw' directory, and use dfits or dfitspy to list relevant header values to infer the strategy used during the observation (optionally check some raw images):
-	3a) Using dfits and fitsort (or dfitspy):
+	3a) Using dfits and fitsort:
 		dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT
+	3b) Using dfitspy:
 		dfitspy -file SPHER*.fits -k DET.ID,DET.SEQ1.DIT,INS1.FILT.NAME,INS1.OPTI2.NAME,DPR.TYPE,INS4.COMB.ROT
 	Pro tip: make an alias in your ~/.bash_profile e.g. by adding:
 	alias dfits_sphere='dfits SPHER*.fits |fitsort DET.ID DET.SEQ1.DIT INS.COMB.IFLT INS1.FILT.NAME INS1.OPTI2.NAME DPR.TYPE INS4.COMB.ROT'
