@@ -27,7 +27,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
     Create lists of each type of data files for a given dataset.
 
     Parameters:
-    ***********
+    -----------
     outpath_filenames: str
         Path where the text files are written (to double check each list 
     contains desired files)
@@ -43,10 +43,11 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
     (slow).
 
     Returns:
-    ********
-    dico_lists: python dictionary
-        Dictionary with lists of each kind of observation & calibration files.
-       """
+    --------
+    dico_lists, dico_conditions: python dictionary
+        Tuple of 2 dictionaries with 1) lists of each kind of observation &
+    calibration files, and 2) summary of observing conditions.
+    """
     def _check_mode(ifs_mode_list):
         if len(ifs_mode_list) == 0:
             ifs_mode_list.append(header["HIERARCH ESO INS2 COMB IFS"][-3:])
@@ -77,6 +78,26 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
     filt1_irdis_distort = []
     filt2_ifs_distort = []
     filt2_irdis_distort = []
+    
+    dico_conditions = {}
+    total_int_SCI_IRDIS = 0   # total effective int. of IRDIS SCI files (s)
+    total_int_CEN_IRDIS = 0   # total effective int. of IRDIS CEN files (s)
+    total_int_SCI_IFS = 0   # total effective integration of IFS  SCI files (s)
+    total_int_CEN_IFS = 0   # total effective integration of IFS CEN files (s)
+    seeing_IFS = []
+    seeing_IRDIS = []
+    seeing_med_IFS = 0
+    seeing_std_IFS = 0
+    seeing_med_IRDIS = 0
+    seeing_std_IRDIS = 0
+    tau0_IFS = []
+    tau0_IRDIS = []
+    tau0_med_IFS = 0
+    tau0_std_IFS = 0
+    tau0_med_IRDIS = 0
+    tau0_std_IRDIS = 0
+    wind_speed_IFS = []
+    wind_speed_IRDIS = []
 
     if not readonly:
 
@@ -164,6 +185,18 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                         sci_list_ifs.append(fname)
                         sci_list_mjd_ifs.append(header['MJD-OBS'])
                         ifs_mode = _check_mode(ifs_mode)
+                        ndit = int(header['HIERARCH ESO DET NDIT'])
+                        total_int_SCI_IFS += dit_ifs*ndit
+                        try:
+                            see0 = header['HIERARCH ESO TEL AMBI FWHM START'])
+                            seeN = header['HIERARCH ESO TEL AMBI FWHM END'])
+                            seeing_IFS.append((float(see0)+float(seeN))/2)
+                            tau0 = header['HIERARCH ESO TEL AMBI TAU0']
+                            tau0_IFS.append(float(tau0))
+                            v_wind = header['HIERARCH ESO TEL AMBI WINDSP']
+                            wind_speed_IFS.append(v_wind)
+                        except:
+                            continue
                     elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_ifs and header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'SKY':
                         sky_list_ifs.append(fname)
                         sky_list_mjd_ifs.append(header['MJD-OBS'])
@@ -172,6 +205,18 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                         center_list_ifs.append(fname)
                         center_list_mjd_ifs.append(header['MJD-OBS'])
                         ifs_mode = _check_mode(ifs_mode)
+                        ndit = int(header['HIERARCH ESO DET NDIT'])
+                        total_int_CEN_IFS += dit_ifs*ndit
+                        try:
+                            see0 = header['HIERARCH ESO TEL AMBI FWHM START'])
+                            seeN = header['HIERARCH ESO TEL AMBI FWHM END'])
+                            seeing_IFS.append((float(see0)+float(seeN))/2)
+                            tau0 = float(header['HIERARCH ESO TEL AMBI TAU0'])
+                            tau0_IFS.append(tau0)
+                            v_wind = header['HIERARCH ESO TEL AMBI WINDSP']
+                            wind_speed_IFS.append(float(v_wind))
+                        except:
+                            continue
                     elif header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'DARK,BACKGROUND' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
                         ins_bg_list_ifs.append(fname)
                     elif header['HIERARCH ESO DET NAME'] == 'IFS' and header['HIERARCH ESO DPR TYPE'] == 'DARK':
@@ -212,12 +257,36 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                     if header['HIERARCH ESO DET SEQ1 DIT'] == dit_irdis and header['HIERARCH ESO DET NAME'] == 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'OBJECT' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
                         sci_list_irdis.append(fname)
                         sci_list_mjd_irdis.append(header['MJD-OBS'])
+                        ndit = int(header['HIERARCH ESO DET NDIT'])
+                        total_int_SCI_IRDIS += dit_ifs*ndit
+                        try:
+                            see0 = header['HIERARCH ESO TEL AMBI FWHM START'])
+                            seeN = header['HIERARCH ESO TEL AMBI FWHM END'])
+                            seeing_IRDIS.append((float(see0)+float(seeN))/2)
+                            tau0 = float(header['HIERARCH ESO TEL AMBI TAU0'])
+                            tau0_IRDIS.append(tau0)
+                            v_wind = header['HIERARCH ESO TEL AMBI WINDSP']
+                            wind_speed_IRDIS.append(float(v_wind))
+                        except:
+                            continue
                     elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_irdis and header['HIERARCH ESO DET NAME'] == 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'SKY' and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
                         sky_list_irdis.append(fname)
                         sky_list_mjd_irdis.append(header['MJD-OBS'])
                     elif header['HIERARCH ESO DET NAME'] == 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'OBJECT,CENTRE':
                         center_list_irdis.append(fname)
                         center_list_mjd_irdis.append(header['MJD-OBS'])
+                        ndit = int(header['HIERARCH ESO DET NDIT'])
+                        total_int_CEN_IRDIS += dit_ifs*ndit
+                        try:
+                            see0 = header['HIERARCH ESO TEL AMBI FWHM START'])
+                            seeN = header['HIERARCH ESO TEL AMBI FWHM END'])
+                            seeing_IRDIS.append((float(see0)+float(seeN))/2)
+                            tau0 = float(header['HIERARCH ESO TEL AMBI TAU0'])
+                            tau0_IRDIS.append(tau0)
+                            v_wind = header['HIERARCH ESO TEL AMBI WINDSP']
+                            wind_speed_IRDIS.append(float(v_wind))
+                        except:
+                            continue
                     elif header['HIERARCH ESO DET SEQ1 DIT'] == dit_irdis and header['HIERARCH ESO DET NAME'] == 'IRDIS' and 'DARK,BACKGROUND' in header['HIERARCH ESO DPR TYPE'] and header['HIERARCH ESO INS1 FILT NAME'] == filt1 and header['HIERARCH ESO INS1 OPTI2 NAME'] == filt2:
                         ins_bg_list_irdis.append(fname)
                     elif header['HIERARCH ESO DET NAME'] == 'IRDIS' and header['HIERARCH ESO DPR TYPE'] == 'DARK':
@@ -791,8 +860,51 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
     dico_files['fits_list'] = fits_list
     dico_files['calib_list'] = calib_list
     dico_files['ao_files'] = ao_files
+    
+    # save observing conditions in a separate dictionary
+    dico_conditions['total_int_SCI_IRDIS'] = total_int_SCI_IRDIS
+    dico_conditions['total_int_CEN_IRDIS'] = total_int_CEN_IRDIS
+    dico_conditions['total_int_SCI_IFS'] = total_int_SCI_IFS
+    dico_conditions['total_int_CEN_IFS'] = total_int_CEN_IFS
+    if len(seeing_IFS)>0:
+        dico_conditions['seeing_IFS'] = seeing_IFS
+        seeing_med_IFS = np.median(np.array(seeing_IFS))
+        dico_conditions['seeing_med_IFS'] = seeing_med_IFS
+        seeing_std_IFS = np.std(np.array(seeing_IFS))
+        dico_conditions['seeing_std_IFS'] = seeing_std_IFS
+    if len(seeing_IRDIS)>0:
+        dico_conditions['seeing_IRDIS'] = seeing_IRDIS
+        seeing_med_IRDIS = np.median(np.array(seeing_IRDIS))
+        dico_conditions['seeing_med_IRDIS'] = seeing_med_IRDIS
+        seeing_std_IRDIS = np.std(np.array(seeing_IRDIS))
+        dico_conditions['seeing_std_IRDIS'] = seeing_std_IRDIS
+    if len(tau0_IFS)>0:
+        dico_conditions['tau0_IFS'] = tau0_IFS
+        tau0_med_IFS = np.median(np.array(tau0_IFS))
+        dico_conditions['tau0_med_IFS'] = tau0_med_IFS
+        tau0_std_IFS = np.std(np.array(tau0_IFS))
+        dico_conditions['tau0_std_IFS'] = tau0_std_IFS
+    if len(tau0_IRDIS)>0:
+        dico_conditions['tau0_IRDIS'] = tau0_IRDIS
+        tau0_med_IRDIS = np.median(np.array(tau0_IRDIS))
+        dico_conditions['tau0_med_IRDIS'] = tau0_med_IRDIS
+        tau0_std_IRDIS = np.std(np.array(tau0_IRDIS))
+        dico_conditions['tau0_std_IRDIS'] = tau0_std_IRDIS
+    if len(wind_speed_IFS)>0:
+        dico_conditions['wind_speed_IFS'] = wind_speed_IFS
+        wind_speed_med_IFS = np.median(np.array(wind_speed_IFS))
+        dico_conditions['wind_speed_med_IFS'] = wind_speed_med_IFS
+        wind_speed_std_IFS = np.std(np.array(wind_speed_IFS))
+        dico_conditions['wind_speed_std_IFS'] = wind_speed_std_IFS
+    if len(wind_speed_IRDIS)>0:
+        dico_conditions['wind_speed_IRDIS'] = wind_speed_IRDIS
+        wind_speed_med_IRDIS = np.median(np.array(wind_speed_IRDIS))
+        dico_conditions['wind_speed_med_IRDIS'] = wind_speed_med_IRDIS
+        wind_speed_std_IRDIS = np.std(np.array(wind_speed_IRDIS))
+        dico_conditions['wind_speed_std_IRDIS'] = wind_speed_std_IRDIS
 
-    return dico_files
+
+    return dico_files, dico_conditions
 
 
 def sph_ifs_correct_spectral_xtalk(img, bpmap=None, boundary='fill',

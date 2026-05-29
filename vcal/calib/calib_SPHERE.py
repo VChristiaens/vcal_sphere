@@ -291,21 +291,25 @@ def calib(params_calib_name="VCAL_params_calib.json") -> None:
                 "*** 0. Creating list of dictionaries with different file types ***",
                 flush=True,
             )
-        dico_lists = make_lists(
-            inpath,
-            outpath_filenames,
-            dit_ifs=dit_ifs,
-            dit_irdis=dit_irdis,
-            dit_psf_ifs=dit_psf_ifs,
-            dit_psf_irdis=dit_psf_irdis,
-            dit_cen_ifs=dit_cen_ifs,
-            dit_cen_irdis=dit_cen_irdis,
-            filt1=filt1,
-            filt2=filt2,
-        )
+        dico_lists, dico_conditions = make_lists(inpath, outpath_filenames,
+                                                 dit_ifs=dit_ifs,
+                                                 dit_irdis=dit_irdis,
+                                                 dit_psf_ifs=dit_psf_ifs,
+                                                 dit_psf_irdis=dit_psf_irdis,
+                                                 dit_cen_ifs=dit_cen_ifs,
+                                                 dit_cen_irdis=dit_cen_irdis,
+                                                 filt1=filt1,
+                                                 filt2=filt2,
+                                                 )
         with open(path + "dico_files.csv", "w") as dico_file:
             w = writer(dico_file)
             for key, val in dico_lists.items():
+                w.writerow([key, val])
+                dico_file.flush()
+            dico_file.close()
+        with open(path + "dico_OBSconditions.csv", "w") as dico_file:
+            w = writer(dico_file)
+            for key, val in dico_conditions.items():
                 w.writerow([key, val])
                 dico_file.flush()
             dico_file.close()
