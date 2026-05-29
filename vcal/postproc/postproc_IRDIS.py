@@ -570,7 +570,12 @@ def postproc_IRDIS(
 
                         test_pcs_str_list = [str(x) for x in test_pcs_full]
                         ntest_pcs = len(test_pcs_full)
-                        test_pcs_str = "npc" + "-".join(test_pcs_str_list)
+                        if ntest_pcs < 21:
+                            test_pcs_str = "npc" + "-".join(test_pcs_str_list)
+                        else:
+                            test_pcs_str = "npc{}-{}".format(test_pcs_full[0],
+                                                             test_pcs_full[-1])
+                            
                         # tmp_tmp = np.zeros([ntest_pcs,ASDI_cube.shape[2],ASDI_cube.shape[3]])
                         if planet:
                             snr_tmp = np.zeros(ntest_pcs)
@@ -2353,7 +2358,11 @@ def postproc_IRDIS(
                             str(int(x)) for x in test_pcs_sann
                         ]
                         ntest_pcs = len(test_pcs_sann)
-                        test_pcs_str = "npc" + "-".join(test_pcs_str_list)
+                        if ntest_pcs < 21:
+                            test_pcs_str = "npc" + "-".join(test_pcs_str_list)
+                        else:
+                            test_pcs_str = "npc{}-{}".format(test_pcs_sann[0],
+                                                             test_pcs_sann[-1])
 
                         # FURTHER CROP THE ADI CUBE, IF POSSIBLE
                         crop_sz = int(2 * (r_pl + asize * fwhm)) + 3
@@ -2533,7 +2542,11 @@ def postproc_IRDIS(
 
                         test_pcs_str_list = [str(x) for x in test_pcs_full]
                         ntest_pcs = len(test_pcs_full)
-                        test_pcs_str = "npc" + "-".join(test_pcs_str_list)
+                        if ntest_pcs < 21:
+                            test_pcs_str = "npc" + "-".join(test_pcs_str_list)
+                        else:
+                            test_pcs_str = "npc{}-{}".format(test_pcs_full[0],
+                                                             test_pcs_full[-1])
                         if flux_weights and not "_fw" in label_filt:
                             label_filt += "_fw"
                         if not fake_planet:
@@ -3357,9 +3370,11 @@ def postproc_IRDIS(
                                 str(x) for x in test_pcs_ann
                             ]
                             ntest_pcs = len(test_pcs_ann)
-                            test_pcs_str = "npc" + "-".join(
-                                test_pcs_str_list
-                            )
+                            if ntest_pcs < 21:
+                                test_pcs_str = "npc" + "-".join(test_pcs_str_list)
+                            else:
+                                test_pcs_str = "npc{}-{}".format(test_pcs_ann[0],
+                                                                 test_pcs_ann[-1])
                         else:
                             test_pcs_ann = npc_ann[ff]
                             test_pcs_str_list = [
@@ -3369,6 +3384,11 @@ def postproc_IRDIS(
                             test_pcs_str = "npc_set" + "-".join(
                                 test_pcs_str_list
                             )
+                            if ntest_pcs < 21:
+                                test_pcs_str = "npc" + "-".join(test_pcs_str_list)
+                            else:
+                                test_pcs_str = "npc{}-{}".format(test_pcs_ann[-1][0],
+                                                                 test_pcs_ann[-1][-1])
                         if flux_weights:
                             if not "_fw" in label_filt:
                                 label_filt += "_fw"
