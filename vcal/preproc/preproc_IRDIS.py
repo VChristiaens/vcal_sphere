@@ -4580,7 +4580,7 @@ def preproc_IRDIS(
                                             nsegm=1,
                                             theta_init=0,
                                             mode="mask",
-                                        )
+                                        )[0]
                                     else:
                                         mask_scal = mask_circle(
                                             mask, mask_scal[0] / plsc_med
