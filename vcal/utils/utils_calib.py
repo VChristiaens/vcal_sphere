@@ -260,7 +260,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                         sci_list_irdis.append(fname)
                         sci_list_mjd_irdis.append(header['MJD-OBS'])
                         ndit = int(header['HIERARCH ESO DET NDIT'])
-                        total_int_SCI_IRDIS += dit_ifs*ndit
+                        total_int_SCI_IRDIS += dit_irdis*ndit
                         try:
                             see0 = header['HIERARCH ESO TEL AMBI FWHM START']
                             seeN = header['HIERARCH ESO TEL AMBI FWHM END']
@@ -279,7 +279,7 @@ def make_lists(inpath, outpath_filenames, dit_ifs=None, dit_irdis=None,
                         center_list_irdis.append(fname)
                         center_list_mjd_irdis.append(header['MJD-OBS'])
                         ndit = int(header['HIERARCH ESO DET NDIT'])
-                        total_int_CEN_IRDIS += dit_ifs*ndit
+                        total_int_CEN_IRDIS += dit_irdis*ndit
                         try:
                             see0 = header['HIERARCH ESO TEL AMBI FWHM START']
                             seeN = header['HIERARCH ESO TEL AMBI FWHM END']
