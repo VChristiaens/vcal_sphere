@@ -4528,7 +4528,7 @@ def preproc_IRDIS(
             for ff, filt in enumerate(filters):
                 fluxes[ff] = float(open_fits(
                     outpath + final_fluxname + "{}.fits".format(filt)
-                )[0][0])
+                )[0])
                 lbdas_tmp[ff] = float(open_fits(
                     outpath + final_fwhmname + "{}.fits".format(filt)
                 )[0])
