@@ -713,7 +713,7 @@ def preproc_IRDIS(
                                             full_output=True,
                                             verbose=verbose,
                                             debug=False,
-                                            plot=plot,
+                                            plot=False,
                                         )
                                     )
 
@@ -775,7 +775,7 @@ def preproc_IRDIS(
                                             nproc=nproc,
                                             save_shifts=False,
                                             debug=False,
-                                            plot=plot,
+                                            plot=False,
                                         )
                                     )
                                     std_shift.append(
@@ -805,7 +805,7 @@ def preproc_IRDIS(
                                             full_output=True,
                                             verbose=True,
                                             debug=False,
-                                            plot=plot,
+                                            plot=False,
                                         )
                                     )
                                     for zz in range(cube.shape[0]):
@@ -894,7 +894,7 @@ def preproc_IRDIS(
                                                 xy_spots_tmp,
                                                 subi_size=cen_box_sz[2],
                                                 sigfactor=sigfactor,
-                                                plot=plot,
+                                                plot=False,
                                                 fit_type="moff",
                                                 lbda=None,
                                                 debug=False,
@@ -1123,7 +1123,7 @@ def preproc_IRDIS(
                                             subframesize=20,
                                             interpolation="bilinear",
                                             save_shifts=False,
-                                            plot=plot,
+                                            plot=False,
                                             nproc=nproc,
                                         )
                                     )
@@ -1175,12 +1175,16 @@ def preproc_IRDIS(
                             pa_sci_ini = []
                             pa_sci_fin = []
                             for fn_tmp, filename_tmp in enumerate(file_list):
-                                head_tmp = open_header(
-                                    inpath
-                                    + OBJ_IRDIS_list[fn_tmp]
-                                    + filters_lab[ff]
-                                    + ".fits"
-                                )
+                                try:
+                                    head_tmp = open_header(
+                                        inpath
+                                        + OBJ_IRDIS_list[fn_tmp]
+                                        + filters_lab[ff]
+                                        + ".fits"
+                                    )
+                                except:
+                                    import pdb
+                                    pdb.set_trace()
                                 mjd_tmp = float(head_tmp["MJD-OBS"])
                                 if "NAXIS3" in head_tmp.keys():
                                     mjd_tmp_list = [
@@ -1353,7 +1357,7 @@ def preproc_IRDIS(
                                                     xy_spots_tmp,
                                                     subi_size=cen_box_sz[2],
                                                     sigfactor=sigfactor,
-                                                    plot=plot,
+                                                    plot=False,
                                                     fit_type="moff",
                                                     lbda=None,
                                                     debug=debug,
@@ -1562,7 +1566,7 @@ def preproc_IRDIS(
                                                 nproc=nproc,
                                                 save_shifts=False,
                                                 debug=False,
-                                                plot=plot,
+                                                plot=False,
                                             )
                                         )
                                     elif cube.ndim == 3:
@@ -1590,7 +1594,7 @@ def preproc_IRDIS(
                                             full_output=True,
                                             verbose=verbose,
                                             debug=False,
-                                            plot=plot,
+                                            plot=False,
                                         )
                                     )
                                     for zz in range(cube.shape[0]):
@@ -2969,7 +2973,7 @@ def preproc_IRDIS(
                         ):
                             fluxes = np.zeros(ntot)
                             for nn in range(ntot):
-                                fluxes[nn] = normalize_psf(
+                                fluxes[nn] = float(normalize_psf(
                                     cube[nn],
                                     fwhm=fwhm,
                                     size=crop_sz,
@@ -2981,7 +2985,7 @@ def preproc_IRDIS(
                                     full_output=True,
                                     verbose=debug,
                                     debug=False,
-                                )[1][0]
+                                )[1])
                             write_fits(
                                 outpath
                                 + "TMP_fluxes{}_{}.fits".format(
@@ -3225,6 +3229,14 @@ def preproc_IRDIS(
                                         verbose=debug,
                                     )
                                 )
+                                if plot:
+                                    plt.savefig(
+                                        outpath
+                                        + "badfr_ell_plot{}{}.pdf".format(
+                                            labels[fi], filt
+                                        ),
+                                        bbox_inches="tight",
+                                    )
                                 if (
                                     100 * len(bad_index_list) / cube.shape[0]
                                     > perc
@@ -3371,13 +3383,13 @@ def preproc_IRDIS(
                                             imlib=imlib,
                                             interpolation=interpolation,
                                         )
-                                        flux_bkg[ii] = normalize_psf(
+                                        flux_bkg[ii] = float(normalize_psf(
                                             subframe,
                                             fwhm=fwhm,
                                             full_output=True,
                                             verbose=verbose,
                                             debug=debug,
-                                        )[1][0]
+                                        )[1])
                                 # infer outliers
                                 med_fbkg = np.nanmedian(flux_bkg)
                                 std_fbkg = np.nanstd(flux_bkg)
@@ -3707,6 +3719,7 @@ def preproc_IRDIS(
                                         ),
                                         bbox_inches="tight",
                                     )
+                                    plt.close("all")
                                 final_good_index_list = [
                                     idx
                                     for idx in list(good_index_list)
@@ -4028,7 +4041,7 @@ def preproc_IRDIS(
                         ntot = cube.shape[0]
                         fluxes = np.zeros(ntot)
                         for nn in range(ntot):
-                            fluxes[nn] = normalize_psf(
+                            fluxes[nn] = float(normalize_psf(
                                 cube[nn],
                                 fwhm=fwhm,
                                 size=None,
@@ -4040,7 +4053,7 @@ def preproc_IRDIS(
                                 full_output=True,
                                 verbose=debug,
                                 debug=False,
-                            )[1][0]
+                            )[1])
                         write_fits(
                             outpath
                             + "4_final_psf_fluxes_{}_{}.fits".format(
@@ -4478,7 +4491,7 @@ def preproc_IRDIS(
                                 ntot = cube.shape[0]
                                 fluxes = np.zeros(ntot)
                                 for nn in range(ntot):
-                                    fluxes[nn] = normalize_psf(
+                                    fluxes[nn] = float(normalize_psf(
                                         cube[nn],
                                         fwhm=fwhm,
                                         size=None,
@@ -4490,7 +4503,7 @@ def preproc_IRDIS(
                                         full_output=True,
                                         verbose=debug,
                                         debug=False,
-                                    )[1][0]
+                                    )[1])
                                 write_fits(
                                     outpath
                                     + "4_final_obj_fluxes_bin{:.0f}{}_{}.fits".format(
