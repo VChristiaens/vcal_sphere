@@ -207,6 +207,7 @@ def postproc_IRDIS(
     sourcename = params_postproc.get("sourcename", "")  # can have spaces
     details = params_postproc.get("details", "")
     label_test = params_postproc.get("label_test", "")
+    do_no_crop = params_postproc.get("do_no_crop", False) # whether to also run post-processing on full frames (slower)
 
     source = sourcename.replace(" ", "")  # same without space
 
@@ -431,7 +432,9 @@ def postproc_IRDIS(
                 final_crop_sz = final_crop_sz[ncrop - 1 - i]
                 break
     final_crop_as = final_crop_sz * np.median(plsc_ori)
-    crop_lab_list = ["crop_{:.1f}as".format(final_crop_as), "no_crop"]
+    crop_lab_list = ["crop_{:.1f}as".format(final_crop_as)]
+    if do_no_crop:
+        crop_lab_list.append("no_crop")
 
     # DEFINE NPC RANGES FOR DIFFERENT PCA algorithms
     npc_ann = None  # [((1,1,1,1,1,1,1),(2,1,1,1,1,1,1),(3,1,1,1,1,1,1),(4,1,1,1,1,1,1),(5,1,1,1,1,1,1),(6,1,1,1,1,1,1),(7,1,1,1,1,1,1)),# otherwise None
