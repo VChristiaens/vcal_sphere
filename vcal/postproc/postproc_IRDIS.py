@@ -207,7 +207,7 @@ def postproc_IRDIS(
     sourcename = params_postproc.get("sourcename", "")  # can have spaces
     details = params_postproc.get("details", "")
     label_test = params_postproc.get("label_test", "")
-    do_no_crop = params_postproc.get("do_no_crop", False) # whether to also run post-processing on full frames (slower)
+    do_no_crop = params_postproc.get("do_no_crop", False)  # whether to also run post-processing on full frames (slower)
 
     source = sourcename.replace(" ", "")  # same without space
 
@@ -406,15 +406,18 @@ def postproc_IRDIS(
     firstguess_pcs = list(
         range(firstguess_pcs[0], firstguess_pcs[1], firstguess_pcs[2])
     )
-    test_pcs_sann = list(
-        range(test_pcs_sann[0], test_pcs_sann[1], test_pcs_sann[2])
-    )
-    test_pcs_full = list(
-        range(test_pcs_full[0], test_pcs_full[1], test_pcs_full[2])
-    )
-    test_pcs_ann = list(
-        range(test_pcs_ann[0], test_pcs_ann[1], test_pcs_ann[2])
-    )
+    if len(test_pcs_sann) == 3:
+        test_pcs_sann = list(
+            range(test_pcs_sann[0], test_pcs_sann[1], test_pcs_sann[2])
+        )
+    if len(test_pcs_full) == 3:
+        test_pcs_full = list(
+            range(test_pcs_full[0], test_pcs_full[1], test_pcs_full[2])
+            )
+    if len(test_pcs_ann) == 3:
+        test_pcs_ann = list(
+            range(test_pcs_ann[0], test_pcs_ann[1], test_pcs_ann[2])
+        )
     test_pcs_1zone = list(
         range(test_pcs_1zone[0], test_pcs_1zone[1], test_pcs_1zone[2])
     )
