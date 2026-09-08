@@ -190,6 +190,7 @@ def preproc_IRDIS(
     # recentering method. choice among {"gauss_2dfit", "moffat_2dfit", "dft_nn", "satspots", "radon", "speckle"} # either a single string or a list of string to be tested. If not provided will try both gauss_2dfit and dft. Note: "nn" stand for upsampling factor, it should be an integer (recommended: 100)
     rec_met = params_preproc["rec_met"]
     rec_met_psf = params_preproc["rec_met_psf"]
+    stable = params_preproc.get(["stable"], True)
 
     imlib = params_preproc.get("imlib", "vip-fft")  # or opencv
     interpolation = params_preproc.get("interpolation", "lanczos4")
@@ -1431,7 +1432,7 @@ def preproc_IRDIS(
                                                 (center_1_frame, cube)
                                             )
     
-                                            if cube_tmp.shape[-1] > 71:
+                                            if cube_tmp.shape[-1] > 71 and stable:
                                                 cyc, cxc = frame_center(cube_tmp)
                                                 # approx xy of star from sat spots
                                                 xc_med = np.median(x_const[cc_clo])
@@ -1445,13 +1446,31 @@ def preproc_IRDIS(
                                                     force=True,
                                                     verbose=False,
                                                 )
+                                            # 301px is slightly larger than AO ring of fire in K2 
+                                            elif cube_tmp.shape[-1] > 301:
+                                                cyc, cxc = frame_center(cube_tmp)
+                                                # approx xy of star from sat spots
+                                                xc_med = np.median(x_const[cc_clo])
+                                                yc_med = np.median(y_const[cc_clo])
+                                                xy_s = (cxc - xc_med, cyc - yc_med)
+                                                print(xy_s)
+                                                cube_crop = cube_crop_frames(
+                                                    cube_tmp,
+                                                    301,
+                                                    xy_s,
+                                                    force=True,
+                                                    verbose=False,
+                                                )
                                             else:
                                                 cube_crop = cube_tmp
-                                            cube_hpf = cube_filter_highpass(
-                                                cube_crop,
-                                                mode="gauss-subt",
-                                                fwhm_size=3,
-                                            )
+                                            if True: # req. stable or not??
+                                                cube_hpf = cube_filter_highpass(
+                                                    cube_crop,
+                                                    mode="gauss-subt",
+                                                    fwhm_size=3,
+                                                )
+                                            else:
+                                                cube_hpf = cube_crop
     
                                             tmp, y, x = (
                                                 cube_recenter_dft_upsampling(
@@ -2122,7 +2141,6 @@ def preproc_IRDIS(
                                             negative=negative,
                                             recenter_median=False,
                                             subframesize=cen_box_sz[fi],
-                                            interpolation="bilinear",
                                             save_shifts=False,
                                             plot=False,
                                             nproc=nproc,
@@ -2365,6 +2383,39 @@ def preproc_IRDIS(
                                 interp_trans,
                                 flush=True,
                             )
+
+                        # Apply a final correlation based step
+                        if "speckle" not in rec_met:
+                            subframesize = int(331*lbdas[ff]/2.251) # scale the box
+                            if not subframesize%2:
+                                subframesize -= 1
+                            master_cube, _, _, x_shifts_FIN, y_shifts_FIN = (
+                                cube_recenter_via_speckles(
+                                    master_cube,
+                                    alignment_iter=5,
+                                    gammaval=1,
+                                    min_spat_freq=0.5,
+                                    max_spat_freq=3,
+                                    fwhm=1.2 * max_resel,
+                                    debug=False,
+                                    negative=coro,
+                                    recenter_median=False,
+                                    subframesize=subframesize,
+                                    save_shifts=False,
+                                    plot=plot,
+                                    nproc=nproc,
+                                )
+                            )
+                            if plot:
+                                plt.savefig(
+                                    outpath
+                                    + "Shifts_xy{}_{}_FINAL_CC_step3.pdf".format(
+                                        labels[fi], filt
+                                    ),
+                                    bbox_inches="tight",
+                                    format="pdf",
+                                )
+                                plt.clf()
 
                         # IMPORTANT WE DO NOT NORMALIZE BY DIT (any more!)
                         # /dits[fi])
