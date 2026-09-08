@@ -1437,7 +1437,7 @@ def preproc_IRDIS(
                                                 xc_med = np.median(x_const[cc_clo])
                                                 yc_med = np.median(y_const[cc_clo])
                                                 xy_s = (cxc - xc_med, cyc - yc_med)
-                                                if fi == 0 and k == 0:
+                                                if fn == 0 and k == 0:
                                                     msg = "Assumed approx center:"
                                                     print(msg, xy_s)
                                                 cube_crop = cube_crop_frames(
@@ -1454,7 +1454,7 @@ def preproc_IRDIS(
                                                 xc_med = np.median(x_const[cc_clo])
                                                 yc_med = np.median(y_const[cc_clo])
                                                 xy_s = (cxc - xc_med, cyc - yc_med)
-                                                if fi == 0 and k == 0:
+                                                if fn == 0 and k == 0:
                                                     msg = "Assumed approx center:"
                                                     print(msg, xy_s)
                                                 cube_crop = cube_crop_frames(
