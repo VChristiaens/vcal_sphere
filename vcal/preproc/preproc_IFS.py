@@ -902,7 +902,6 @@ def preproc_IFS(
                                         subframesize=20,
                                         imlib="opencv",
                                         interpolation="bilinear",
-                                        save_shifts=False,
                                         plot=plot,
                                         nproc=nproc,
                                     )

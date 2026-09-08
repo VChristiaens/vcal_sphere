@@ -1123,7 +1123,6 @@ def preproc_IRDIS(
                                             recenter_median=False,
                                             subframesize=20,
                                             interpolation="bilinear",
-                                            save_shifts=False,
                                             plot=False,
                                             nproc=nproc,
                                         )
@@ -2141,7 +2140,6 @@ def preproc_IRDIS(
                                             negative=negative,
                                             recenter_median=False,
                                             subframesize=cen_box_sz[fi],
-                                            save_shifts=False,
                                             plot=False,
                                             nproc=nproc,
                                         )
@@ -2401,7 +2399,6 @@ def preproc_IRDIS(
                                     negative=coro,
                                     recenter_median=False,
                                     subframesize=subframesize,
-                                    save_shifts=False,
                                     plot=plot,
                                     nproc=nproc,
                                 )
