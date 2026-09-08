@@ -1931,7 +1931,9 @@ def preproc_IRDIS(
                                                 [true_ncen]
                                             )
                                             for cc in range(true_ncen):
-                                                if cc == 0:
+                                                if true_ncen == 1:
+                                                    cond = np.array([True])
+                                                elif cc == 0:
                                                     cond = mjd_cen < mjd
                                                 elif cc == true_ncen - 1:
                                                     cond = (
@@ -2073,13 +2075,16 @@ def preproc_IRDIS(
                                             y_shifts = cy - pos_xy[1] - pacy
     
                                         for zz in range(n_fr):
-                                            cube[zz] = frame_shift(
-                                                cube[zz],
-                                                y_shifts[zz],
-                                                x_shifts[zz],
-                                                imlib=imlib,
-                                                interpolation=interpolation,
-                                            )
+                                            try:
+                                                cube[zz] = frame_shift(
+                                                    cube[zz],
+                                                    y_shifts[zz],
+                                                    x_shifts[zz],
+                                                    imlib=imlib,
+                                                    interpolation=interpolation,
+                                                )
+                                            except:
+                                                set_trace()
                                         if plot and fn == 0:
                                             plt.show()  # show whichever previous plot is in memory
                                             colors = [
