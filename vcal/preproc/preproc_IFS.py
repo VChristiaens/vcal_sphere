@@ -887,7 +887,7 @@ def preproc_IFS(
                                         verbose=debug,
                                     )
                             elif "speckle" in rec_met_tmp[ii]:
-                                cube, x_shifts, y_shifts = (
+                                cube, _, _, x_shifts, y_shifts = (
                                     cube_recenter_via_speckles(
                                         cube,
                                         cube_ref=None,
@@ -903,6 +903,7 @@ def preproc_IFS(
                                         imlib="opencv",
                                         interpolation="bilinear",
                                         plot=plot,
+                                        full_output=True,
                                         nproc=nproc,
                                     )
                                 )

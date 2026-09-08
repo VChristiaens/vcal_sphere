@@ -1437,7 +1437,9 @@ def preproc_IRDIS(
                                                 xc_med = np.median(x_const[cc_clo])
                                                 yc_med = np.median(y_const[cc_clo])
                                                 xy_s = (cxc - xc_med, cyc - yc_med)
-                                                print(xy_s)
+                                                if fi == 0 and k == 0:
+                                                    msg = "Assumed approx center:"
+                                                    print(msg, xy_s)
                                                 cube_crop = cube_crop_frames(
                                                     cube_tmp,
                                                     71,
@@ -1452,7 +1454,9 @@ def preproc_IRDIS(
                                                 xc_med = np.median(x_const[cc_clo])
                                                 yc_med = np.median(y_const[cc_clo])
                                                 xy_s = (cxc - xc_med, cyc - yc_med)
-                                                print(xy_s)
+                                                if fi == 0 and k == 0:
+                                                    msg = "Assumed approx center:"
+                                                    print(msg, xy_s)
                                                 cube_crop = cube_crop_frames(
                                                     cube_tmp,
                                                     301,
@@ -2141,6 +2145,7 @@ def preproc_IRDIS(
                                             recenter_median=False,
                                             subframesize=cen_box_sz[fi],
                                             plot=False,
+                                            full_output=True,
                                             nproc=nproc,
                                         )
                                     )
@@ -2399,6 +2404,7 @@ def preproc_IRDIS(
                                     negative=coro,
                                     recenter_median=False,
                                     subframesize=subframesize,
+                                    full_output=True,
                                     plot=plot,
                                     nproc=nproc,
                                 )
