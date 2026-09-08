@@ -1163,7 +1163,7 @@ def preproc_IRDIS(
                             print(
                                 "Press c if satisfied. q otherwise", flush=True
                             )
-                        #  pdb.set_trace()
+                        #  set_trace()
 
                         if isinstance(rec_met_tmp, str):
                             final_y_shifts = []
@@ -1183,8 +1183,7 @@ def preproc_IRDIS(
                                         + ".fits"
                                     )
                                 except:
-                                    import pdb
-                                    pdb.set_trace()
+                                    set_trace()
                                 mjd_tmp = float(head_tmp["MJD-OBS"])
                                 if "NAXIS3" in head_tmp.keys():
                                     mjd_tmp_list = [
@@ -1351,13 +1350,16 @@ def preproc_IRDIS(
                                             cube_cen_sub = cube_filter_lowpass(
                                                 cube_cen_sub, fwhm_size=2.0
                                             )
+                                            print(xy_spots_tmp)
+                                            write_fits(outpath+"TMP_cube_cen_sub.fits",
+                                                       cube_cen_sub)
                                             cube_cen_sub, y_tmp, x_tmp, _, _ = (
                                                 cube_recenter_satspots(
                                                     cube_cen_sub,
                                                     xy_spots_tmp,
                                                     subi_size=cen_box_sz[2],
                                                     sigfactor=sigfactor,
-                                                    plot=False,
+                                                    plot=plot,
                                                     fit_type="moff",
                                                     lbda=None,
                                                     debug=debug,
@@ -1365,6 +1367,17 @@ def preproc_IRDIS(
                                                     full_output=True,
                                                 )
                                             )
+                                            
+                                            if plot:
+                                                plt.savefig(
+                                                    outpath
+                                                    + "SatSpots_moffat_fits_CEN{}.pdf".format(
+                                                        cc
+                                                    ),
+                                                    bbox_inches="tight",
+                                                    format="pdf",
+                                                )
+                                                plt.clf()
     
                                             write_fits(
                                                 outpath
