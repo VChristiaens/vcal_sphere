@@ -2448,19 +2448,20 @@ def preproc_IRDIS(
                             master_cube,
                         )
                         
-                        # SAVE Final shifts
-                        if fi == 1:
-                            rec_met_tmp = rec_met_psf
-                        else:
-                            rec_met_tmp = rec_met
-                        if fi > 0 or not use_cen_only:
-                            shifts_ori_y = open_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(
-                                labels[fi], filters[ff], rec_met_tmp))
-                            shifts_ori_x = open_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(
-                                labels[fi], filters[ff], rec_met_tmp))
-                        else:
-                            shifts_ori_y = 0
-                            shifts_ori_x = 0
+                        # SAVE Final shifts (when not CEN files)
+                        shifts_ori_y = 0
+                        shifts_ori_x = 0
+                        if fi != 2:
+                            if fi == 1:
+                                rec_met_tmp = rec_met_psf
+                            else:
+                                rec_met_tmp = rec_met
+                            if fi > 0 or not use_cen_only:
+                                shifts_ori_y = open_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(
+                                    labels[fi], filters[ff], rec_met_tmp))
+                                shifts_ori_x = open_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(
+                                    labels[fi], filters[ff], rec_met_tmp))
+
                         write_fits(
                             outpath
                             + "1_master{}_shiftsXY_{}.fits".format(
@@ -4370,7 +4371,7 @@ def preproc_IRDIS(
                         final_shifts_xy = open_fits(
                             outpath
                             + "3_master{}_final_shifts_clean_{}{}.fits".format(
-                                labels[fi], filt, bad_str
+                                labels[fi_tmp], filt, bad_str
                             )
                         )
                         derot_angles_notrim = open_fits(
@@ -4382,7 +4383,7 @@ def preproc_IRDIS(
                         final_shifts_notrim = open_fits(
                             outpath
                             + "1_master{}_shiftsXY_{}.fits".format(
-                                labels[fi], filters[ff]
+                                labels[fi_tmp], filters[ff]
                             ))
                         ntot = cube.shape[0]
                         ntot_notrim = cube_notrim.shape[0]
