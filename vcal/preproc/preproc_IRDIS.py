@@ -2447,7 +2447,29 @@ def preproc_IRDIS(
                             ),
                             master_cube,
                         )
-
+                        
+                        # SAVE Final shifts
+                        if fi == 1:
+                            rec_met_tmp = rec_met_psf
+                        else:
+                            rec_met_tmp = rec_met
+                        if fi > 0 or not use_cen_only:
+                            shifts_ori_y = open_fits(outpath+"TMP_shifts_y{}_{}_{}.fits".format(
+                                labels[fi], filters[ff], rec_met_tmp))
+                            shifts_ori_x = open_fits(outpath+"TMP_shifts_x{}_{}_{}.fits".format(
+                                labels[fi], filters[ff], rec_met_tmp))
+                        else:
+                            shifts_ori_y = 0
+                            shifts_ori_x = 0
+                        write_fits(
+                            outpath
+                            + "1_master{}_shiftsXY_{}.fits".format(
+                                labels[fi], filters[ff]
+                            ),
+                            np.array([x_shifts_FIN+shifts_ori_x,
+                                      y_shifts_FIN+shifts_ori_y]),
+                        )
+                        
                         if fi != 1:
                             # np.zeros(int(len(file_list)*ndits[fi]))
                             final_derot_angles = []
@@ -3161,7 +3183,12 @@ def preproc_IRDIS(
                                     labels[fi], filters[ff]
                                 )
                             )
-
+                            final_shifts_xy = open_fits(
+                                outpath
+                                + "1_master{}_shiftsXY_{}.fits".format(
+                                    labels[fi], filters[ff]
+                                ))
+                        
                         # Rejection based on pixel statistics
                         if ff == trim_ch or separate_trim == 1:
 
@@ -3904,6 +3931,14 @@ def preproc_IRDIS(
                                 ),
                                 derot_angles,
                             )
+                            final_shifts_xy = final_shifts_xy[:,final_good_index_list]
+                            write_fits(
+                                outpath
+                                + "3_master{}_final_shifts_clean_{}{}.fits".format(
+                                    labels[fi], filt, bad_str
+                                ),
+                                final_shifts_xy,
+                            )
 
                     # for ff, filt in enumerate(filters):
                     # for fi,file_list in enumerate(obj_psf_list):
@@ -4332,12 +4367,23 @@ def preproc_IRDIS(
                                 "-".join(badfr_crit_names),
                             )
                         )
+                        final_shifts_xy = open_fits(
+                            outpath
+                            + "3_master{}_final_shifts_clean_{}{}.fits".format(
+                                labels[fi], filt, bad_str
+                            )
+                        )
                         derot_angles_notrim = open_fits(
                             outpath
                             + "1_master_derot_angles{}{}.fits".format(
                                 labels[fi_tmp], filters[ff]
                             )
                         )
+                        final_shifts_notrim = open_fits(
+                            outpath
+                            + "1_master{}_shiftsXY_{}.fits".format(
+                                labels[fi], filters[ff]
+                            ))
                         ntot = cube.shape[0]
                         ntot_notrim = cube_notrim.shape[0]
                         if bin_fac != 1:
@@ -4357,7 +4403,9 @@ def preproc_IRDIS(
                                 ]
                             )
                             derot_angles_bin = np.zeros(ntot_bin)
+                            final_shifts_bin = np.zeros(ntot_bin)
                             derot_angles_bin_notrim = np.zeros(ntot_bin_notrim)
+                            final_shifts_bin_notrim = np.zeros(ntot_bin_notrim)
                             for nn in range(ntot_bin):
                                 cube_bin[nn] = np.median(
                                     cube[nn * bin_fac : (nn + 1) * bin_fac],
@@ -4365,6 +4413,11 @@ def preproc_IRDIS(
                                 )
                                 derot_angles_bin[nn] = np.median(
                                     derot_angles[
+                                        nn * bin_fac : (nn + 1) * bin_fac
+                                    ]
+                                )
+                                final_shifts_bin[nn] = np.median(
+                                    final_shifts[
                                         nn * bin_fac : (nn + 1) * bin_fac
                                     ]
                                 )
@@ -4380,10 +4433,17 @@ def preproc_IRDIS(
                                         nn * bin_fac : (nn + 1) * bin_fac
                                     ]
                                 )
+                                final_shifts_bin_notrim[nn] = np.median(
+                                    final_shifts_notrim[
+                                        nn * bin_fac : (nn + 1) * bin_fac
+                                    ]
+                                )
                             cube = cube_bin
                             cube_notrim = cube_bin_notrim
                             derot_angles = derot_angles_bin
                             derot_angles_notrim = derot_angles_bin_notrim
+                            final_shifts = final_shifts_bin
+                            final_shifts_notrim = final_shifts_bin_notrim
                         if not cc:
                             # crop by max shift amplitude (to avoid empty edge)
                             if use_cen_only:
@@ -4461,6 +4521,12 @@ def preproc_IRDIS(
                                 + "{}.fits".format(filt),
                                 derot_angles,
                             )
+                            write_fits(
+                                outpath
+                                + "final_shifts"
+                                + "{}.fits".format(filt),
+                                final_shifts,
+                            )
                         write_fits(
                             outpath
                             + "4_final_cube_all_bin{:.0f}{}_{}_{:.0f}.fits".format(
@@ -4484,6 +4550,13 @@ def preproc_IRDIS(
                         )
                         write_fits(
                             outpath
+                            + "4_final_shifts_all_bin{:.0f}_{}.fits".format(
+                                bin_fac, filt
+                            ),
+                            final_shifts_notrim,
+                        )
+                        write_fits(
+                            outpath
                             + "4_final_cube_bin{:.0f}{}_{}_{:.0f}.fits".format(
                                 bin_fac, dist_lab, filt, crop_sz
                             ),
@@ -4502,6 +4575,13 @@ def preproc_IRDIS(
                                 bin_fac, filt
                             ),
                             derot_angles,
+                        )
+                        write_fits(
+                            outpath
+                            + "4_final_shifts_bin{:.0f}_{}.fits".format(
+                                bin_fac, filt
+                            ),
+                            final_shifts,
                         )
 
                         med_psf = np.median(cube, axis=0)
