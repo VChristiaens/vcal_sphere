@@ -89,8 +89,7 @@ def postproc_IRDIS(
     planet_parameter=None,
 ) -> None:
     """
-    Postprocessing of SPHERE/IRDIS data using preproc parameters provided in\
-    json file.
+    Postprocess SPHERE/IRDIS data using parameters provided in json file.
 
     *Suggestion: run this routine several times with the following parameters
     set in the parameter file:
@@ -123,8 +122,7 @@ def postproc_IRDIS(
 
     Output:
     *******
-    None. All preprocessed products are written as fits files, and can then be
-    used for post-processing.
+    None. All products are written as fits, csv and pdf files.
 
     """
     plt.style.use("default")

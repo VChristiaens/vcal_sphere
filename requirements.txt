@@ -3,3 +3,5 @@ packaging
 hciplot
 pillow
 opencv-python
+applefy
+seaborn

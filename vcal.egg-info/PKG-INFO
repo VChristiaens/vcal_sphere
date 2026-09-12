@@ -17,11 +17,15 @@ Requires-Dist: packaging
 Requires-Dist: hciplot
 Requires-Dist: pillow
 Requires-Dist: opencv-python
+Requires-Dist: applefy
+Requires-Dist: seaborn
 Provides-Extra: dev
 Requires-Dist: packaging; extra == "dev"
 Requires-Dist: hciplot; extra == "dev"
 Requires-Dist: pillow; extra == "dev"
 Requires-Dist: opencv-python; extra == "dev"
+Requires-Dist: applefy; extra == "dev"
+Requires-Dist: seaborn; extra == "dev"
 Requires-Dist: sphinx; extra == "dev"
 Requires-Dist: pandoc; extra == "dev"
 Requires-Dist: pytest; extra == "dev"

@@ -10,6 +10,7 @@ vcal.egg-info/top_level.txt
 vcal/calib/__init__.py
 vcal/calib/calib_SPHERE.py
 vcal/postproc/__init__.py
+vcal/postproc/contrast_curves_IRDIS.py
 vcal/postproc/postproc_IFS.py
 vcal/postproc/postproc_IRDIS.py
 vcal/preproc/__init__.py

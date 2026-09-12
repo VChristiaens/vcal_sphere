@@ -2,12 +2,16 @@ packaging
 hciplot
 pillow
 opencv-python
+applefy
+seaborn
 
 [dev]
 packaging
 hciplot
 pillow
 opencv-python
+applefy
+seaborn
 sphinx
 pandoc
 pytest
