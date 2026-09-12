@@ -4368,10 +4368,11 @@ def preproc_IRDIS(
                                 "-".join(badfr_crit_names),
                             )
                         )
-                        final_shifts_xy = open_fits(
+                        final_shifts = open_fits(
                             outpath
                             + "3_master{}_final_shifts_clean_{}{}.fits".format(
-                                labels[fi_tmp], filt, bad_str
+                                labels[fi_tmp], filt, 
+                                "-".join(badfr_crit_names)
                             )
                         )
                         derot_angles_notrim = open_fits(
