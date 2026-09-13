@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: vcal
-Version: 0.0.2
+Version: 0.1.0
 Summary: Package for VIP-based SPHERE image Calibration and processing
 Home-page: https://github.com/VChristiaens/vcal_sphere
 Author: Valentin Christiaens

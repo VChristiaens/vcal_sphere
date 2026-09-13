@@ -1023,7 +1023,7 @@ def contrast_curves_IRDIS(
                                                      dit_psf_template=1.,
                                                      dit_science=starphot,
                                                      scaling_factor=1., # A factor to account e.g. for ND filters
-                                                     checkpoint_dir=checkpoint_dir)
+                                                     checkpoint_dir=checkpoint_dir.format(bin_fac))
                         
                         # PCA_ADI_cube, derot_angles = vip.fits.open_adicube(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'.fits')
                         # First let's readapt the number of pcs to be tested
@@ -1115,12 +1115,15 @@ def contrast_curves_IRDIS(
                         overall_best = np.min(contrast_curves.values, axis=1)
                         separations_arcsec = contrast_curves.reset_index(level=0).index
                         separations_FWHM = contrast_curves.reset_index(level=1).index
+                        best_idx = np.argmin(contrast_curves.values, axis=1)
+                        best_contrast_errors = contrast_errors.values[np.arange(len(best_idx)), best_idx]
                         
                         opt_contrast_curve = DF(
                             {
                                 "separations_arcsec": separations_arcsec,
                                 "separations_FWHM": separations_FWHM,
-                                "sensitivity": overall_best
+                                "sensitivity": overall_best,
+                                "sensitivity_errors": best_contrast_errors
                             })
                             
                         DF.to_csv(
@@ -1136,8 +1139,6 @@ def contrast_curves_IRDIS(
                             float_format=None,
                         )
                             
-                        best_idx = np.argmin(contrast_curves.values, axis=1)
-                        best_contrast_errors = contrast_errors.values[np.arange(len(best_idx)), best_idx]
 
                         # PLOT !
                         colors = sns.color_palette("rocket_r",
