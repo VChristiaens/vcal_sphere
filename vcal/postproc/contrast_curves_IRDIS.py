@@ -211,10 +211,10 @@ def contrast_curves_IRDIS(
         "nproc", int(cpu_count() / 2)
     )  # number of processors to use - default set to cpu_count()/2 for efficiency
     overwrite_ADI = params_postproc.get(
-        "overwrite_ADI", 1
+        "overwrite_ADI", 0
     )  # whether to overwrite median-ADI results
-    overwrite_pp = params_postproc.get(
-        "overwrite_pp", 1
+    overwrite_cc = params_postproc.get(
+        "overwrite_cc", 0
     )  # whether to overwrite PCA-ADI results
 
     ## TO DO?
@@ -618,7 +618,7 @@ def contrast_curves_IRDIS(
                                     label_stg
                                 )
                             )
-                            or overwrite_pp
+                            or overwrite_cc
                         ):
                             df_list = []
                         # CROP ADI / REF CUBE to min size for sizes to match
@@ -1089,11 +1089,11 @@ def contrast_curves_IRDIS(
                             
                         contrast_instance.design_fake_planet_experiments(flux_ratios=flux_ratio,
                                                  num_planets=num_fake_planets,
-                                                 overwrite=True)
+                                                 overwrite=overwrite_cc)
                         algorithm_function = MultiComponentPCAvip(num_pcas=test_pcs_full,
                                                                   kwarg=kwargs)
                         contrast_instance.run_fake_planet_experiments(algorithm_function=algorithm_function, 
-                                                  num_parallel=cpu_count()//2)
+                                                                      num_parallel=nproc)
 
                         photometry_mode_planet = AperturePhotometryMode("ASS", # or "AS"
                                                                         psf_fwhm_radius=fwhm/2, 
