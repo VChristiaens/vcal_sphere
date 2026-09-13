@@ -22,7 +22,7 @@ from pandas import DataFrame as DF
 from scipy import interpolate
 
 from vip_hci.fits import open_fits, write_fits
-from vip_hci.metrics import snrmap, contrast_curve
+from vip_hci.metrics import snrmap, contrast_curve, snr
 from vip_hci.preproc import (
     cube_shift,
     frame_shift,
@@ -254,8 +254,9 @@ def contrast_curves_IRDIS(
         "fc_snr", 100
     )  # snr of the injected fcp in contrast_curve to compute throughput
     nspi = params_postproc.get(
-        "nbr", 9
+        "nbr", 6
     )  # number of PAs where the contrast curve is computed
+    nspi = min(nspi, 6)
     wedge = tuple(
         params_postproc.get("wedge", [0, 360])
     )  # in which range of PA should the contrast curve be computed
@@ -678,12 +679,13 @@ def contrast_curves_IRDIS(
                                 sensitivities.append(
                                     df_list[nn]["sensitivity_student"][jj]
                                 )
-                            print(
-                                "Sensitivities at {}: ".format(
-                                    df_list[nn]["distance"][jj]
-                                ),
-                                sensitivities,
-                            )
+                            if debug:
+                                print(
+                                    "Sensitivities at {}: ".format(
+                                        df_list[nn]["distance"][jj]
+                                    ),
+                                    sensitivities,
+                                )
                             idx_min = np.argmin(sensitivities)
                             pn_contr_curve_full_rsvd_opt[
                                 "sensitivity_student"
@@ -713,7 +715,7 @@ def contrast_curves_IRDIS(
                             path_or_buf=outpath_5.format(
                                 bin_fac, filt, crop_lab_list[cc]
                             )
-                            + "TMP_optimal_contrast_curve_PCA-{}-full_randsvd.csv".format(
+                            + "TMP_firstquick_contrast_curve_PCA-{}-full.csv".format(
                                 label_stg
                             ),
                             sep=",",
@@ -763,73 +765,70 @@ def contrast_curves_IRDIS(
                     if flux_ratio_mag < 0:
                         flux_ratio_mag *= -1
 
+
                     ############### 4. INJECT FAKE PLANETS AT 5-sigma #################
                     PCA_ADI_cube = PCA_ADI_cube_ori.copy()
-                    if True:
-                        th_step = (wedge[1] - wedge[0]) / nspi
-                        for ns in range(nspi):
-                            theta0 = th0 + ns * th_step
-                            
-                            th_stepr = (wedge[1] - wedge[0]) / nfcp
-                            for ff in range(nfcp):
-                                if (
-                                    ff + 1
-                                    > sensitivity_5sig_full_rsvd_df.shape[
-                                        0
-                                    ]
-                                ):
-                                    flevel = (
-                                        np.median(starphot)
-                                        * sensitivity_5sig_full_rsvd_df[-1]
-                                        * injection_fac
-                                        / np.sqrt(
-                                            ((rad_arr[ff] * plsc) / 0.5)
-                                        )
+                    ## SUBTRACT COMPANION, IF ANY
+                    if subtract_planet:
+                        PCA_ADI_cube = cube_planet_free(
+                            planet_parameter,
+                            PCA_ADI_cube,
+                            derot_angles,
+                            psfn,
+                            imlib,
+                        )
+                        
+                    th_step = (wedge[1] - wedge[0]) / nspi
+                    for ns in range(nspi):
+                        theta0 = th0 + ns * th_step
+                        
+                        th_stepr = (wedge[1] - wedge[0]) / nfcp
+                        for ff in range(nfcp):
+                            if (
+                                ff + 1
+                                > sensitivity_5sig_full_rsvd_df.shape[
+                                    0
+                                ]
+                            ):
+                                flevel = (
+                                    np.median(starphot)
+                                    * sensitivity_5sig_full_rsvd_df[-1]
+                                    * injection_fac
+                                    / np.sqrt(
+                                        ((rad_arr[ff] * plsc) / 0.5)
                                     )
-                                else:
-                                    flevel = (
-                                        np.median(starphot)
-                                        * sensitivity_5sig_full_rsvd_df[ff]
-                                        * injection_fac
-                                    )  # injected at ~3 sigma level instead of 5 sigma (rule is normalized at 0.5'', empirically it seems one has to be more conservative below 1'', hence division by radius)
-                                PCA_ADI_cube = cube_inject_companions(
-                                    PCA_ADI_cube,
-                                    psfn,
-                                    derot_angles,
-                                    flevel,
-                                    plsc=plsc,
-                                    rad_dists=rad_arr[ff : ff + 1],
-                                    n_branches=1,
-                                    theta=(theta0 + ff * th_stepr) % 360,
-                                    imlib=imlib,
-                                    interpolation=interpolation,
-                                    verbose=verbose,
-                                    nproc=nproc,
                                 )
-                            write_fits(
-                                outpath_5.format(
-                                    bin_fac, filt, crop_lab_list[cc]
-                                )
-                                + "7_final_crop_PCA_cube"
-                                + label_filt
-                                + "_fcp_spi{:.0f}.fits".format(ns),
+                            else:
+                                flevel = (
+                                    np.median(starphot)
+                                    * sensitivity_5sig_full_rsvd_df[ff]
+                                    * injection_fac
+                                )  # injected at ~3 sigma level instead of 5 sigma (rule is normalized at 0.5'', empirically it seems one has to be more conservative below 1'', hence division by radius)
+                            PCA_ADI_cube = cube_inject_companions(
                                 PCA_ADI_cube,
+                                psfn,
+                                derot_angles,
+                                flevel,
+                                plsc=plsc,
+                                rad_dists=rad_arr[ff : ff + 1],
+                                n_branches=1,
+                                theta=(theta0 + ff * th_stepr) % 360,
+                                imlib=imlib,
+                                interpolation=interpolation,
+                                verbose=verbose,
+                                nproc=nproc,
                             )
-                            # vip.fits.append_extension(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'_fcp_spi{:.0f}.fits'.format(ns), derot_angles)
+                        write_fits(
+                            outpath_5.format(
+                                bin_fac, filt, crop_lab_list[cc]
+                            )
+                            + "7_final_crop_PCA_cube"
+                            + label_filt
+                            + "_fcp_spi{:.0f}.fits".format(ns),
+                            PCA_ADI_cube,
+                        )
+                        # vip.fits.append_extension(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'_fcp_spi{:.0f}.fits'.format(ns), derot_angles)
 
-                        nfcp_df = range(1, nfcp + 1)
-                        if do_adi:
-                            sensitivity_5sig_adi_df = np.zeros(nfcp)
-                        if do_pca_full:
-                            id_npc_full_df = np.zeros(nfcp)
-                            sensitivity_5sig_full_df = np.zeros(nfcp)
-                        if (
-                            do_pca_ann
-                            and cc == 0
-                            and bin_fac == np.amax(bin_fac_list)
-                        ):
-                            id_npc_ann_df = np.zeros(nfcp)
-                            sensitivity_5sig_ann_df = np.zeros(nfcp)
 
                     ######################### 5. Simple ADI ###########################
                     if do_adi:
@@ -1011,7 +1010,7 @@ def contrast_curves_IRDIS(
                             cube_emp = PCA_ADI_cube_ori
                             label_emp = label_filt  # 9.1 Recompute the contrast curve for optimal npcs
                             
-                        num_fake_planets = nspi
+                        num_fake_planets = min(6,nspi)
                         flux_ratio = mag2flux_ratio(flux_ratio_mag)
                         print("{} fake planets will be injected azimuthally at {} flux ratio ({:.1f} mag difference)".format(num_fake_planets,
                                                                                                                              flux_ratio, 
@@ -1026,9 +1025,9 @@ def contrast_curves_IRDIS(
                                                      checkpoint_dir=checkpoint_dir.format(bin_fac))
                         
                         # PCA_ADI_cube, derot_angles = vip.fits.open_adicube(outpath_5.format(bin_fac,filt,crop_lab_list[cc])+'7_final_crop_PCA_cube'+label_filt+'.fits')
-                        # First let's readapt the number of pcs to be tested
-                        components = test_pcs_full_all[cc]
-
+                        # First let's read the number of pcs to be tested
+                        test_pcs_full = test_pcs_full_all[cc]
+                        ntest_pcs = len(test_pcs_full)
                         test_pcs_str_list = [str(x) for x in test_pcs_full]
                         ntest_pcs = len(test_pcs_full)
                         if ntest_pcs < 21:
@@ -1091,7 +1090,8 @@ def contrast_curves_IRDIS(
                         contrast_instance.design_fake_planet_experiments(flux_ratios=flux_ratio,
                                                  num_planets=num_fake_planets,
                                                  overwrite=True)
-                        algorithm_function = MultiComponentPCAvip(num_pcas=components, kwarg=kwargs)
+                        algorithm_function = MultiComponentPCAvip(num_pcas=test_pcs_full,
+                                                                  kwarg=kwargs)
                         contrast_instance.run_fake_planet_experiments(algorithm_function=algorithm_function, 
                                                   num_parallel=cpu_count()//2)
 
@@ -1131,31 +1131,24 @@ def contrast_curves_IRDIS(
                             path_or_buf=outpath_5.format(
                                 bin_fac, filt, crop_lab_list[cc]
                             )
-                            + "Optimal_contrast_curve_PCA-{}-full.csv".format(
-                                label_stg
+                            + "Optimal_contrast_curve_PCA-{}-full{}.csv".format(
+                                label_stg, label_emp
                             ),
                             sep=",",
                             na_rep="",
                             float_format=None,
                         )
                             
-
-                        # PLOT !
+                        ### PLOT optimal contrast curve (vs individual ones)
                         colors = sns.color_palette("rocket_r",
                                                    n_colors=len(contrast_curves.columns))
                         colors.append('b')
-    
-                        # 1.) Create Plot Layout
                         fig = plt.figure(constrained_layout=False, figsize=(12, 8))
                         gs0 = fig.add_gridspec(1, 1)
                         axis_contrast_curvse = fig.add_subplot(gs0[0, 0])
-                        
-                        
                         # ---------------------- Create the Plot --------------------
                         i = 0 # color picker
-                        
                         for tmp_model in contrast_curves.columns:
-                        
                             num_components = int(tmp_model[5:9])
                             tmp_flux_ratios = contrast_curves.reset_index(
                                 level=0)[tmp_model].values
@@ -1175,7 +1168,6 @@ def contrast_curves_IRDIS(
                                 color = colors[i],
                                 alpha=0.5)
                             i+=1
-                        
                         axis_contrast_curvse.set_yscale("log")
                         # ------------ Plot the overall best -------------------------
                         axis_contrast_curvse.plot(
@@ -1185,7 +1177,6 @@ def contrast_curves_IRDIS(
                             lw=3,
                             ls="--",
                             label="Best")
-                        
                         # ------------- Double axis and limits -----------------------
                         lim_mag_y = (12.5, 6)
                         lim_arcsec_x = (0.1, 1.3)
@@ -1193,75 +1184,202 @@ def contrast_curves_IRDIS(
                             separations_arcsec, 
                             separations_FWHM, 
                             fill_value='extrapolate')
-                        
                         axis_contrast_curvse_mag = axis_contrast_curvse.twinx()
                         axis_contrast_curvse_mag.plot(
                             separations_arcsec,
                             flux_ratio2mag(tmp_flux_ratios),
                             alpha=0.)
                         axis_contrast_curvse_mag.invert_yaxis()
-                        
                         axis_contrast_curvse_lambda = axis_contrast_curvse.twiny()
                         axis_contrast_curvse_lambda.plot(
                             separations_FWHM,
                             tmp_flux_ratios,
                             alpha=0.)
-                        
                         axis_contrast_curvse.grid(which='both')
                         axis_contrast_curvse_mag.set_ylim(*lim_mag_y)
                         axis_contrast_curvse.set_ylim(
                             mag2flux_ratio(lim_mag_y[0]), 
                             mag2flux_ratio(lim_mag_y[1]))
-                        
                         axis_contrast_curvse.set_xlim(
                             *lim_arcsec_x)
                         axis_contrast_curvse_mag.set_xlim(
                             *lim_arcsec_x)
                         axis_contrast_curvse_lambda.set_xlim(
                             *sep_lambda_arcse(lim_arcsec_x))
-                        
                         # ----------- Labels and fontsizes --------------------------
-                        
                         axis_contrast_curvse.set_xlabel(
                             r"Separation [arcsec]", size=16)
                         axis_contrast_curvse_lambda.set_xlabel(
                             r"Separation [FWHM]", size=16)
-                        
                         axis_contrast_curvse.set_ylabel(
                             r"Planet-to-star flux ratio", size=16)
                         axis_contrast_curvse_mag.set_ylabel(
                             r"$\Delta$ Magnitude", size=16)
-                        
                         axis_contrast_curvse.tick_params(
                             axis='both', which='major', labelsize=14)
                         axis_contrast_curvse_lambda.tick_params(
                             axis='both', which='major', labelsize=14)
                         axis_contrast_curvse_mag.tick_params(
                             axis='both', which='major', labelsize=14)
-                        
                         axis_contrast_curvse_mag.set_title(
                             r"$5 \sigma_{\mathcal{N}}$ Contrast Curves",
                             fontsize=18, fontweight="bold", y=1.1)
-                        
                         # --------------------------- Legend -----------------------
                         handles, labels = axis_contrast_curvse.\
                             get_legend_handles_labels()
-                        
                         leg1 = fig.legend(handles, labels, 
                                           bbox_to_anchor=(0.12, -0.08), 
                                           fontsize=14, 
                                           title="# PCA components",
                                           loc='lower left', ncol=8)
-                        
                         _=plt.setp(leg1.get_title(),fontsize=14)
-                        
                         plt.savefig(outpath_5.format(
                             bin_fac, filt, crop_lab_list[cc]
                         )
                         + "Optimal_contrast_curve_PCA-{}-full.pdf".format(
                             label_stg
                         ), bbox_inches='tight')
-    
-                        counter +=1
+                        
+                        
+                        ### Plot optimal npc for each separation
+                        plt.figure(figsize=(12, 8))
+
+                        plt.plot(separations_arcsec, 
+                                 np.array(test_pcs_full)[np.argmin(
+                                     contrast_curves.values, 
+                                     axis=1)],)
+                        
+                        plt.title(r"Best number of PCA components",
+                                  fontsize=18, fontweight="bold", y=1.1)
+                        
+                        plt.tick_params(axis='both', which='major', labelsize=14)
+                        plt.xlabel("Separation [arcsec]", fontsize=16)
+                        plt.ylabel("Number of PCA components", fontsize=16)
+                        
+                        plt.grid()
+                        ax2 = plt.twiny()
+                        ax2.plot(separations_FWHM, 
+                                 np.array(test_pcs_full)[
+                                     np.argmin(contrast_curves.values, axis=1)],)
+                        ax2.set_xlabel("Separation [FWHM]", fontsize=16)
+                        ax2.tick_params(axis='both', which='major', labelsize=14)
+                        plt.savefig(outpath_5.format(
+                            bin_fac, filt, crop_lab_list[cc]
+                        )
+                        + "Optimal_npc_PCA-{}-full.pdf".format(
+                            label_stg
+                        ), bbox_inches='tight')
+                        
+                        
+                        ### Calculates PCA frames on cube with injections with test pcs                        
+                        snr_tmp_tmp = np.zeros([nspi, ntest_pcs, nfcp])
+                        tmp_tmp = np.zeros(
+                            [
+                                ntest_pcs,
+                                PCA_ADI_cube.shape[1],
+                                PCA_ADI_cube.shape[2],
+                            ]
+                        )
+                        for ns in range(nspi):
+                            theta0 = th0 + ns * th_step
+                            PCA_ADI_cube = open_fits(
+                                outpath_5.format(
+                                    bin_fac, filt, crop_lab_list[cc]
+                                )
+                                + "7_final_crop_PCA_cube"
+                                + label_filt
+                                + "_fcp_spi{:.0f}.fits".format(ns)
+                            )
+                            for pp, npc in enumerate(test_pcs_full):
+                                params_pca = PCA_Params(
+                                    cube=PCA_ADI_cube,
+                                    angle_list=derot_angles,
+                                    cube_ref=ref_cube,
+                                    scale_list=None,
+                                    ncomp=int(npc),
+                                    svd_mode=svd_mode_all[cc],
+                                    scaling=scaling,
+                                    mask_center_px=mask_IWA_px,
+                                    delta_rot=1,
+                                    fwhm=fwhm,
+                                    collapse="median",
+                                    check_memory=True,
+                                    full_output=False,
+                                    verbose=verbose,
+                                    nproc=nproc,
+                                    imlib=imlib,
+                                    interpolation=interpolation,
+                                    source_xy=source_xy[cc],
+                                )
+                                tmp_tmp[pp] = pca(
+                                    algo_params=params_pca
+                                )
+                                for ff in range(nfcp):
+                                    xx_fcp = cx + rad_arr[ff] * np.cos(
+                                        np.deg2rad(
+                                            theta0 + ff * th_step
+                                        )
+                                    )
+                                    yy_fcp = cy + rad_arr[ff] * np.sin(
+                                        np.deg2rad(
+                                            theta0 + ff * th_step
+                                        )
+                                    )
+                                    snr_tmp_tmp[ns, pp, ff] = snr(
+                                        tmp_tmp[pp],
+                                        (xx_fcp, yy_fcp),
+                                        fwhm,
+                                        plot=False,
+                                        exclude_negative_lobes=True,
+                                        verbose=True,
+                                    )
+                            write_fits(
+                                outpath_5.format(
+                                    bin_fac, filt, crop_lab_list[cc]
+                                )
+                                + "TMP_PCA-{}_full_".format(label_stg)
+                                + test_pcs_str
+                                + label_filt
+                                + "_fcp_spi{:.0f}.fits".format(ns),
+                                tmp_tmp,
+                            )
+                        snr_fcp = np.median(snr_tmp_tmp, axis=0)
+                        plt.close()
+                        plt.figure()
+                        plt.title(
+                            "SNR for fcps "
+                            + details
+                            + "(PCA-{} full-frame)".format(label_stg)
+                        )
+                        plt.ylabel("SNR")
+                        plt.xlabel("npc")
+                        for ff in range(nfcp):
+                            marker = all_markers[ff]
+                            for pp, npc in enumerate(test_pcs_full):
+                                plt.plot(npc, snr_fcp[pp, ff], marker)
+
+                        plt.savefig(
+                            outpath_5.format(
+                                bin_fac, filt, crop_lab_list[cc]
+                            )
+                            + "SNR_fcps_PCA-{}-full.pdf".format(
+                                label_stg
+                            ),
+                            format="pdf",
+                        )
+                        write_fits(
+                            outpath_5.format(
+                                bin_fac, filt, crop_lab_list[cc]
+                            )
+                            + "final_PCA-{}_full_SNR_fcps_".format(
+                                label_stg
+                            )
+                            + test_pcs_str
+                            + label_filt
+                            + ".fits",
+                            snr_fcp,
+                        )
             
+            
+                        counter +=1
     return None
