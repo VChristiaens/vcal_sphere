@@ -1089,7 +1089,7 @@ def contrast_curves_IRDIS(
                             
                         contrast_instance.design_fake_planet_experiments(flux_ratios=flux_ratio,
                                                  num_planets=num_fake_planets,
-                                                 overwrite=overwrite_cc)
+                                                 overwrite=True)
                         algorithm_function = MultiComponentPCAvip(num_pcas=test_pcs_full,
                                                                   kwarg=kwargs)
                         contrast_instance.run_fake_planet_experiments(algorithm_function=algorithm_function, 
